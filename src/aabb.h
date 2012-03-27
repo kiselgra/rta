@@ -1,116 +1,105 @@
 #ifndef __RTA_AABB_H__ 
 #define __RTA_AABB_H__ 
 
-#include "template-magick.h"
+#include "template-magic.h"
+#include "basic_types.h"
 
-#include <ostream>
+namespace rta {
 
-	//! Axis aligned bounding box. 
-	template<typename V> class aabb
+	template<typename aabb, typename tri> void merge(aabb &bb, const tri &t)
 	{
-	public:
-		V min, 	//!< Minimale xyz Komponenten
-		  max;	//!< Maximale xyz Komponenten
-	};
-
-	template<typename V> inline std::ostream& operator<<(std::ostream &o, const aabb<V> &bb)
-	{
-		o << "(aabb " << bb.min << " " << bb.max << ")";
-		return o;
+		typedef vec3_t V;
+		const V &a = vertex_a(t);
+		if (x_comp(a) < x_comp(min(bb)))	x_comp(min(bb)) = x_comp(a);		if (x_comp(a) > x_comp(max(bb))) x_comp(max(bb)) = x_comp(a);
+		if (y_comp(a) < y_comp(min(bb)))	y_comp(min(bb)) = y_comp(a);		if (y_comp(a) > y_comp(max(bb))) y_comp(max(bb)) = y_comp(a);
+		if (z_comp(a) < z_comp(min(bb)))	z_comp(min(bb)) = z_comp(a);		if (z_comp(a) > z_comp(max(bb))) z_comp(max(bb)) = z_comp(a);
+		
+		const V &b = vertex_b(t);	
+		if (x_comp(b) < x_comp(min(bb)))	x_comp(min(bb)) = x_comp(b);		if (x_comp(b) > x_comp(max(bb))) x_comp(max(bb)) = x_comp(b);
+		if (y_comp(b) < y_comp(min(bb)))	y_comp(min(bb)) = y_comp(b);		if (y_comp(b) > y_comp(max(bb))) y_comp(max(bb)) = y_comp(b);
+		if (z_comp(b) < z_comp(min(bb)))	z_comp(min(bb)) = z_comp(b);		if (z_comp(b) > z_comp(max(bb))) z_comp(max(bb)) = z_comp(b);
+		
+		const V &c = vertex_c(t);
+		if (x_comp(c) < x_comp(min(bb)))	x_comp(min(bb)) = x_comp(c);		if (x_comp(c) > x_comp(max(bb))) x_comp(max(bb)) = x_comp(c);
+		if (y_comp(c) < y_comp(min(bb)))	y_comp(min(bb)) = y_comp(c);		if (y_comp(c) > y_comp(max(bb))) y_comp(max(bb)) = y_comp(c);
+		if (z_comp(c) < z_comp(min(bb)))	z_comp(min(bb)) = z_comp(c);		if (z_comp(c) > z_comp(max(bb))) z_comp(max(bb)) = z_comp(c);
 	}
 
-	template<typename V, typename TRI> void unionize(aabb<V> &bb, const TRI &t)
+	template<typename aabb, typename CONTAINER> aabb compute_aabb(const CONTAINER &container, typename CONTAINER::const_iterator start, typename CONTAINER::const_iterator end)
 	{
-		const V &a = t.vertex_a();	
-		if (x_comp(a) < x_comp(bb.min))		x_comp(bb.min) = x_comp(a);		if (x_comp(a) > x_comp(bb.max)) x_comp(bb.max) = x_comp(a);
-		if (y_comp(a) < y_comp(bb.min))		y_comp(bb.min) = y_comp(a);		if (y_comp(a) > y_comp(bb.max)) y_comp(bb.max) = y_comp(a);
-		if (z_comp(a) < z_comp(bb.min))		z_comp(bb.min) = z_comp(a);		if (z_comp(a) > z_comp(bb.max)) z_comp(bb.max) = z_comp(a);
-		
-		const V &b = t.vertex_b();	
-		if (x_comp(b) < x_comp(bb.min))	x_comp(bb.min) = x_comp(b);		if (x_comp(b) > x_comp(bb.max)) x_comp(bb.max) = x_comp(b);
-		if (y_comp(b) < y_comp(bb.min))	y_comp(bb.min) = y_comp(b);		if (y_comp(b) > y_comp(bb.max)) y_comp(bb.max) = y_comp(b);
-		if (z_comp(b) < z_comp(bb.min))	z_comp(bb.min) = z_comp(b);		if (z_comp(b) > z_comp(bb.max)) z_comp(bb.max) = z_comp(b);
-		
-		const V &c = t.vertex_c();
-		if (x_comp(c) < x_comp(bb.min))	x_comp(bb.min) = x_comp(c);		if (x_comp(c) > x_comp(bb.max)) x_comp(bb.max) = x_comp(c);
-		if (y_comp(c) < y_comp(bb.min))	y_comp(bb.min) = y_comp(c);		if (y_comp(c) > y_comp(bb.max)) y_comp(bb.max) = y_comp(c);
-		if (z_comp(c) < z_comp(bb.min))	z_comp(bb.min) = z_comp(c);		if (z_comp(c) > z_comp(bb.max)) z_comp(bb.max) = z_comp(c);
-	}
-
-	template<typename V, typename CONTAINER> aabb<V> compute_aabb(const CONTAINER &container, typename CONTAINER::const_iterator start, typename CONTAINER::const_iterator end)
-	{
-		aabb<V> bb;
-		bb.min = start->vertex_a();
-		bb.max = start->vertex_a();
+		aabb bb;
+		min(bb) = start->vertex_a();
+		max(bb) = start->vertex_a();
 		for (typename CONTAINER::const_iterator it = start; it != end; ++it)
-			unionize(bb, *it);
+			merge(bb, *it);
 
 		return bb;
 	}
 
-	template<typename V, typename TRI> aabb<V> compute_aabb(const TRI *container, unsigned int start, unsigned int end)
+	template<typename aabb, typename TRI> aabb compute_aabb(const TRI *container, unsigned int start, unsigned int end)
 	{
-		aabb<V> bb;
-		bb.min = container[start].vertex_a();
-		bb.max = container[start].vertex_a();
+		aabb bb;
+		min(bb) = vertex_a(container[start]);
+		max(bb) = vertex_a(container[start]);
 		for (unsigned int it = start; it != end; ++it)
-			unionize(bb, container[it]);
+			merge(bb, container[it]);
 
 		return bb;
 	}
 
-	template<typename V, typename CONTAINER> typename enable_if<iscontainer<CONTAINER>::Result, aabb<V> >::Type compute_aabb(const CONTAINER &container)
+	template<typename aabb, typename CONTAINER> typename enable_if<iscontainer<CONTAINER>::Result, aabb>::Type compute_aabb(const CONTAINER &container)
 	{
-		return compute_aabb<V>(container, container.begin(), container.end());
+		return compute_aabb<aabb>(container, container.begin(), container.end());
 	}
 
-	template<typename V, typename TRI> aabb<V> compute_aabb(TRI **triangle, unsigned int n)
+	template<typename aabb, typename TRI> aabb compute_aabb(TRI **triangle, unsigned int n)
 	{
-		aabb<V> bb;
-		bb.min = triangle[0]->vertex_a();
-		bb.max = triangle[0]->vertex_a();
+		aabb bb;
+		min(bb) = vertex_a(*triangle[0]);
+		max(bb) = vertex_a(*triangle[0]);
 		for (int i = 0; i < n; ++i)
-			unionize(bb, *triangle[i]);
+			merge(bb, *triangle[i]);
 
 		return bb;
 	}
 
-	template<typename V, typename TRI> typename enable_if<!iscontainer<TRI>::Result, aabb<V> >::Type compute_aabb(const TRI &t)
+	template<typename aabb, typename TRI> typename enable_if<!iscontainer<TRI>::Result, aabb>::Type compute_aabb(const TRI &t)
 	{	
-		aabb<V> bb;
-		bb.min = t.vertex_a();
-		bb.max = t.vertex_a();
-		unionize(bb, t);
+		aabb bb;
+		min(bb) = vertex_a(t);
+		max(bb) = vertex_a(t);
+		merge(bb, t);
 		return bb;
 	}
 
-	template<typename V> inline void unionize(aabb<V> &a, const aabb<V> &b)
+	template<typename aabb> inline void merge(aabb &a, const aabb &b)
 	{
-		x_comp(a.min) = std::min(x_comp(a.min), x_comp(b.min));
-		y_comp(a.min) = std::min(y_comp(a.min), y_comp(b.min));
-		z_comp(a.min) = std::min(z_comp(a.min), z_comp(b.min));
-		x_comp(a.max) = std::max(x_comp(a.max), x_comp(b.max));
-		y_comp(a.max) = std::max(y_comp(a.max), y_comp(b.max));
-		z_comp(a.max) = std::max(z_comp(a.max), z_comp(b.max));
+		x_comp(min(a)) = std::min(x_comp(min(a)), x_comp(min(b)));
+		y_comp(min(a)) = std::min(y_comp(min(a)), y_comp(min(b)));
+		z_comp(min(a)) = std::min(z_comp(min(a)), z_comp(min(b)));
+		x_comp(max(a)) = std::max(x_comp(max(a)), x_comp(max(b)));
+		y_comp(max(a)) = std::max(y_comp(max(a)), y_comp(max(b)));
+		z_comp(max(a)) = std::max(z_comp(max(a)), z_comp(max(b)));
 	}
 
-	template<typename V> inline aabb<V> union_of(const aabb<V> &a, const aabb<V> &b)
+	template<typename aabb> inline aabb union_of(const aabb &a, const aabb &b)
 	{
-		aabb<V> res;
-		x_comp(res.min) = std::min(x_comp(a.min), x_comp(b.min));
-		y_comp(res.min) = std::min(y_comp(a.min), y_comp(b.min));
-		z_comp(res.min) = std::min(z_comp(a.min), z_comp(b.min));
-		x_comp(res.max) = std::max(x_comp(a.max), x_comp(b.max));
-		y_comp(res.max) = std::max(y_comp(a.max), y_comp(b.max));
-		z_comp(res.max) = std::max(z_comp(a.max), z_comp(b.max));
+		aabb res;
+		x_comp(min(res)) = std::min(x_comp(min(a)), x_comp(min(b)));
+		y_comp(min(res)) = std::min(y_comp(min(a)), y_comp(min(b)));
+		z_comp(min(res)) = std::min(z_comp(min(a)), z_comp(min(b)));
+		x_comp(max(res)) = std::max(x_comp(max(a)), x_comp(max(b)));
+		y_comp(max(res)) = std::max(y_comp(max(a)), y_comp(max(b)));
+		z_comp(max(res)) = std::max(z_comp(max(a)), z_comp(max(b)));
 		return res;
 	}
 
-	template<typename V> inline V center(const aabb<V> &b)
+	template<typename aabb> inline vec3_t center(const aabb &b)
 	{
-		return V((b.max - b.min) * 0.5 + b.min);
+		return typename aabb::vec3_t((b.max - b.min) * 0.5 + b.min);
 	}
 
+}
 
 #endif
 

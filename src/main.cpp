@@ -1,6 +1,6 @@
 #include "image.h"
+#include "basic_types.h"
 
-#include <libmcm/vectors.h>
 #include <libobjloader/default.h>
 
 #include <string>
@@ -18,25 +18,11 @@ using namespace std;
 
 namespace rta {
 
-	typedef unsigned int uint;
-	typedef float float_t;
-	typedef vec3f vec3_t;
-
-	
-	struct simple_triangle {
-		vec3_t a, b, c;
-		vec3_t na, nb, nc;
-	};
-
-	struct simple_aabb {
-		vec3_t min, max;
-	};
-
 
 class binary_bvh_facade {
 	public:
 		// node adding, etc?
-		void reserver_node_storage(unsigned int nodes);
+		void reserve_node_storage(unsigned int nodes);
 };
 
 ////////////////////
@@ -120,22 +106,42 @@ std::list<flat_triangle_list> load_objfile_to_flat_tri_list(const std::string &f
 }
 
 struct bbvh_no_bias {
+	static void apply(uint &begin, uint &mid, uint &end) {
+	}
 };
 
 template<typename bvh_t, typename bias_t = bbvh_no_bias> 
 class bbvh_constructor_using_median {
 	protected:
 		typedef typename bvh_t::node node_t;
+		typedef typename bvh_t::box_t box_t;
+		typedef typename bvh_t::tri_t tri_t;
+		typedef typename bvh_t::link_t link_t;
+
 		std::vector<node_t> nodes;
+		const uint max_tris_per_node;
 
 		enum axes { X = 0, Y, Z };
+		
+		template<unsigned int N> static int tri_sort(const tri_t *a, const tri_t *b) { // optimize: component-cog.
+			vec3_t cog = center_of_gravity(*a);
+			float cog_a = comp<N>(cog);
+			cog = center_of_gravity(*b);
+			float cog_b = comp<N>(cog);
+			if (cog_a < cog_b) return -1;
+			else if (cog_a == cog_b) return 0;
+			return 1;
+		}
+		static int tri_sort_x(const tri_t *a, const tri_t *b) { tri_sort<X>(a, b); }
+		static int tri_sort_y(const tri_t *a, const tri_t *b) { tri_sort<Y>(a, b); }
+		static int tri_sort_z(const tri_t *a, const tri_t *b) { tri_sort<Z>(a, b); }
 
-		bvh_t* build_om(flat_triangle_list *tris, uint begin, uint end) {
-			/*
-			int id = nodes.size();
+		// build o.m. for triangles in [begin, end)
+		uint build_om(tri_t *tris, uint begin, uint end) {
+			uint id = nodes.size();
 			nodes.push_back(node_t());
 			node_t *n = &nodes[id];
-			n->box = compute_aabb<vec3f>(tris, begin, end);
+			n->box = compute_aabb<box_t>(tris, begin, end);
 
 			// 	cout << n->box.min.x << "\t" << n->box.min.y << "\t" << n->box.min.z << endl;
 			// 	cout << n->box.max.x << "\t" << n->box.max.y << "\t" << n->box.max.z << endl;
@@ -152,10 +158,10 @@ class bbvh_constructor_using_median {
 					else                    {	qsort(tris+begin, end-begin, sizeof(tri_t), (int(*)(const void*,const void*))tri_sort_z);	}
 
 				uint mid = begin + (end-begin)/2;
-				if (sse_compatible) adjust_for_sse(begin, mid, end);
+				bias_t::apply(begin, mid, end);
 
-				link_t left  = build_object_median_bvh_from(tris, begin, mid);
-				link_t right = build_object_median_bvh_from(tris, mid, end);
+				link_t left  = build_om(tris, begin, mid);
+				link_t right = build_om(tris, mid, end);
 				n = &nodes[id]; // refresh pointer!
 				n->left(left);
 				n->right(right);
@@ -163,6 +169,7 @@ class bbvh_constructor_using_median {
 			}
 			else 
 			{
+			/*
 				int idx = tri_lines.size();
 				tri_t *leaf_tris = new tri_t[elems];
 				tri_lines.push_back(leaf_tris);
@@ -171,18 +178,23 @@ class bbvh_constructor_using_median {
 				n->elems(elems);
 				n->tris(idx);
 				n->make_leaf();
+			*/
 			}
 
 			return id;
-			*/
 		}
 	public:
 		enum median_t { object_median, spatial_median };
 		median_t median;
-		bbvh_constructor_using_median(median_t median) : median(median) {
+		static const uint default_max_tris_per_node = 4;
+
+		bbvh_constructor_using_median(median_t median, uint max_tris_per_node = default_max_tris_per_node) 
+		: median(median), max_tris_per_node(max_tris_per_node) {
 		}
+
 		bvh_t* build(flat_triangle_list *tris) {
-// 			bvh_t 
+			uint root = build_om(tris->triangle, 0, tris->triangles);
+			return 0;
 		}
 };
 
@@ -360,8 +372,8 @@ int main() {
 	using namespace rta;
 	using namespace std;
 
-	typedef int box_t;
 	typedef simple_triangle tri_t;
+	typedef simple_aabb box_t;
 	typedef binary_bvh<box_t, tri_t> bvh_t;
 	typedef multi_bvh_sse<box_t, tri_t> mbvh_t;
 
