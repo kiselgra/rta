@@ -1,5 +1,5 @@
-#ifndef __INTERSECT_H__ 
-#define __INTERSECT_H__ 
+#ifndef __RTA_INTERSECT_H__ 
+#define __RTA_INTERSECT_H__ 
 
 #include "basic_types.h"
 
