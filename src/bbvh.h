@@ -248,6 +248,80 @@ template<box_t__and__tri_t> class bbvh_direct_is_tracer : public bbvh_tracer<for
 };
 
 
+template<box_t__and__tri_t> class bbvh_child_is_tracer : public bbvh_tracer<forward_traits> {
+	public:
+		declare_traits_types;
+		typedef binary_bvh<box_t, tri_t> bbvh_t;
+		typedef typename bbvh_t::node_t node_t;
+		using raytracer::raygen;
+		using raytracer::cpu_bouncer;
+
+		bbvh_child_is_tracer(ray_generator *gen, bbvh_t *bvh, class bouncer *b) : bbvh_tracer<forward_traits>(gen, bvh, b) {
+		}
+		virtual void trace_rays() {
+			std::cout << "trace rays" << std::endl;
+			wall_time_timer wtt; wtt.start();
+			traversal_state state;
+			for (uint y = 0; y < raygen->res_y(); ++y) {
+				for (uint x = 0; x < raygen->res_x(); ++x) {
+					state.reset(x,y);
+					trace_ray(state, raygen->origin(x,y), raygen->direction(x,y));
+					cpu_bouncer->save_intersection(x,y,state.intersection);
+				}
+			}
+			float ms = wtt.look();
+			cout << "took " << ms << " ms." << endl;
+		}
+		void trace_ray(traversal_state &state, const vec3_t *origin, const vec3_t *dir) {
+			state.stack[0] = 0;
+			state.sp = 0;
+			node_t *curr = 0;
+			while (state.sp >= 0) {
+				uint node = state.pop();
+				curr = &bbvh_tracer<forward_traits>::bvh->nodes[node];
+				if (curr->inner()) {
+					float dist_l, dist_r;
+					uint n_left   = curr->left();
+					node_t *left  = &bbvh_tracer<forward_traits>::bvh->nodes[n_left];
+					bool do_left  = intersect_aabb(left->box, origin, dir, dist_l);
+					
+					uint n_right  = curr->right();
+					node_t *right = &bbvh_tracer<forward_traits>::bvh->nodes[n_right];
+					bool do_right = intersect_aabb(right->box, origin, dir, dist_r);
+
+					do_left  = do_left  && dist_l < state.intersection.t;
+					do_right = do_right && dist_r < state.intersection.t;
+					if (do_left && do_right)
+						if (dist_l <= dist_r) {
+							state.push(n_right);
+							state.push(n_left);
+						}
+						else {
+							state.push(n_left);
+							state.push(n_right);
+						}
+					else if (do_left)
+						state.push(n_left);
+					else if (do_right)
+						state.push(n_right);
+				}
+				else {
+					int elems = curr->elems();
+					int offset = curr->tris();
+					for (int i = 0; i < elems; ++i) {
+						triangle_intersection is;
+						if (intersect_tri_opt(bbvh_tracer<forward_traits>::bvh->triangles[offset+i], origin, dir, is)) {
+							if (is.t < state.intersection.t)
+								state.intersection = is;
+						}
+					}
+				}
+			}
+		}
+};
+
+
+
 }
 
 

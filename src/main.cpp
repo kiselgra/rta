@@ -182,7 +182,8 @@ int main(int argc, char **argv) {
 	bvh_t *bvh = ctor.build(&triangle_lists.front());
 	cout << "trace" << endl;
 	binary_png_tester coll(res_x, res_y);
-	bbvh_direct_is_tracer<box_t, tri_t> rt(&crgs, bvh, &coll);
+// 	bbvh_direct_is_tracer<box_t, tri_t> rt(&crgs, bvh, &coll);
+	bbvh_child_is_tracer<box_t, tri_t> rt(&crgs, bvh, &coll);
 	rt.trace();
 	cout << "save" << endl;
 	coll.save();
