@@ -440,7 +440,7 @@ template<box_t__and__tri_t> class bbvh_direct_is_tracer : public bbvh_tracer<for
 				curr = &bbvh_tracer<forward_traits>::bvh->nodes[node];
 				if (curr->inner()) {
 					float dist;
-					if (intersect_aabb(curr->box, origin, dir, dist)) {
+					if (intersect_aabb(curr->box, origin, dir, dist))
 						if (dist < state.intersection.t) {
 							state.push(curr->right());
 							state.push(curr->left());
