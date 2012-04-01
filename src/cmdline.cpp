@@ -4,6 +4,7 @@
 #include <argp.h>
 #include <string>
 #include <iostream>
+#include <sstream>
 
 
 
@@ -21,6 +22,9 @@ static struct argp_option options[] =
 {
 	// --[opt]		short/const		arg-descr		?		option-descr
 	{ "verbose", 'v', 0,         0, "Be verbose." },
+	{ "pos",     'p', "x,y,z",   0, "Camera position."},
+	{ "dir",     'd', "x,y,z",   0, "Camera viewing direction."},
+	{ "up",      'u', "x,y,z",   0, "Camera up vector."},
 	{ 0 }
 };	
 
@@ -30,6 +34,14 @@ string& replace_nl(string &s)
 		if (s[i] == '\n' || s[i] == '\r')
 			s[i] = ' ';
 	return s;
+}
+
+vec3f read_vec3f(const std::string &s) {
+	istringstream iss(s);
+	vec3f v;
+	char sep;
+	iss >> v.x >> sep >> v.y >> sep >> v.z;
+	return v;
 }
 
 
@@ -45,6 +57,10 @@ static error_t parse_options(int key, char *arg, argp_state *state)
 	switch (key)
 	{
 	case 'v':	cmdline.verbose = true; 	break;
+	
+	case 'p':	cmdline.pos = read_vec3f(sarg); break;
+	case 'd':	cmdline.dir = read_vec3f(sarg); break;
+	case 'u':	cmdline.up  = read_vec3f(sarg); break;
 	
 	case ARGP_KEY_ARG:		// process arguments. 
 							// state->arg_num gives number of current arg

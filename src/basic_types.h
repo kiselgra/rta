@@ -2,6 +2,7 @@
 #define __BASIC_TYPES_H__ 
 
 #include <ostream>
+#include <float.h>
 
 #include <libmcm/vectors.h>
 
@@ -21,6 +22,14 @@ namespace rta {
 
 	struct simple_aabb {
 		vec3_t min, max;
+	};
+
+	struct triangle_intersection {
+		float_t t, beta, gamma;
+		uint triangle_id;
+		triangle_intersection() : t(FLT_MAX) {}
+		bool valid() const { return t != FLT_MAX; }
+		void reset() { t = FLT_MAX; }
 	};
 
 
@@ -47,8 +56,8 @@ namespace rta {
 		static inline const float_t &ref(const T &t) { return z_comp(t); }
 	};
 	//! access vector components by number
-	template<unsigned int N, typename T> inline       float_t& comp(T &t)       { comp_impl<T, N>::ref(t); }
-	template<unsigned int N, typename T> inline const float_t& comp(const T &t) { comp_impl<T, N>::ref(t); }
+	template<unsigned int N, typename T> inline       float_t& comp(T &t)       { return comp_impl<T, N>::ref(t); }
+	template<unsigned int N, typename T> inline const float_t& comp(const T &t) { return comp_impl<T, N>::ref(t); }
 
 	//! acess vector components by name
 	template<typename T> inline       float_t& x_comp(T &t)            { invalid_instantiation; }
@@ -86,13 +95,17 @@ namespace rta {
 	template<typename T> inline const vec3_t& vertex_c(const T &t)               { invalid_instantiation; }
 	template<>           inline const vec3_t& vertex_c(const simple_triangle &t) { return t.c; }
 
-	//! access an aabb's vertices by name
-	template<typename T> inline vec3_t& min(T &bb) { invalid_instantiation; }
-	template<> inline vec3_t& min(simple_aabb &bb) { return bb.min; }
+	//! access an aabb's vertices by name - min
+	template<typename T> inline       vec3_t& min(T &bb)                 { invalid_instantiation; }
+	template<>           inline       vec3_t& min(simple_aabb &bb)       { return bb.min; }
+	template<typename T> inline const vec3_t& min(const T &bb)           { invalid_instantiation; }
+	template<>           inline const vec3_t& min(const simple_aabb &bb) { return bb.min; }
 	
-	//! access an aabb's vertices by name
-	template<typename T> inline vec3_t& max(T &bb) { invalid_instantiation; }
-	template<> inline vec3_t& max(simple_aabb &bb) { return bb.max; }
+	//! access an aabb's vertices by name - max
+	template<typename T> inline       vec3_t& max(T &bb)                 { invalid_instantiation; }
+	template<>           inline       vec3_t& max(simple_aabb &bb)       { return bb.max; }
+	template<typename T> inline const vec3_t& max(const T &bb)           { invalid_instantiation; }
+	template<>           inline const vec3_t& max(const simple_aabb &bb) { return bb.max; }
 
 
 

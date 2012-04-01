@@ -1,10 +1,14 @@
 #include "image.h"
 #include "basic_types.h"
+#include "cmdline.h"
+#include "wall-timer.h"
+#include "intersect.h"
 
 #include <libobjloader/default.h>
 
 #include <string>
 #include <list>
+#include <float.h>
 
 /*
 todo:
@@ -53,6 +57,21 @@ template<box_t__and__tri_t> class binary_bvh : public binary_bvh_facade {
 			void tris(link_t n)  { right_tris = n; }
 			uint tris()          { return right_tris; }
 		};
+		typedef node node_t;
+
+		std::vector<node> nodes;
+		std::vector<tri_t> triangles;
+
+		//! take the nodes stored in the array. \attention does so destructively!
+		void take_node_array(std::vector<node> &n) {
+			nodes.swap(n);
+		}
+		
+		//! take the triangles stored in the array. \attention does so destructively!
+		void take_triangle_array(std::vector<tri_t> &t) {
+			triangles.swap(t);
+		}
+
 };
 
 template<box_t__and__tri_t> class stackess_binary_bvh : public binary_bvh_facade {
@@ -120,6 +139,7 @@ class bbvh_constructor_using_median {
 
 		std::vector<node_t> nodes;
 		const uint max_tris_per_node;
+		std::vector<tri_t> triangles;
 
 		enum axes { X = 0, Y, Z };
 		
@@ -132,9 +152,10 @@ class bbvh_constructor_using_median {
 			else if (cog_a == cog_b) return 0;
 			return 1;
 		}
-		static int tri_sort_x(const tri_t *a, const tri_t *b) { tri_sort<X>(a, b); }
-		static int tri_sort_y(const tri_t *a, const tri_t *b) { tri_sort<Y>(a, b); }
-		static int tri_sort_z(const tri_t *a, const tri_t *b) { tri_sort<Z>(a, b); }
+		
+		static int tri_sort_x(const tri_t *a, const tri_t *b) { return tri_sort<X>(a, b); }
+		static int tri_sort_y(const tri_t *a, const tri_t *b) { return tri_sort<Y>(a, b); }
+		static int tri_sort_z(const tri_t *a, const tri_t *b) { return tri_sort<Z>(a, b); }
 
 		// build o.m. for triangles in [begin, end)
 		uint build_om(tri_t *tris, uint begin, uint end) {
@@ -142,9 +163,6 @@ class bbvh_constructor_using_median {
 			nodes.push_back(node_t());
 			node_t *n = &nodes[id];
 			n->box = compute_aabb<box_t>(tris, begin, end);
-
-			// 	cout << n->box.min.x << "\t" << n->box.min.y << "\t" << n->box.min.z << endl;
-			// 	cout << n->box.max.x << "\t" << n->box.max.y << "\t" << n->box.max.z << endl;
 
 			uint elems = end-begin;
 			if (elems > max_tris_per_node) 
@@ -169,16 +187,12 @@ class bbvh_constructor_using_median {
 			}
 			else 
 			{
-			/*
-				int idx = tri_lines.size();
-				tri_t *leaf_tris = new tri_t[elems];
-				tri_lines.push_back(leaf_tris);
+				int idx = triangles.size();
 				for (int i = 0; i < elems; ++i)
-					leaf_tris[i] = tris[begin+i];
+					triangles.push_back(tris[begin+i]);
 				n->elems(elems);
 				n->tris(idx);
 				n->make_leaf();
-			*/
 			}
 
 			return id;
@@ -193,8 +207,18 @@ class bbvh_constructor_using_median {
 		}
 
 		bvh_t* build(flat_triangle_list *tris) {
+			std::cout << "building bvh for triangle list of " << tris->triangles << " triangles" << std::endl;
 			uint root = build_om(tris->triangle, 0, tris->triangles);
-			return 0;
+			assert(root == 0);
+			
+			std::cout << "done building bvh (" << nodes.size() << " nodes, " << triangles.size() << " triangles)" << std::endl;
+
+
+			bvh_t *bvh = new bvh_t;
+			bvh->take_node_array(nodes);
+			bvh->take_triangle_array(triangles);
+
+			return bvh;
 		}
 };
 
@@ -222,32 +246,67 @@ template<typename mbvh_t, typename bbvh_ctor_t> class mbvh_sse_contructor {
 
 ////////////////////
 
+//! state of a ray traversal as executed by a trace thread. not nested in raytracer because of forward-delcaration conflicts.
+struct traversal_state {
+	enum { stack_size = 128 };
+	uint stack[stack_size];
+	int sp; //!< -1 -> stack empty.
+	uint x, y;
+	triangle_intersection intersection;
+	void reset(uint x, uint y) {
+		this->x = x, this->y = y;
+		sp = 0;
+		intersection.reset();
+	}
+	uint pop() { return stack[sp--]; }
+	void push(uint node) { stack[++sp] = node; }
+};
+
+////////////////////
+
 class bouncer { // sequential calls to raytrace
 	public:
-		virtual void trace_single_bounce() = 0;
+		virtual void bounce_ray(const traversal_state &state, vec3_t *origin, vec3_t *dir) = 0;
 		virtual bool trace_further_bounces() = 0;
 		virtual void new_pass() {}
 };
 
 class primary_intersection_collector : public bouncer {
-		bool done;
 	public:
-		primary_intersection_collector() : done(false) {
+		primary_intersection_collector() {
 		}
-		virtual void trace_single_bounce() {
-			done = true;
+		virtual void bounce_ray(const traversal_state &state, vec3_t *origin, vec3_t *dir) {
 		}
 		virtual bool trace_further_bounces() {
-			return !done;
+			return false;
+		}
+};
+
+class binary_png_tester : public bouncer {
+		image<unsigned char, 3> res;
+	public:
+		binary_png_tester(uint w, uint h) :res(w,h) {
+			for (int y = 0; y < h; ++y)
+				for (int x = 0; x < w; ++x)
+					for (int c = 0; c < 3; ++c)
+						res.pixel(x,y,c) = 0;
+		}
+		virtual void bounce_ray(const traversal_state &state, vec3_t *origin, vec3_t *dir) {
+			res.pixel(state.x,state.y,1) = (state.intersection.valid() ? 255 : 0);
+		}
+		virtual bool trace_further_bounces() {
+			return false;
+		}
+		void save() {
+			res.save_png("/tmp/blub.png");
 		}
 };
 
 ////////////////////
 
 class ray_generator {
-	protected:
-		image<vec3f, 2> raydata;
 	public:
+		image<vec3f, 2> raydata;
 		ray_generator(unsigned int res_x, unsigned int res_y) : raydata(res_x, res_y) {
 		}
 		virtual void generate_rays() = 0;
@@ -314,9 +373,26 @@ class cam_ray_generator_shirley : public ray_generator {
 ////////////////////
 
 class raytracer {
+// 		struct trace_thread {
+// 		};
 		ray_generator *raygen;
 		class bouncer *bouncer;
-		virtual void trace_rays() = 0;
+		void trace_rays() {
+			std::cout << "trace rays" << std::endl;
+			wall_time_timer wtt; wtt.start();
+			traversal_state state;
+			for (uint y = 0; y < raygen->res_y(); ++y) {
+				cout << "Y = " << y << endl;
+				for (uint x = 0; x < raygen->res_x(); ++x) {
+					state.reset(x,y);
+					trace_ray(state, raygen->origin(x,y), raygen->direction(x,y));
+					bouncer->bounce_ray(state, raygen->origin(x,y), raygen->direction(x,y));
+				}
+			}
+			float ms = wtt.look();
+			cout << "took " << ms << " ms." << endl;
+		}
+		virtual void trace_ray(traversal_state &state, const vec3_t *origin, const vec3_t *dir) = 0;
 	public:
 		raytracer(ray_generator *raygen, class bouncer *bouncer) : raygen(raygen), bouncer(bouncer) {
 		}
@@ -325,11 +401,14 @@ class raytracer {
 		virtual void prepare_bvh_for_tracing() { // potentially uploads the bvh to the gpu? will ich das?
 		}
 		virtual void trace() {
+			std::cout << "setting up rays for first bounce" << std::endl;
 			raygen->generate_rays();
 			do {
+				std::cout << "tracing rays" << std::endl;
 				trace_rays();		
 				// bouncer->bounce
 			} while (bouncer->trace_further_bounces());
+			std::cout << "trace done" << std::endl;
 		}
 };
 
@@ -342,18 +421,43 @@ template<box_t__and__tri_t> class bbvh_tracer : public raytracer {
 	public:
 		bbvh_tracer(ray_generator *gen, bbvh_t *bvh, class bouncer *b) : raytracer(gen, b), bvh(bvh) {
 		}
-// 		void trace() {
-// 		}
 };
 
 template<box_t__and__tri_t> class bbvh_direct_is_tracer : public bbvh_tracer<forward_traits> {
 	public:
 		declare_traits_types;
 		typedef binary_bvh<box_t, tri_t> bbvh_t;
+		typedef typename bbvh_t::node_t node_t;
 
 		bbvh_direct_is_tracer(ray_generator *gen, bbvh_t *bvh, class bouncer *b) : bbvh_tracer<forward_traits>(gen, bvh, b) {
 		}
-		void trace_rays() {
+		void trace_ray(traversal_state &state, const vec3_t *origin, const vec3_t *dir) {
+			state.stack[0] = 0;
+			state.sp = 0;
+			node_t *curr = 0;
+			while (state.sp >= 0) {
+				uint node = state.pop();
+				curr = &bbvh_tracer<forward_traits>::bvh->nodes[node];
+				if (curr->inner()) {
+					float dist;
+					if (intersect_aabb(curr->box, origin, dir, dist)) {
+						if (dist < state.intersection.t) {
+							state.push(curr->right());
+							state.push(curr->left());
+						}
+				}
+				else {
+					int elems = curr->elems();
+					int offset = curr->tris();
+					for (int i = 0; i < elems; ++i) {
+						triangle_intersection is;
+						if (intersect_tri_opt(bbvh_tracer<forward_traits>::bvh->triangles[offset+i], origin, dir, is)) {
+							if (is.t < state.intersection.t)
+								state.intersection = is;
+						}
+					}
+				}
+			}
 		}
 };
 
@@ -364,11 +468,18 @@ template<box_t__and__tri_t> class bbvh_direct_is_tracer : public bbvh_tracer<for
 
 // typedef auto function;
 
+#define defun auto
 auto foo(int x, int y) -> int {
 	return x + y;
 }
 
-int main() {
+defun foo2 (int x, int y) -> int {
+	return x + y;
+}
+
+int main(int argc, char **argv) {
+	parse_cmdline(argc, argv);
+
 	using namespace rta;
 	using namespace std;
 
@@ -378,25 +489,34 @@ int main() {
 	typedef multi_bvh_sse<box_t, tri_t> mbvh_t;
 
 	cout << "loading object" << endl;
-	auto triangle_lists = load_objfile_to_flat_tri_list("/home/kai/render-data/models/bunny-70k.obj");
+	auto triangle_lists = load_objfile_to_flat_tri_list("/home/kai/render-data/models/drache.obj");
 	
+	uint res_x = 512, 
+		 res_y = 512;
 	cout << "initializing rays" << endl;
-	cam_ray_generator_shirley crgs(1024, 768);
-	vec3f pos = {0,0,0}, dir = {0,0,1}, up = {0,1,0};
-	crgs.setup(&pos, &dir, &up, 35);
+	cam_ray_generator_shirley crgs(res_x, res_y);
+	crgs.setup(&cmdline.pos, &cmdline.dir, &cmdline.up, 35);
 	crgs.generate_rays();
 	
 	cout << "building bvh" << endl;
 	bbvh_constructor_using_median<bvh_t> ctor(bbvh_constructor_using_median<bvh_t>::object_median);
-	ctor.build(&triangle_lists.front());
+	bvh_t *bvh = ctor.build(&triangle_lists.front());
+	cout << "trace" << endl;
+	binary_png_tester coll(res_x, res_y);
+	bbvh_direct_is_tracer<box_t, tri_t> rt(&crgs, bvh, &coll);
+	rt.trace();
+	cout << "save" << endl;
+	coll.save();
 	cout << "done" << endl;
 
+	if (0)
 	{
 		bbvh_constructor_using_binning<bvh_t> ctor;
 		flat_triangle_list tris;
 		bvh_t *my_bbvh = ctor.build(&tris);
 	}
 
+	if (0)
 	{
 		mbvh_sse_contructor<mbvh_t, bbvh_constructor_using_median<bvh_t>> ctor;
 		flat_triangle_list tris;
