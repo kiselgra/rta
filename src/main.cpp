@@ -197,6 +197,68 @@ class bbvh_constructor_using_median {
 
 			return id;
 		}
+
+		uint compute_spatial_median(tri_t *sorted, uint begin, uint end, const float_t&(*comp)(const vec3_t&)) {
+			// determine the interval of the centers of the boxes.
+			// the bb of the container cannot be used, as the midpoints of the boxes might cluster.
+			float min_cog = comp(center_of_gravity(sorted[begin])),
+				  max_cog = comp(center_of_gravity(sorted[begin]));
+			for (uint it = begin; it != end; ++it) {
+				float_t tmp = comp(center_of_gravity(sorted[it]));
+				if (tmp < min_cog)	min_cog = tmp;
+				if (tmp > max_cog)	max_cog = tmp;
+			}
+
+			// divide.
+			float_t s = (max_cog - min_cog) / 2 + min_cog;
+			uint it = begin;
+			while (it != end && comp(center_of_gravity(sorted[it])) < s)		
+				++it;
+			return it;
+		}
+
+		uint build_sm(tri_t *tris, uint begin, uint end) {
+			uint id = nodes.size();
+			nodes.push_back(node_t());
+			node_t *n = &nodes[id];
+			n->box = compute_aabb<box_t>(tris, begin, end);
+
+			uint elems = end-begin;
+			if (elems > max_tris_per_node) 
+			{
+				vec3f dists; sub_components_vec3f(&dists, &n->box.max, &n->box.min);
+				const float_t& (*comp_n)(const vec3_t&) = x_comp;
+				if (dists.x > dists.y)
+					if (dists.x > dists.z)	{	qsort(tris+begin, end-begin, sizeof(tri_t), (int(*)(const void*,const void*))tri_sort_x); comp_n=x_comp; }
+					else                    {	qsort(tris+begin, end-begin, sizeof(tri_t), (int(*)(const void*,const void*))tri_sort_z); comp_n=z_comp; }
+				else
+					if (dists.y > dists.z)	{	qsort(tris+begin, end-begin, sizeof(tri_t), (int(*)(const void*,const void*))tri_sort_y); comp_n=y_comp; }
+					else                    {	qsort(tris+begin, end-begin, sizeof(tri_t), (int(*)(const void*,const void*))tri_sort_z); comp_n=z_comp; }
+
+				uint mid = compute_spatial_median(tris, begin, end, comp_n);
+				if (begin == mid || mid == end)
+					mid = begin + (end-begin)/2;
+				bias_t::apply(begin, mid, end);
+
+				link_t left  = build_om(tris, begin, mid);
+				link_t right = build_om(tris, mid, end);
+				n = &nodes[id]; // refresh pointer!
+				n->left(left);
+				n->right(right);
+				n->make_inner();
+			}
+			else 
+			{
+				int idx = triangles.size();
+				for (int i = 0; i < elems; ++i)
+					triangles.push_back(tris[begin+i]);
+				n->elems(elems);
+				n->tris(idx);
+				n->make_leaf();
+			}
+
+			return id;
+		}
 	public:
 		enum median_t { object_median, spatial_median };
 		median_t median;
@@ -208,7 +270,12 @@ class bbvh_constructor_using_median {
 
 		bvh_t* build(flat_triangle_list *tris) {
 			std::cout << "building bvh for triangle list of " << tris->triangles << " triangles" << std::endl;
-			uint root = build_om(tris->triangle, 0, tris->triangles);
+			uint root = 0;
+			if (median == object_median)
+				root = build_om(tris->triangle, 0, tris->triangles);
+			else
+				root = build_sm(tris->triangle, 0, tris->triangles);
+
 			assert(root == 0);
 			
 			std::cout << "done building bvh (" << nodes.size() << " nodes, " << triangles.size() << " triangles)" << std::endl;
@@ -266,14 +333,28 @@ struct traversal_state {
 
 class bouncer { // sequential calls to raytrace
 	public:
-		virtual void bounce_ray(const traversal_state &state, vec3_t *origin, vec3_t *dir) = 0;
+		virtual void bounce() = 0;
 		virtual bool trace_further_bounces() = 0;
 		virtual void new_pass() {}
 };
 
-class primary_intersection_collector : public bouncer {
+/*! commonly, cpu ray bouncers will require the last triangle intersections.
+ *  the ray data is supposed to be stored in the ray generator's structure until the bouncer replaces it.
+ */
+class cpu_ray_bouncer : public bouncer {
+	protected:
+		image<triangle_intersection, 1> last_intersection;
 	public:
-		primary_intersection_collector() {
+		cpu_ray_bouncer(uint w, uint h) : last_intersection(w, h) {
+		}
+		void save_intersection(uint x, uint y, const triangle_intersection &ti) {
+			last_intersection.pixel(x,y) = ti;
+		}
+};
+
+class primary_intersection_collector : public cpu_ray_bouncer {
+	public:
+		primary_intersection_collector(uint w, uint h) : cpu_ray_bouncer(w,h) {
 		}
 		virtual void bounce_ray(const traversal_state &state, vec3_t *origin, vec3_t *dir) {
 		}
@@ -282,17 +363,22 @@ class primary_intersection_collector : public bouncer {
 		}
 };
 
-class binary_png_tester : public bouncer {
+class binary_png_tester : public cpu_ray_bouncer {
 		image<unsigned char, 3> res;
 	public:
-		binary_png_tester(uint w, uint h) :res(w,h) {
+		binary_png_tester(uint w, uint h) : cpu_ray_bouncer(w,h), res(w,h) {
 			for (int y = 0; y < h; ++y)
 				for (int x = 0; x < w; ++x)
 					for (int c = 0; c < 3; ++c)
 						res.pixel(x,y,c) = 0;
 		}
-		virtual void bounce_ray(const traversal_state &state, vec3_t *origin, vec3_t *dir) {
-			res.pixel(state.x,state.y,1) = (state.intersection.valid() ? 255 : 0);
+// 		virtual void bounce_ray(const traversal_state &state, vec3_t *origin, vec3_t *dir) {
+// 			res.pixel(state.x,state.y,1) = (state.intersection.valid() ? 255 : 0);
+// 		}
+		virtual void bounce() {
+			for (int y = 0; y < res.h; ++y)
+				for (int x = 0; x < res.w; ++x)
+					res.pixel(x,y,1) = last_intersection.pixel(x,y).valid() ? 255 : 0;
 		}
 		virtual bool trace_further_bounces() {
 			return false;
@@ -375,26 +461,13 @@ class cam_ray_generator_shirley : public ray_generator {
 class raytracer {
 // 		struct trace_thread {
 // 		};
+	protected:
 		ray_generator *raygen;
 		class bouncer *bouncer;
-		void trace_rays() {
-			std::cout << "trace rays" << std::endl;
-			wall_time_timer wtt; wtt.start();
-			traversal_state state;
-			for (uint y = 0; y < raygen->res_y(); ++y) {
-				cout << "Y = " << y << endl;
-				for (uint x = 0; x < raygen->res_x(); ++x) {
-					state.reset(x,y);
-					trace_ray(state, raygen->origin(x,y), raygen->direction(x,y));
-					bouncer->bounce_ray(state, raygen->origin(x,y), raygen->direction(x,y));
-				}
-			}
-			float ms = wtt.look();
-			cout << "took " << ms << " ms." << endl;
-		}
-		virtual void trace_ray(traversal_state &state, const vec3_t *origin, const vec3_t *dir) = 0;
+		cpu_ray_bouncer *cpu_bouncer;
+		virtual void trace_rays() = 0;
 	public:
-		raytracer(ray_generator *raygen, class bouncer *bouncer) : raygen(raygen), bouncer(bouncer) {
+		raytracer(ray_generator *raygen, class bouncer *bouncer) : raygen(raygen), bouncer(bouncer), cpu_bouncer(dynamic_cast<cpu_ray_bouncer*>(bouncer)) {
 		}
 		virtual void setup_rays() { // potentially uploads ray data to the gpu
 		}
@@ -405,8 +478,8 @@ class raytracer {
 			raygen->generate_rays();
 			do {
 				std::cout << "tracing rays" << std::endl;
-				trace_rays();		
-				// bouncer->bounce
+				trace_rays();
+				bouncer->bounce();
 			} while (bouncer->trace_further_bounces());
 			std::cout << "trace done" << std::endl;
 		}
@@ -428,8 +501,24 @@ template<box_t__and__tri_t> class bbvh_direct_is_tracer : public bbvh_tracer<for
 		declare_traits_types;
 		typedef binary_bvh<box_t, tri_t> bbvh_t;
 		typedef typename bbvh_t::node_t node_t;
+		using raytracer::raygen;
+		using raytracer::cpu_bouncer;
 
 		bbvh_direct_is_tracer(ray_generator *gen, bbvh_t *bvh, class bouncer *b) : bbvh_tracer<forward_traits>(gen, bvh, b) {
+		}
+		virtual void trace_rays() {
+			std::cout << "trace rays" << std::endl;
+			wall_time_timer wtt; wtt.start();
+			traversal_state state;
+			for (uint y = 0; y < raygen->res_y(); ++y) {
+				for (uint x = 0; x < raygen->res_x(); ++x) {
+					state.reset(x,y);
+					trace_ray(state, raygen->origin(x,y), raygen->direction(x,y));
+					cpu_bouncer->save_intersection(x,y,state.intersection);
+				}
+			}
+			float ms = wtt.look();
+			cout << "took " << ms << " ms." << endl;
 		}
 		void trace_ray(traversal_state &state, const vec3_t *origin, const vec3_t *dir) {
 			state.stack[0] = 0;
@@ -499,7 +588,8 @@ int main(int argc, char **argv) {
 	crgs.generate_rays();
 	
 	cout << "building bvh" << endl;
-	bbvh_constructor_using_median<bvh_t> ctor(bbvh_constructor_using_median<bvh_t>::object_median);
+// 	bbvh_constructor_using_median<bvh_t> ctor(bbvh_constructor_using_median<bvh_t>::object_median);
+	bbvh_constructor_using_median<bvh_t> ctor(bbvh_constructor_using_median<bvh_t>::spatial_median);
 	bvh_t *bvh = ctor.build(&triangle_lists.front());
 	cout << "trace" << endl;
 	binary_png_tester coll(res_x, res_y);
