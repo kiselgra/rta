@@ -4,6 +4,54 @@
 
 namespace rta {
 
+	
+class binary_bvh_facade {
+	public:
+		// node adding, etc?
+		void reserve_node_storage(unsigned int nodes);
+};
+
+
+template<box_t__and__tri_t> class binary_bvh : public binary_bvh_facade {
+	public:
+		declare_traits_types;
+		typedef uint32_t link_t;
+		struct node {
+			link_t type_left_elems; // contains: bit0=inner/leaf >>1=(left-child/tris-in-leaf)
+			link_t right_tris;      // contains: right-child/link-to-tris
+			box_t box;
+			bool inner()         { return (type_left_elems&0x01)==1; }
+			void make_inner()    { type_left_elems |= 0x01; }
+			void make_leaf()     { type_left_elems &= (~1); }
+			void left(link_t n)  { type_left_elems = ((type_left_elems&(~1)) | (n<<1)); }
+			link_t left()        { return type_left_elems>>1; }
+			void elems(uint n)   { type_left_elems = ((type_left_elems&(~1)) | (n<<1)); }
+			uint elems()         { return type_left_elems>>1; }
+			//! link to the right.
+			void right(link_t n) { right_tris = n; }
+			link_t right()       { return right_tris; }
+			//! an index into an array of triangles holding elems() successive triangles enclosed by this node.
+			void tris(link_t n)  { right_tris = n; }
+			uint tris()          { return right_tris; }
+			void split_axis(uint a) {} //!< not implemented for default bbvh nodes.
+		};
+		typedef node node_t;
+
+		std::vector<node> nodes;
+		std::vector<tri_t> triangles;
+
+		//! take the nodes stored in the array. \attention does so destructively!
+		void take_node_array(std::vector<node> &n) {
+			nodes.swap(n);
+		}
+		
+		//! take the triangles stored in the array. \attention does so destructively!
+		void take_triangle_array(std::vector<tri_t> &t) {
+			triangles.swap(t);
+		}
+
+};
+
 
 struct bbvh_no_bias {
 	static void apply(uint &begin, uint &mid, uint &end) {
@@ -37,6 +85,7 @@ class bbvh_constructor_using_median {
 		static int tri_sort_x(const tri_t *a, const tri_t *b) { return tri_sort<X>(a, b); }
 		static int tri_sort_y(const tri_t *a, const tri_t *b) { return tri_sort<Y>(a, b); }
 		static int tri_sort_z(const tri_t *a, const tri_t *b) { return tri_sort<Z>(a, b); }
+		typedef int (*qsort_pred_t)(const void *a, const void *b);
 
 		// build o.m. for triangles in [begin, end)
 		uint build_om(tri_t *tris, uint begin, uint end) {
@@ -50,11 +99,11 @@ class bbvh_constructor_using_median {
 			{
 				vec3f dists; sub_components_vec3f(&dists, &n->box.max, &n->box.min);
 				if (dists.x > dists.y)
-					if (dists.x > dists.z)	{	qsort(tris+begin, end-begin, sizeof(tri_t), (int(*)(const void*,const void*))tri_sort_x);	}
-					else                    {	qsort(tris+begin, end-begin, sizeof(tri_t), (int(*)(const void*,const void*))tri_sort_z);	}
+					if (dists.x > dists.z)  { n->split_axis(X); qsort(tris+begin, end-begin, sizeof(tri_t), (qsort_pred_t)tri_sort_x);	}
+					else                    { n->split_axis(Z); qsort(tris+begin, end-begin, sizeof(tri_t), (qsort_pred_t)tri_sort_z);	}
 				else
-					if (dists.y > dists.z)	{	qsort(tris+begin, end-begin, sizeof(tri_t), (int(*)(const void*,const void*))tri_sort_y);	}
-					else                    {	qsort(tris+begin, end-begin, sizeof(tri_t), (int(*)(const void*,const void*))tri_sort_z);	}
+					if (dists.y > dists.z)  { n->split_axis(Y); qsort(tris+begin, end-begin, sizeof(tri_t), (qsort_pred_t)tri_sort_y);	}
+					else                    { n->split_axis(Z); qsort(tris+begin, end-begin, sizeof(tri_t), (qsort_pred_t)tri_sort_z);	}
 
 				uint mid = begin + (end-begin)/2;
 				bias_t::apply(begin, mid, end);
@@ -110,11 +159,11 @@ class bbvh_constructor_using_median {
 				vec3f dists; sub_components_vec3f(&dists, &n->box.max, &n->box.min);
 				const float_t& (*comp_n)(const vec3_t&) = x_comp;
 				if (dists.x > dists.y)
-					if (dists.x > dists.z)	{	qsort(tris+begin, end-begin, sizeof(tri_t), (int(*)(const void*,const void*))tri_sort_x); comp_n=x_comp; }
-					else                    {	qsort(tris+begin, end-begin, sizeof(tri_t), (int(*)(const void*,const void*))tri_sort_z); comp_n=z_comp; }
+					if (dists.x > dists.z)  { n->split_axis(X); qsort(tris+begin, end-begin, sizeof(tri_t), (qsort_pred_t)tri_sort_x); comp_n=x_comp; }
+					else                    { n->split_axis(Z); qsort(tris+begin, end-begin, sizeof(tri_t), (qsort_pred_t)tri_sort_z); comp_n=z_comp; }
 				else
-					if (dists.y > dists.z)	{	qsort(tris+begin, end-begin, sizeof(tri_t), (int(*)(const void*,const void*))tri_sort_y); comp_n=y_comp; }
-					else                    {	qsort(tris+begin, end-begin, sizeof(tri_t), (int(*)(const void*,const void*))tri_sort_z); comp_n=z_comp; }
+					if (dists.y > dists.z)  { n->split_axis(Y); qsort(tris+begin, end-begin, sizeof(tri_t), (qsort_pred_t)tri_sort_y); comp_n=y_comp; }
+					else                    { n->split_axis(Z); qsort(tris+begin, end-begin, sizeof(tri_t), (qsort_pred_t)tri_sort_z); comp_n=z_comp; }
 
 				uint mid = compute_spatial_median(tris, begin, end, comp_n);
 				if (begin == mid || mid == end)
@@ -319,6 +368,42 @@ template<box_t__and__tri_t> class bbvh_child_is_tracer : public bbvh_tracer<forw
 			}
 		}
 };
+
+
+
+//////////////
+//////////////
+//////////////
+//////////////
+
+template<box_t__and__tri_t> class stackess_binary_bvh : public binary_bvh_facade {
+	public:
+		declare_traits_types;
+		struct node {
+		};
+};
+
+template<box_t__and__tri_t> class multi_bvh_sse {
+	public:
+		declare_traits_types;
+};
+
+template<box_t__and__tri_t> class multi_bvh_avx {
+	public:
+		declare_traits_types;
+};
+
+
+template<typename mbvh_t, typename bbvh_ctor_t> class mbvh_sse_contructor {
+	public:
+		class mbvh_bbvh_building_bias {
+		};
+		typedef binary_bvh<traits_of(mbvh_t)> bbvh_t;
+		mbvh_t* build(flat_triangle_list *tris, bbvh_ctor_t &bbvhctor) {
+			bbvh_t *bbvh = bbvhctor.build(tris);
+		}
+};
+
 
 
 

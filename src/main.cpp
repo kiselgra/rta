@@ -23,73 +23,11 @@ using namespace std;
 namespace rta {
 
 
-class binary_bvh_facade {
-	public:
-		// node adding, etc?
-		void reserve_node_storage(unsigned int nodes);
-};
-
 ////////////////////
 #define box_t__and__tri_t typename _box_t, typename _tri_t
 #define forward_traits _box_t, _tri_t
 #define declare_traits_types typedef _box_t box_t; typedef _tri_t tri_t;
 #define traits_of(X) typename X::box_t, typename X::tri_t
-
-template<box_t__and__tri_t> class binary_bvh : public binary_bvh_facade {
-	public:
-		declare_traits_types;
-		typedef uint32_t link_t;
-		struct node {
-			link_t type_left_elems; // contains: bit0=inner/leaf >>1=(left-child/tris-in-leaf)
-			link_t right_tris;      // contains: right-child/link-to-tris
-			box_t box;
-			bool inner()         { return (type_left_elems&0x01)==1; }
-			void make_inner()    { type_left_elems |= 0x01; }
-			void make_leaf()     { type_left_elems &= (~1); }
-			void left(link_t n)  { type_left_elems = ((type_left_elems&(~1)) | (n<<1)); }
-			link_t left()        { return type_left_elems>>1; }
-			void elems(uint n)   { type_left_elems = ((type_left_elems&(~1)) | (n<<1)); }
-			uint elems()         { return type_left_elems>>1; }
-			//! link to the right.
-			void right(link_t n) { right_tris = n; }
-			link_t right()       { return right_tris; }
-			//! an index into an array of triangles holding elems() successive triangles enclosed by this node.
-			void tris(link_t n)  { right_tris = n; }
-			uint tris()          { return right_tris; }
-		};
-		typedef node node_t;
-
-		std::vector<node> nodes;
-		std::vector<tri_t> triangles;
-
-		//! take the nodes stored in the array. \attention does so destructively!
-		void take_node_array(std::vector<node> &n) {
-			nodes.swap(n);
-		}
-		
-		//! take the triangles stored in the array. \attention does so destructively!
-		void take_triangle_array(std::vector<tri_t> &t) {
-			triangles.swap(t);
-		}
-
-};
-
-template<box_t__and__tri_t> class stackess_binary_bvh : public binary_bvh_facade {
-	public:
-		declare_traits_types;
-		struct node {
-		};
-};
-
-template<box_t__and__tri_t> class multi_bvh_sse {
-	public:
-		declare_traits_types;
-};
-
-template<box_t__and__tri_t> class multi_bvh_avx {
-	public:
-		declare_traits_types;
-};
 
 ////////////////////
 
@@ -123,16 +61,6 @@ std::list<flat_triangle_list> load_objfile_to_flat_tri_list(const std::string &f
 
 	return lists;
 }
-
-template<typename mbvh_t, typename bbvh_ctor_t> class mbvh_sse_contructor {
-	public:
-		class mbvh_bbvh_building_bias {
-		};
-		typedef binary_bvh<traits_of(mbvh_t)> bbvh_t;
-		mbvh_t* build(flat_triangle_list *tris, bbvh_ctor_t &bbvhctor) {
-			bbvh_t *bbvh = bbvhctor.build(tris);
-		}
-};
 
 ////////////////////
 
@@ -173,7 +101,7 @@ int main(int argc, char **argv) {
 		 res_y = 512;
 	cout << "initializing rays" << endl;
 	cam_ray_generator_shirley crgs(res_x, res_y);
-	crgs.setup(&cmdline.pos, &cmdline.dir, &cmdline.up, 35);
+	crgs.setup(&cmdline.pos, &cmdline.dir, &cmdline.up, 45);
 	crgs.generate_rays();
 	
 	cout << "building bvh" << endl;
