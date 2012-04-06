@@ -1,0 +1,7 @@
+- kugelpositionen einlesen und bilder tracen
+	- off loader
+	- daten export
+- threading
+- embree integration?
+- gpu tracer integrieren
+- optix integrieren?
