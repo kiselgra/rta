@@ -2,7 +2,7 @@
 #ifndef __TEMPLATE_MAGIC_H__ 
 #define __TEMPLATE_MAGIC_H__ 
 
-#include "librc-test/vecs.h"
+// #include "librc-test/vecs.h"
 
 #include <vector>
 
