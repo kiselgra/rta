@@ -39,6 +39,7 @@ AC_PROG_LIBTOOL
 AC_CHECK_LIB([mcm], [make_vec3f])
 AC_CHECK_LIB([png], [main])
 AC_CHECK_LIB([objloader], [main])
+AC_CHECK_LIB([plyloader], [main])
 
 # Checks for header files.
 AC_HEADER_STDC

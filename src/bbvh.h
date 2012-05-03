@@ -4,8 +4,15 @@
 
 namespace rta {
 
-	
-class binary_bvh_facade {
+struct acceleraton_structure {
+	virtual ~acceleraton_structure() {}
+};
+
+struct acceleration_structure_constructor {
+	acceleraton_structure* build(flat_triangle_list *tris);
+};
+
+class binary_bvh_facade : public acceleraton_structure {
 	public:
 		// node adding, etc?
 		void reserve_node_storage(unsigned int nodes);
@@ -59,7 +66,7 @@ struct bbvh_no_bias {
 };
 
 template<typename bvh_t, typename bias_t = bbvh_no_bias> 
-class bbvh_constructor_using_median {
+class bbvh_constructor_using_median : public acceleration_structure_constructor {
 	protected:
 		typedef typename bvh_t::node node_t;
 		typedef typename bvh_t::box_t box_t;
@@ -383,18 +390,18 @@ template<box_t__and__tri_t> class stackess_binary_bvh : public binary_bvh_facade
 		};
 };
 
-template<box_t__and__tri_t> class multi_bvh_sse {
+template<box_t__and__tri_t> class multi_bvh_sse : public acceleraton_structure{
 	public:
 		declare_traits_types;
 };
 
-template<box_t__and__tri_t> class multi_bvh_avx {
+template<box_t__and__tri_t> class multi_bvh_avx : public acceleraton_structure{
 	public:
 		declare_traits_types;
 };
 
 
-template<typename mbvh_t, typename bbvh_ctor_t> class mbvh_sse_contructor {
+template<typename mbvh_t, typename bbvh_ctor_t> class mbvh_sse_contructor : public acceleration_structure_constructor{
 	public:
 		class mbvh_bbvh_building_bias {
 		};

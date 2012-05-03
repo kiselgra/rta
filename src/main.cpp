@@ -5,6 +5,7 @@
 #include "intersect.h"
 
 #include <libobjloader/default.h>
+#include <libplyloader/plyloader.h>
 
 #include <string>
 #include <list>
@@ -83,6 +84,39 @@ defun foo2 (int x, int y) -> int {
 	return x + y;
 }
 
+class directional_analysis_pass {
+		ply sphere;
+		vec3f *vertices;
+		rta::cam_ray_generator_shirley crgs;
+		rta::raytracer *rt;
+		rta::binary_png_tester coll;
+	public:
+		directional_analysis_pass(const std::string sphere_file, int res_x, int res_y) 
+		: vertices(0), crgs(res_x, res_y), rt(0), coll(res_x, res_y) {
+// 			load_ply_file(sphere_file.c_str(), &sphere);
+// 			vertices = sphere.flat_triangle_data("x", "y", "z", [](float f){return f;});
+			// tmp
+			crgs.setup(&cmdline.pos, &cmdline.dir, &cmdline.up, 45);
+			crgs.generate_rays();
+		}
+		rta::cam_ray_generator_shirley* ray_gen() { 
+			return &crgs; 
+		}
+		void tracer(rta::raytracer *tracer) { 
+			rt = tracer; 
+		}
+		rta::bouncer* bouncer() { 
+			return &coll; 
+		}
+// 		rta::acceleraton_structure* build_as(rta::acceleration_structure_constructor *ctor) {
+// 			return ctor.build(
+// 		}
+		void run() {
+			rt->trace();
+			coll.save();
+		}
+};
+
 int main(int argc, char **argv) {
 	parse_cmdline(argc, argv);
 
@@ -97,6 +131,7 @@ int main(int argc, char **argv) {
 	cout << "loading object" << endl;
 	auto triangle_lists = load_objfile_to_flat_tri_list("/home/kai/render-data/models/drache.obj");
 	
+	/*
 	uint res_x = 512, 
 		 res_y = 512;
 	cout << "initializing rays" << endl;
@@ -116,6 +151,17 @@ int main(int argc, char **argv) {
 	cout << "save" << endl;
 	coll.save();
 	cout << "done" << endl;
+	*/
+
+
+	{
+	directional_analysis_pass dap("sphere.ply", 1920, 1080);
+	bbvh_constructor_using_median<bvh_t> ctor(bbvh_constructor_using_median<bvh_t>::spatial_median);
+	bvh_t *bvh = ctor.build(&triangle_lists.front());
+	bbvh_child_is_tracer<box_t, tri_t> rt(dap.ray_gen(), bvh, dap.bouncer());
+	dap.tracer(&rt);
+	dap.run();
+	}
 
 	if (0)
 	{
