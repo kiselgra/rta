@@ -31,6 +31,7 @@ class bouncer { // sequential calls to raytrace
 
 /*! commonly, cpu ray bouncers will require the last triangle intersections.
  *  the ray data is supposed to be stored in the ray generator's structure until the bouncer replaces it.
+ *  todo: does this generalize to gpu tracing?
  */
 class cpu_ray_bouncer : public bouncer {
 	protected:
@@ -74,8 +75,8 @@ class binary_png_tester : public cpu_ray_bouncer {
 		virtual bool trace_further_bounces() {
 			return false;
 		}
-		void save() {
-			res.save_png("/tmp/blub.png");
+		void save(const std::string &filename) {
+			res.save_png(filename);
 		}
 };
 

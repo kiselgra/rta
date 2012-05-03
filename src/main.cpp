@@ -121,9 +121,6 @@ class directional_analysis_pass {
 			vertices = at;
 			cout << "got " << vertices << " distinct vertices" << endl;
 
-			// tmp
-			crgs.setup(&cmdline.pos, &cmdline.dir, &cmdline.up, 45);
-			crgs.generate_rays();
 		}
 		rta::cam_ray_generator_shirley* ray_gen() { 
 			return &crgs; 
@@ -135,9 +132,14 @@ class directional_analysis_pass {
 			return &coll; 
 		}
 		void run() {
-// 			for (int i = 0; i < vertices
-			rt->trace();
-			coll.save();
+			for (int i = 0; i < vertices; ++i) {
+				crgs.setup(&cmdline.pos, &cmdline.dir, &cmdline.up, 45);
+				crgs.generate_rays();
+
+				rt->trace();
+
+				coll.save("/tmp/blub.png");
+			}
 		}
 };
 
@@ -173,7 +175,7 @@ int main(int argc, char **argv) {
 	bbvh_child_is_tracer<box_t, tri_t> rt(&crgs, bvh, &coll);
 	rt.trace();
 	cout << "save" << endl;
-	coll.save();
+	coll.save("/tmp/blub.png");
 	cout << "done" << endl;
 	*/
 
