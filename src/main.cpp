@@ -84,17 +84,43 @@ defun foo2 (int x, int y) -> int {
 	return x + y;
 }
 
+bool operator==(const vec3f &a, const vec3f &b) {
+	return a.x == b.x && a.y == b.y && a.z == b.z;
+}
+
 class directional_analysis_pass {
 		ply sphere;
-		vec3f *vertices;
+		vec3f *vertex;
+		int vertices;
 		rta::cam_ray_generator_shirley crgs;
 		rta::raytracer *rt;
 		rta::binary_png_tester coll;
 	public:
 		directional_analysis_pass(const std::string sphere_file, int res_x, int res_y) 
-		: vertices(0), crgs(res_x, res_y), rt(0), coll(res_x, res_y) {
-// 			load_ply_file(sphere_file.c_str(), &sphere);
-// 			vertices = sphere.flat_triangle_data("x", "y", "z", [](float f){return f;});
+		: vertex(0), vertices(0), crgs(res_x, res_y), rt(0), coll(res_x, res_y) {
+			load_ply_file(sphere_file.c_str(), &sphere);
+			auto elem = sphere.element("vertex");
+			vertices = elem->count;
+			vertex = new vec3f[vertices];
+			int x = elem->index_of("x"),
+				y = elem->index_of("y"),
+				z = elem->index_of("z");
+			int at = 0;
+			for (int i = 0; i < vertices; ++i) {
+				bool had_that_one_already = false;
+				vec3f new_vert; make_vec3f(&new_vert, elem->ref(i, x), elem->ref(i, y), elem->ref(i, z));
+				for (int j = 0; j < i; ++j)
+					if (vertex[j] == new_vert) {
+						had_that_one_already = true;
+						break;
+					}
+				if (had_that_one_already) 
+					continue;
+				vertex[at++] = new_vert;
+			}
+			vertices = at;
+			cout << "got " << vertices << " distinct vertices" << endl;
+
 			// tmp
 			crgs.setup(&cmdline.pos, &cmdline.dir, &cmdline.up, 45);
 			crgs.generate_rays();
@@ -108,10 +134,8 @@ class directional_analysis_pass {
 		rta::bouncer* bouncer() { 
 			return &coll; 
 		}
-// 		rta::acceleraton_structure* build_as(rta::acceleration_structure_constructor *ctor) {
-// 			return ctor.build(
-// 		}
 		void run() {
+// 			for (int i = 0; i < vertices
 			rt->trace();
 			coll.save();
 		}
@@ -155,7 +179,7 @@ int main(int argc, char **argv) {
 
 
 	{
-	directional_analysis_pass dap("sphere.ply", 1920, 1080);
+	directional_analysis_pass dap("/home/kai/sphere0.ply", 1024, 512);
 	bbvh_constructor_using_median<bvh_t> ctor(bbvh_constructor_using_median<bvh_t>::spatial_median);
 	bvh_t *bvh = ctor.build(&triangle_lists.front());
 	bbvh_child_is_tracer<box_t, tri_t> rt(dap.ray_gen(), bvh, dap.bouncer());
