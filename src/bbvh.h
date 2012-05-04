@@ -4,22 +4,7 @@
 
 namespace rta {
 
-struct acceleraton_structure {
-	virtual ~acceleraton_structure() {}
-};
-
-struct acceleration_structure_constructor {
-	acceleraton_structure* build(flat_triangle_list *tris);
-};
-
-class binary_bvh_facade : public acceleraton_structure {
-	public:
-		// node adding, etc?
-		void reserve_node_storage(unsigned int nodes);
-};
-
-
-template<box_t__and__tri_t> class binary_bvh : public binary_bvh_facade {
+template<box_t__and__tri_t> class binary_bvh : public acceleraton_structure<forward_traits> {
 	public:
 		declare_traits_types;
 		typedef uint32_t link_t;
@@ -57,6 +42,8 @@ template<box_t__and__tri_t> class binary_bvh : public binary_bvh_facade {
 			triangles.swap(t);
 		}
 
+		tri_t* triangle_ptr() { return &triangles[0]; }
+		int triangle_count() { return triangles.size(); }
 };
 
 
@@ -66,7 +53,7 @@ struct bbvh_no_bias {
 };
 
 template<typename bvh_t, typename bias_t = bbvh_no_bias> 
-class bbvh_constructor_using_median : public acceleration_structure_constructor {
+class bbvh_constructor_using_median : public acceleration_structure_constructor<typename bvh_t::box_t, typename bvh_t::tri_t> {
 	protected:
 		typedef typename bvh_t::node node_t;
 		typedef typename bvh_t::box_t box_t;
@@ -238,14 +225,14 @@ template<typename bvh_t, typename bias_t = bbvh_no_bias> class bbvh_constructor_
 		}
 };
 
-template<box_t__and__tri_t> class bbvh_tracer : public raytracer {
+template<box_t__and__tri_t> class bbvh_tracer : public basic_raytracer<forward_traits> {
 	public:
 		declare_traits_types;
 		typedef binary_bvh<box_t, tri_t> bbvh_t;
 	protected:
 		bbvh_t *bvh;
 	public:
-		bbvh_tracer(ray_generator *gen, bbvh_t *bvh, class bouncer *b) : raytracer(gen, b), bvh(bvh) {
+		bbvh_tracer(ray_generator *gen, bbvh_t *bvh, class bouncer *b) : basic_raytracer<forward_traits>(gen, b, bvh), bvh(bvh) {
 		}
 };
 
@@ -254,8 +241,8 @@ template<box_t__and__tri_t> class bbvh_direct_is_tracer : public bbvh_tracer<for
 		declare_traits_types;
 		typedef binary_bvh<box_t, tri_t> bbvh_t;
 		typedef typename bbvh_t::node_t node_t;
-		using raytracer::raygen;
-		using raytracer::cpu_bouncer;
+		using basic_raytracer<forward_traits>::raygen;
+		using basic_raytracer<forward_traits>::cpu_bouncer;
 
 		bbvh_direct_is_tracer(ray_generator *gen, bbvh_t *bvh, class bouncer *b) : bbvh_tracer<forward_traits>(gen, bvh, b) {
 		}
@@ -309,8 +296,8 @@ template<box_t__and__tri_t> class bbvh_child_is_tracer : public bbvh_tracer<forw
 		declare_traits_types;
 		typedef binary_bvh<box_t, tri_t> bbvh_t;
 		typedef typename bbvh_t::node_t node_t;
-		using raytracer::raygen;
-		using raytracer::cpu_bouncer;
+		using basic_raytracer<forward_traits>::raygen;
+		using basic_raytracer<forward_traits>::cpu_bouncer;
 
 		bbvh_child_is_tracer(ray_generator *gen, bbvh_t *bvh, class bouncer *b) : bbvh_tracer<forward_traits>(gen, bvh, b) {
 		}
@@ -383,25 +370,25 @@ template<box_t__and__tri_t> class bbvh_child_is_tracer : public bbvh_tracer<forw
 //////////////
 //////////////
 
-template<box_t__and__tri_t> class stackess_binary_bvh : public binary_bvh_facade {
+template<box_t__and__tri_t> class stackess_binary_bvh : public acceleraton_structure<forward_traits> {
 	public:
 		declare_traits_types;
 		struct node {
 		};
 };
 
-template<box_t__and__tri_t> class multi_bvh_sse : public acceleraton_structure{
+template<box_t__and__tri_t> class multi_bvh_sse : public acceleraton_structure<forward_traits> {
 	public:
 		declare_traits_types;
 };
 
-template<box_t__and__tri_t> class multi_bvh_avx : public acceleraton_structure{
+template<box_t__and__tri_t> class multi_bvh_avx : public acceleraton_structure<forward_traits> {
 	public:
 		declare_traits_types;
 };
 
 
-template<typename mbvh_t, typename bbvh_ctor_t> class mbvh_sse_contructor : public acceleration_structure_constructor{
+template<typename mbvh_t, typename bbvh_ctor_t> class mbvh_sse_contructor : public acceleration_structure_constructor<typename mbvh_t::box_t, typename mbvh_t::tri_t> {
 	public:
 		class mbvh_bbvh_building_bias {
 		};

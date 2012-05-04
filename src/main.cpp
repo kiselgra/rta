@@ -8,6 +8,7 @@
 #include <libplyloader/plyloader.h>
 
 #include <string>
+#include <sstream>
 #include <list>
 #include <float.h>
 
@@ -88,16 +89,25 @@ bool operator==(const vec3f &a, const vec3f &b) {
 	return a.x == b.x && a.y == b.y && a.z == b.z;
 }
 
-class directional_analysis_pass {
+vec3f make_vec3f(float x, float y, float z) {
+	vec3f r;
+	make_vec3f(&r, x, y, z);
+	return r;
+}
+
+template<typename box_t, typename tri_t> class directional_analysis_pass {
 		ply sphere;
 		vec3f *vertex;
 		int vertices;
 		rta::cam_ray_generator_shirley crgs;
-		rta::raytracer *rt;
-		rta::binary_png_tester coll;
+		rta::basic_raytracer<box_t, tri_t> *rt;
+		rta::binary_png_tester<tri_t> coll;
+		vec3f obj_center;
+		float bb_diam;
+		float dist_scale;
 	public:
 		directional_analysis_pass(const std::string sphere_file, int res_x, int res_y) 
-		: vertex(0), vertices(0), crgs(res_x, res_y), rt(0), coll(res_x, res_y) {
+		: vertex(0), vertices(0), crgs(res_x, res_y), rt(0), coll(res_x, res_y), dist_scale(1.5) {
 			load_ply_file(sphere_file.c_str(), &sphere);
 			auto elem = sphere.element("vertex");
 			vertices = elem->count;
@@ -125,20 +135,53 @@ class directional_analysis_pass {
 		rta::cam_ray_generator_shirley* ray_gen() { 
 			return &crgs; 
 		}
-		void tracer(rta::raytracer *tracer) { 
+		//! supposes that the tracer's accelstruct has been set up, already
+		void tracer(rta::basic_raytracer<box_t, tri_t> *tracer) { 
 			rt = tracer; 
+			tri_t *tris = rt->accel_struct->triangle_ptr();
+			int n = rt->accel_struct->triangle_count();
+			box_t bb = rta::compute_aabb<box_t>(tris, 0, n);
+			vec3f diff;
+			sub_components_vec3f(&diff, &max(bb), &min(bb));
+			bb_diam = length_of_vec3f(&diff);
+			mul_vec3f_by_scalar(&diff, &diff, 0.5);
+			add_components_vec3f(&obj_center, &min(bb), &diff);
 		}
 		rta::bouncer* bouncer() { 
 			return &coll; 
 		}
 		void run() {
+			vec3f null = make_vec3f(0,0,0);
 			for (int i = 0; i < vertices; ++i) {
-				crgs.setup(&cmdline.pos, &cmdline.dir, &cmdline.up, 45);
+				vec3f pos;// = vertex[i];
+
+				// position around object
+				vec3f from_origin = vertex[i];
+				normalize_vec3f(&from_origin);
+				mul_vec3f_by_scalar(&from_origin, &from_origin, bb_diam * dist_scale);
+				add_components_vec3f(&pos, &obj_center, &from_origin);
+
+				// correct lookat system
+				vec3f dir; sub_components_vec3f(&dir, &null, &vertex[i]);
+				normalize_vec3f(&dir);
+				vec3f up = make_vec3f(0,0,1);
+				if (fabs(dot_vec3f(&dir, &up)) > 0.8)
+					up = make_vec3f(0,1,0);
+				vec3f right;
+				cross_vec3f(&right, &dir, &up);
+				cross_vec3f(&up, &dir, &right);
+				crgs.setup(&pos, &dir, &up, 45);
 				crgs.generate_rays();
 
 				rt->trace();
 
-				coll.save("/tmp/blub.png");
+				ostringstream oss;
+				oss << "/tmp/blub-";
+				if (i < 100) oss << "0";
+				if (i < 10) oss << "0";
+				oss << i;
+				oss << ".png";
+				coll.save(oss.str());
 			}
 		}
 };
@@ -181,7 +224,7 @@ int main(int argc, char **argv) {
 
 
 	{
-	directional_analysis_pass dap("/home/kai/sphere0.ply", 1024, 512);
+	directional_analysis_pass<box_t, tri_t> dap("/home/kai/sphere0.ply", 800, 800);
 	bbvh_constructor_using_median<bvh_t> ctor(bbvh_constructor_using_median<bvh_t>::spatial_median);
 	bvh_t *bvh = ctor.build(&triangle_lists.front());
 	bbvh_child_is_tracer<box_t, tri_t> rt(dap.ray_gen(), bvh, dap.bouncer());

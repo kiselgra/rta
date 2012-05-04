@@ -22,6 +22,20 @@ struct traversal_state {
 
 ////////////////////
 
+template<box_t__and__tri_t> struct acceleraton_structure {
+	declare_traits_types;
+	virtual ~acceleraton_structure() {}
+	virtual tri_t* triangle_ptr() = 0;
+	virtual int triangle_count() = 0;
+};
+
+template<box_t__and__tri_t> struct acceleration_structure_constructor {
+	declare_traits_types;
+	acceleraton_structure<box_t, tri_t>* build(flat_triangle_list *tris);
+};
+
+////////////////////
+
 class bouncer { // sequential calls to raytrace
 	public:
 		virtual void bounce() = 0;
@@ -55,9 +69,10 @@ class primary_intersection_collector : public cpu_ray_bouncer {
 		}
 };
 
-class binary_png_tester : public cpu_ray_bouncer {
+template<typename _tri_t> class binary_png_tester : public cpu_ray_bouncer {
 		image<unsigned char, 3> res;
 	public:
+		typedef _tri_t tri_t;
 		binary_png_tester(uint w, uint h) : cpu_ray_bouncer(w,h), res(w,h) {
 			for (int y = 0; y < h; ++y)
 				for (int x = 0; x < w; ++x)
@@ -151,6 +166,13 @@ class cam_ray_generator_shirley : public ray_generator {
 ////////////////////
 
 class raytracer {
+	public:
+		virtual void setup_rays() = 0;
+		virtual void prepare_bvh_for_tracing() = 0;
+		virtual void trace() = 0;
+};
+
+template<box_t__and__tri_t> class basic_raytracer : public raytracer {
 // 		struct trace_thread {
 // 		};
 	protected:
@@ -159,7 +181,9 @@ class raytracer {
 		cpu_ray_bouncer *cpu_bouncer;
 		virtual void trace_rays() = 0;
 	public:
-		raytracer(ray_generator *raygen, class bouncer *bouncer) : raygen(raygen), bouncer(bouncer), cpu_bouncer(dynamic_cast<cpu_ray_bouncer*>(bouncer)) {
+		declare_traits_types;
+		acceleraton_structure<forward_traits> *accel_struct;
+		basic_raytracer(ray_generator *raygen, class bouncer *bouncer, acceleraton_structure<forward_traits> *as) : raygen(raygen), bouncer(bouncer), cpu_bouncer(dynamic_cast<cpu_ray_bouncer*>(bouncer)), accel_struct(as) {
 		}
 		virtual void setup_rays() { // potentially uploads ray data to the gpu
 		}
