@@ -1,16 +1,19 @@
 #ifndef __RTA_RAYTRAV_H__ 
 #define __RTA_RAYTRAV_H__ 
 
+#include <algorithm>  // min,max
+
 namespace rta {
 
 
 //! state of a ray traversal as executed by a trace thread. not nested in raytracer because of forward-delcaration conflicts.
-struct traversal_state {
+template<typename _tri_t> struct traversal_state {
+	typedef _tri_t tri_t;
 	enum { stack_size = 128 };
 	uint stack[stack_size];
 	int sp; //!< -1 -> stack empty.
 	uint x, y;
-	triangle_intersection intersection;
+	triangle_intersection<tri_t> intersection;
 	void reset(uint x, uint y) {
 		this->x = x, this->y = y;
 		sp = 0;
@@ -47,37 +50,84 @@ class bouncer { // sequential calls to raytrace
  *  the ray data is supposed to be stored in the ray generator's structure until the bouncer replaces it.
  *  todo: does this generalize to gpu tracing?
  */
-class cpu_ray_bouncer : public bouncer {
+template<box_t__and__tri_t> class cpu_ray_bouncer : public bouncer {
+	public:
+		declare_traits_types;
 	protected:
-		image<triangle_intersection, 1> last_intersection;
+		image<triangle_intersection<tri_t>, 1> last_intersection;
 	public:
 		cpu_ray_bouncer(uint w, uint h) : last_intersection(w, h) {
 		}
-		void save_intersection(uint x, uint y, const triangle_intersection &ti) {
+		void save_intersection(uint x, uint y, const triangle_intersection<tri_t> &ti) {
 			last_intersection.pixel(x,y) = ti;
 		}
 };
 
-class primary_intersection_collector : public cpu_ray_bouncer {
+template<box_t__and__tri_t> class primary_intersection_collector : public cpu_ray_bouncer<forward_traits> {
 	public:
-		primary_intersection_collector(uint w, uint h) : cpu_ray_bouncer(w,h) {
+		primary_intersection_collector(uint w, uint h) : cpu_ray_bouncer<forward_traits>(w,h) {
 		}
-		virtual void bounce_ray(const traversal_state &state, vec3_t *origin, vec3_t *dir) {
-		}
+// 		virtual void bounce_ray(const traversal_state<tri_t> &state, vec3_t *origin, vec3_t *dir) {
+// 		}
 		virtual bool trace_further_bounces() {
 			return false;
 		}
 };
 
-template<typename _tri_t> class binary_png_tester : public cpu_ray_bouncer {
+template<box_t__and__tri_t> class binary_png_tester : public cpu_ray_bouncer<forward_traits> {
 		image<unsigned char, 3> res;
+		struct light { vec3_t pos, col ; };
 	public:
+		std::list<light> lights;
 		typedef _tri_t tri_t;
-		binary_png_tester(uint w, uint h) : cpu_ray_bouncer(w,h), res(w,h) {
-			for (int y = 0; y < h; ++y)
-				for (int x = 0; x < w; ++x)
+		binary_png_tester(uint w, uint h) : cpu_ray_bouncer<forward_traits>(w,h), res(w,h) {
+			reset();
+		}
+		void reset() {
+			for (int y = 0; y < res.h; ++y)
+				for (int x = 0; x < res.w; ++x)
 					for (int c = 0; c < 3; ++c)
 						res.pixel(x,y,c) = 0;
+		}
+		void add_pointlight(const vec3_t &at, const vec3_t &col) {
+			lights.push_back({at,col});
+		}
+		void shade() {
+			if (lights.size() == 0) return;
+			for (int y = 0; y < res.h; ++y)
+				for (int x = 0; x < res.w; ++x) {
+					triangle_intersection<tri_t> &is = this->last_intersection.pixel(x,y);
+					if (!is.valid()) continue;
+					vec3f col = {0,0,0};
+					for (light &l : lights) {
+						// get normal
+						vec3_t bc; 
+						is.barycentric_coord(&bc);
+						const vec3_t &na = normal_a(*is.ref);
+						const vec3_t &nb = normal_b(*is.ref);
+						const vec3_t &nc = normal_c(*is.ref);
+						vec3_t N, p;
+					   	barycentric_interpolation(&N, &bc, &na, &nb, &nc);
+						// get vertex pos
+						const vec3_t &va = normal_a(*is.ref);
+						const vec3_t &vb = normal_b(*is.ref);
+						const vec3_t &vc = normal_c(*is.ref);
+					   	barycentric_interpolation(&p, &bc, &va, &vb, &vc);
+						// compute lambert
+						vec3_t L = l.pos;
+						sub_components_vec3f(&L, &L, &p);
+						normalize_vec3f(&L);
+						normalize_vec3f(&N);
+						float_t dot = std::max(dot_vec3f(&N, &L), (float_t)0);
+						vec3_t c;
+						mul_vec3f_by_scalar(&c, &l.col, dot);
+						add_components_vec3f(&col, &col, &c);
+// 						add_components_vec3f(&col, &col, &N);
+					}
+					res.pixel(x,y,0) = col.x*255;
+					res.pixel(x,y,1) = col.y*255;
+					res.pixel(x,y,2) = col.z*255;
+				}
 		}
 // 		virtual void bounce_ray(const traversal_state &state, vec3_t *origin, vec3_t *dir) {
 // 			res.pixel(state.x,state.y,1) = (state.intersection.valid() ? 255 : 0);
@@ -85,7 +135,7 @@ template<typename _tri_t> class binary_png_tester : public cpu_ray_bouncer {
 		virtual void bounce() {
 			for (int y = 0; y < res.h; ++y)
 				for (int x = 0; x < res.w; ++x)
-					res.pixel(x,y,1) = last_intersection.pixel(x,y).valid() ? 255 : 0;
+					res.pixel(x,y,1) = this->last_intersection.pixel(x,y).valid() ? 255 : 0;
 		}
 		virtual bool trace_further_bounces() {
 			return false;
@@ -178,12 +228,12 @@ template<box_t__and__tri_t> class basic_raytracer : public raytracer {
 	protected:
 		ray_generator *raygen;
 		class bouncer *bouncer;
-		cpu_ray_bouncer *cpu_bouncer;
+		cpu_ray_bouncer<forward_traits> *cpu_bouncer;
 		virtual void trace_rays() = 0;
 	public:
 		declare_traits_types;
 		acceleraton_structure<forward_traits> *accel_struct;
-		basic_raytracer(ray_generator *raygen, class bouncer *bouncer, acceleraton_structure<forward_traits> *as) : raygen(raygen), bouncer(bouncer), cpu_bouncer(dynamic_cast<cpu_ray_bouncer*>(bouncer)), accel_struct(as) {
+		basic_raytracer(ray_generator *raygen, class bouncer *bouncer, acceleraton_structure<forward_traits> *as) : raygen(raygen), bouncer(bouncer), cpu_bouncer(dynamic_cast<cpu_ray_bouncer<forward_traits>*>(bouncer)), accel_struct(as) {
 		}
 		virtual void setup_rays() { // potentially uploads ray data to the gpu
 		}

@@ -101,7 +101,7 @@ template<typename box_t, typename tri_t> class directional_analysis_pass {
 		int vertices;
 		rta::cam_ray_generator_shirley crgs;
 		rta::basic_raytracer<box_t, tri_t> *rt;
-		rta::binary_png_tester<tri_t> coll;
+		rta::binary_png_tester<box_t, tri_t> coll;
 		vec3f obj_center;
 		float bb_diam;
 		float dist_scale;
@@ -181,6 +181,12 @@ template<typename box_t, typename tri_t> class directional_analysis_pass {
 				if (i < 10) oss << "0";
 				oss << i;
 				oss << ".png";
+
+				coll.lights.clear();
+				coll.add_pointlight(pos, {0.9,0.3,0.2});
+				coll.reset();
+
+				coll.shade();
 				coll.save(oss.str());
 			}
 		}

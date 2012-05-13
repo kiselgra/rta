@@ -27,6 +27,31 @@ namespace rta {
 		return v;
 	}
 
+	//! to and dir may point to the same location \attention modifies \c dir
+	void reflect(vec3_t *to, vec3_t *normal, vec3_t *dir) {
+		// to = dir - 2(dir|normal)normal
+		normalize_vec3f(dir);
+		float_t dot = dot_vec3f(dir, normal);
+		mul_vec3f_by_scalar(to, normal, 2*dot);
+		sub_components_vec3f(to, dir, to);
+	}
+	
+	void barycentric_interpolation(vec3_t *to, const vec3_t *b_coord, const vec3_t *a, const vec3_t *b, const vec3_t *c) {
+		vec3_t tmp;
+		mul_vec3f_by_scalar(to,   a,  x_comp(*b_coord));
+		mul_vec3f_by_scalar(&tmp, b,  y_comp(*b_coord));
+		add_components_vec3f(to , to, &tmp);
+		mul_vec3f_by_scalar(&tmp, c,  z_comp(*b_coord));
+		add_components_vec3f(to,  to, &tmp);
+	}
+
+// 	void interpolate_normal(vec3_t *to, const triangle_intersection &is) {
+// 		vec3_t bcoord = { is.beta, is.gamma, (float_t)(1.0 - is.beta - is.gamma) };
+// 		vec3_t interpol = 
+// 		administrative_arith_t n = barycentric_interpolation(administrative_arith_t(alpha, beta, gamma), state.triangle_ref->normal_a(), 
+// 				state.triangle_ref->normal_b(), state.triangle_ref->normal_c());
+// 		normalize(n);
+// 	}
 }
 
 #endif

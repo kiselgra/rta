@@ -24,25 +24,33 @@ namespace rta {
 		vec3_t min, max;
 	};
 
-	struct triangle_intersection {
+	template<typename _tri_t> struct triangle_intersection {
+		typedef _tri_t tri_t;
 		float_t t, beta, gamma;
-		uint triangle_id;
-		triangle_intersection() : t(FLT_MAX) {}
+		tri_t *ref;
+		triangle_intersection() : t(FLT_MAX), ref(0) {}
+		triangle_intersection(tri_t *t) : t(FLT_MAX), ref(t) {}
 		bool valid() const { return t != FLT_MAX; }
-		void reset() { t = FLT_MAX; }
+		void reset() { t = FLT_MAX; ref = 0; }
+		void barycentric_coord(vec3_t *to) {
+			to->x = 1.0 - beta - gamma;
+			to->y = beta;
+			to->z = gamma;
+		}
 	};
 
 
 
 	#define invalid_instantiation_message "Invalid instantiation of a function allowed for certain types, only."
-	#define invalid_instantiation static_assert(fail<T>::result, invalid_instantiation_message)
+	#define invalid_instantiation(TTT) static_assert(fail<TTT>::result, invalid_instantiation_message)
+	#define invalid_t void
 	
 	
 	// accessors
 
 	
 	//! access vector components by number
-	template<typename T, unsigned int N> struct comp_impl { invalid_instantiation; };
+	template<typename T, unsigned int N> struct comp_impl { invalid_instantiation(T); };
 	template<typename T> struct comp_impl<T, 0> { 
 		static inline float_t& ref(T &t) { return x_comp(t); } 
 		static inline const float_t &ref(const T &t) { return x_comp(t); }
@@ -60,51 +68,69 @@ namespace rta {
 	template<unsigned int N, typename T> inline const float_t& comp(const T &t) { return comp_impl<T, N>::ref(t); }
 
 	//! acess vector components by name
-	template<typename T> inline       float_t& x_comp(T &t)            { invalid_instantiation; }
+	template<typename T> inline       float_t& x_comp(T &t)            { invalid_instantiation(T); }
 	template<>           inline       float_t& x_comp(vec3_t &t)       { return t.x; }
-	template<typename T> inline const float_t& x_comp(const T &t)      { invalid_instantiation; }
+	template<typename T> inline const float_t& x_comp(const T &t)      { invalid_instantiation(T); }
 	template<>           inline const float_t& x_comp(const vec3_t &t) { return t.x; }
 	
 	//! acess vector components by name
-	template<typename T> inline       float_t& y_comp(T &t)            { invalid_instantiation; }
+	template<typename T> inline       float_t& y_comp(T &t)            { invalid_instantiation(T); }
 	template<>           inline       float_t& y_comp(vec3_t &t)       { return t.y; }
-	template<typename T> inline const float_t& y_comp(const T &t)      { invalid_instantiation; }
+	template<typename T> inline const float_t& y_comp(const T &t)      { invalid_instantiation(T); }
 	template<>           inline const float_t& y_comp(const vec3_t &t) { return t.y; }
 	
 	//! acess vector components by name
-	template<typename T> inline       float_t& z_comp(T &t)            { invalid_instantiation; }
+	template<typename T> inline       float_t& z_comp(T &t)            { invalid_instantiation(T); }
 	template<>           inline       float_t& z_comp(vec3_t &t)       { return t.z; }
-	template<typename T> inline const float_t& z_comp(const T &t)      { invalid_instantiation; }
+	template<typename T> inline const float_t& z_comp(const T &t)      { invalid_instantiation(T); }
 	template<>           inline const float_t& z_comp(const vec3_t &t) { return t.z; }
 
 	//! access a triangle's vertices by name - a
-	template<typename T> inline       vec3_t& vertex_a(T &t)                     { invalid_instantiation; }
+	template<typename T> inline       vec3_t& vertex_a(T &t)                     { invalid_instantiation(T); }
 	template<>           inline       vec3_t& vertex_a(simple_triangle &t)       { return t.a; }
-	template<typename T> inline const vec3_t& vertex_a(const T &t)               { invalid_instantiation; }
+	template<typename T> inline const vec3_t& vertex_a(const T &t)               { invalid_instantiation(T); }
 	template<>           inline const vec3_t& vertex_a(const simple_triangle &t) { return t.a; }
 
 	//! access a triangle's vertices by name - b
-	template<typename T> inline       vec3_t& vertex_b(T &t)                     { invalid_instantiation; }
+	template<typename T> inline       vec3_t& vertex_b(T &t)                     { invalid_instantiation(T); }
 	template<>           inline       vec3_t& vertex_b(simple_triangle &t)       { return t.b; }
-	template<typename T> inline const vec3_t& vertex_b(const T &t)               { invalid_instantiation; }
+	template<typename T> inline const vec3_t& vertex_b(const T &t)               { invalid_instantiation(T); }
 	template<>           inline const vec3_t& vertex_b(const simple_triangle &t) { return t.b; }
 
 	//! access a triangle's vertices by name - c
-	template<typename T> inline       vec3_t& vertex_c(T &t)                     { invalid_instantiation; }
+	template<typename T> inline       vec3_t& vertex_c(T &t)                     { invalid_instantiation(T); }
 	template<>           inline       vec3_t& vertex_c(simple_triangle &t)       { return t.c; }
-	template<typename T> inline const vec3_t& vertex_c(const T &t)               { invalid_instantiation; }
+	template<typename T> inline const vec3_t& vertex_c(const T &t)               { invalid_instantiation(T); }
 	template<>           inline const vec3_t& vertex_c(const simple_triangle &t) { return t.c; }
+	
+	//! access a triangle's normal by name - a
+	template<typename T> inline       vec3_t& normal_a(T &t)                     { invalid_instantiation(T); }
+	template<>           inline       vec3_t& normal_a(simple_triangle &t)       { return t.na; }
+	template<typename T> inline const vec3_t& normal_a(const T &t)               { invalid_instantiation(T); }
+	template<>           inline const vec3_t& normal_a(const simple_triangle &t) { return t.na; }
+
+	//! access a triangle's normal by name - b
+	template<typename T> inline       vec3_t& normal_b(T &t)                     { invalid_instantiation(T); }
+	template<>           inline       vec3_t& normal_b(simple_triangle &t)       { return t.nb; }
+	template<typename T> inline const vec3_t& normal_b(const T &t)               { invalid_instantiation(T); }
+	template<>           inline const vec3_t& normal_b(const simple_triangle &t) { return t.nb; }
+
+	//! access a triangle's normal by name - c
+	template<typename T> inline       vec3_t& normal_c(T &t)                     { invalid_instantiation(T); }
+	template<>           inline       vec3_t& normal_c(simple_triangle &t)       { return t.nc; }
+	template<typename T> inline const vec3_t& normal_c(const T &t)               { invalid_instantiation(T); }
+	template<>           inline const vec3_t& normal_c(const simple_triangle &t) { return t.nc; }
 
 	//! access an aabb's vertices by name - min
-	template<typename T> inline       vec3_t& min(T &bb)                 { invalid_instantiation; }
+	template<typename T> inline       vec3_t& min(T &bb)                 { invalid_instantiation(T); }
 	template<>           inline       vec3_t& min(simple_aabb &bb)       { return bb.min; }
-	template<typename T> inline const vec3_t& min(const T &bb)           { invalid_instantiation; }
+	template<typename T> inline const vec3_t& min(const T &bb)           { invalid_instantiation(T); }
 	template<>           inline const vec3_t& min(const simple_aabb &bb) { return bb.min; }
 	
 	//! access an aabb's vertices by name - max
-	template<typename T> inline       vec3_t& max(T &bb)                 { invalid_instantiation; }
+	template<typename T> inline       vec3_t& max(T &bb)                 { invalid_instantiation(T); }
 	template<>           inline       vec3_t& max(simple_aabb &bb)       { return bb.max; }
-	template<typename T> inline const vec3_t& max(const T &bb)           { invalid_instantiation; }
+	template<typename T> inline const vec3_t& max(const T &bb)           { invalid_instantiation(T); }
 	template<>           inline const vec3_t& max(const simple_aabb &bb) { return bb.max; }
 
 

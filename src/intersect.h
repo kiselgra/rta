@@ -5,7 +5,7 @@
 
 namespace rta {
 
-	template<typename tri> bool intersect_tri_opt(const tri &t, const vec3_t *ray_origin, const vec3_t *ray_dir, triangle_intersection &info)
+	template<typename tri> bool intersect_tri_opt(const tri &t, const vec3_t *ray_origin, const vec3_t *ray_dir, triangle_intersection<tri> &info)
 	{
 		float_t a_x = x_comp(vertex_a(t));
 		float_t a_y = y_comp(vertex_a(t));

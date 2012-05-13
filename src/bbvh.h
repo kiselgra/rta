@@ -249,7 +249,7 @@ template<box_t__and__tri_t> class bbvh_direct_is_tracer : public bbvh_tracer<for
 		virtual void trace_rays() {
 			std::cout << "trace rays" << std::endl;
 			wall_time_timer wtt; wtt.start();
-			traversal_state state;
+			traversal_state<tri_t> state;
 			for (uint y = 0; y < raygen->res_y(); ++y) {
 				for (uint x = 0; x < raygen->res_x(); ++x) {
 					state.reset(x,y);
@@ -260,7 +260,7 @@ template<box_t__and__tri_t> class bbvh_direct_is_tracer : public bbvh_tracer<for
 			float ms = wtt.look();
 			cout << "took " << ms << " ms." << endl;
 		}
-		void trace_ray(traversal_state &state, const vec3_t *origin, const vec3_t *dir) {
+		void trace_ray(traversal_state<tri_t> &state, const vec3_t *origin, const vec3_t *dir) {
 			state.stack[0] = 0;
 			state.sp = 0;
 			node_t *curr = 0;
@@ -279,8 +279,9 @@ template<box_t__and__tri_t> class bbvh_direct_is_tracer : public bbvh_tracer<for
 					int elems = curr->elems();
 					int offset = curr->tris();
 					for (int i = 0; i < elems; ++i) {
-						triangle_intersection is;
-						if (intersect_tri_opt(bbvh_tracer<forward_traits>::bvh->triangles[offset+i], origin, dir, is)) {
+						tri_t *t = &bbvh_tracer<forward_traits>::bvh->triangles[offset+i];
+						triangle_intersection<tri_t> is(t);
+						if (intersect_tri_opt(*t, origin, dir, is)) {
 							if (is.t < state.intersection.t)
 								state.intersection = is;
 						}
@@ -304,7 +305,7 @@ template<box_t__and__tri_t> class bbvh_child_is_tracer : public bbvh_tracer<forw
 		virtual void trace_rays() {
 			std::cout << "trace rays" << std::endl;
 			wall_time_timer wtt; wtt.start();
-			traversal_state state;
+			traversal_state<tri_t> state;
 			for (uint y = 0; y < raygen->res_y(); ++y) {
 				for (uint x = 0; x < raygen->res_x(); ++x) {
 					state.reset(x,y);
@@ -315,7 +316,7 @@ template<box_t__and__tri_t> class bbvh_child_is_tracer : public bbvh_tracer<forw
 			float ms = wtt.look();
 			cout << "took " << ms << " ms." << endl;
 		}
-		void trace_ray(traversal_state &state, const vec3_t *origin, const vec3_t *dir) {
+		void trace_ray(traversal_state<tri_t> &state, const vec3_t *origin, const vec3_t *dir) {
 			state.stack[0] = 0;
 			state.sp = 0;
 			node_t *curr = 0;
@@ -352,8 +353,9 @@ template<box_t__and__tri_t> class bbvh_child_is_tracer : public bbvh_tracer<forw
 					int elems = curr->elems();
 					int offset = curr->tris();
 					for (int i = 0; i < elems; ++i) {
-						triangle_intersection is;
-						if (intersect_tri_opt(bbvh_tracer<forward_traits>::bvh->triangles[offset+i], origin, dir, is)) {
+						tri_t *t = &bbvh_tracer<forward_traits>::bvh->triangles[offset+i];
+						triangle_intersection<tri_t> is(t);
+						if (intersect_tri_opt(*t, origin, dir, is)) {
 							if (is.t < state.intersection.t)
 								state.intersection = is;
 						}
