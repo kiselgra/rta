@@ -229,7 +229,7 @@ template<box_t__and__tri_t> class basic_raytracer : public raytracer {
 		ray_generator *raygen;
 		class bouncer *bouncer;
 		cpu_ray_bouncer<forward_traits> *cpu_bouncer;
-		virtual void trace_rays() = 0;
+		virtual float trace_rays() = 0;
 	public:
 		declare_traits_types;
 		acceleraton_structure<forward_traits> *accel_struct;
@@ -240,15 +240,15 @@ template<box_t__and__tri_t> class basic_raytracer : public raytracer {
 		virtual void prepare_bvh_for_tracing() { // potentially uploads the bvh to the gpu? will ich das?
 		}
 		virtual void trace() {
-			std::cout << "setting up rays for first bounce" << std::endl;
 			raygen->generate_rays();
+			timings.clear();
 			do {
-				std::cout << "tracing rays" << std::endl;
-				trace_rays();
+				float ms = trace_rays();
+				timings.push_back(ms);
 				bouncer->bounce();
 			} while (bouncer->trace_further_bounces());
-			std::cout << "trace done" << std::endl;
 		}
+		std::vector<float> timings;
 };
 
 ////////////////////

@@ -30,6 +30,7 @@ static struct argp_option options[] =
 	{ "samples", 's', "n",       0, "How many samples to take. Used by --axis, only." },
 	{ "sphere-file", SF, "filename.ply", 0, "Start spherical measure series using the points on the sphere specified in the given .ply file. Peferred sphere radius: 1."},
 	{ "force-mode", 'f', "[pas]", 0, "When otherwise invalid combinations of --pos, --asix and --sphere_file are given, instead of erroring out, choose the one selected by this flag." },
+	{ "outfile", 'o', "filename", 0, "Write pass specific output to this file, e.g. a modified ply file containing timings." },
 	{ 0 }
 };	
 
@@ -70,6 +71,7 @@ static error_t parse_options(int key, char *arg, argp_state *state)
 	case 's':     cmdline.samples = atoi(arg); break;
 	case SF:      cmdline.sphere_file = sarg; cmdline.sphere_series = true; break;
 	case 'f':     cmdline.force = sarg; break;
+	case 'o':     cmdline.outfile = sarg; break;
 	
 	case ARGP_KEY_ARG:		// process arguments. 
 							// state->arg_num gives number of current arg

@@ -18,6 +18,7 @@ struct Cmdline
 
 	std::string sphere_file;
 	std::string force;
+	std::string outfile;
 
 	Cmdline() : verbose(false), positional_series(false), axial_series(false), sphere_series(false)
 	{

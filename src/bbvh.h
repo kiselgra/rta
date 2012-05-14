@@ -246,8 +246,7 @@ template<box_t__and__tri_t> class bbvh_direct_is_tracer : public bbvh_tracer<for
 
 		bbvh_direct_is_tracer(ray_generator *gen, bbvh_t *bvh, class bouncer *b) : bbvh_tracer<forward_traits>(gen, bvh, b) {
 		}
-		virtual void trace_rays() {
-			std::cout << "trace rays" << std::endl;
+		virtual float trace_rays() {
 			wall_time_timer wtt; wtt.start();
 			traversal_state<tri_t> state;
 			for (uint y = 0; y < raygen->res_y(); ++y) {
@@ -258,7 +257,7 @@ template<box_t__and__tri_t> class bbvh_direct_is_tracer : public bbvh_tracer<for
 				}
 			}
 			float ms = wtt.look();
-			cout << "took " << ms << " ms." << endl;
+			return ms;
 		}
 		void trace_ray(traversal_state<tri_t> &state, const vec3_t *origin, const vec3_t *dir) {
 			state.stack[0] = 0;
@@ -302,8 +301,7 @@ template<box_t__and__tri_t> class bbvh_child_is_tracer : public bbvh_tracer<forw
 
 		bbvh_child_is_tracer(ray_generator *gen, bbvh_t *bvh, class bouncer *b) : bbvh_tracer<forward_traits>(gen, bvh, b) {
 		}
-		virtual void trace_rays() {
-			std::cout << "trace rays" << std::endl;
+		virtual float trace_rays() {
 			wall_time_timer wtt; wtt.start();
 			traversal_state<tri_t> state;
 			for (uint y = 0; y < raygen->res_y(); ++y) {
@@ -314,7 +312,7 @@ template<box_t__and__tri_t> class bbvh_child_is_tracer : public bbvh_tracer<forw
 				}
 			}
 			float ms = wtt.look();
-			cout << "took " << ms << " ms." << endl;
+			return ms;
 		}
 		void trace_ray(traversal_state<tri_t> &state, const vec3_t *origin, const vec3_t *dir) {
 			state.stack[0] = 0;

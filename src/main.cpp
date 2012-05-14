@@ -104,6 +104,7 @@ template<box_t__and__tri_t> class directional_analysis_pass {
 		ply sphere;
 		vec3f *vertex;
 		int vertices;
+		float *timings;
 		rta::cam_ray_generator_shirley crgs;
 		rta::basic_raytracer<box_t, tri_t> *rt;
 		rta::binary_png_tester<box_t, tri_t> coll;
@@ -114,18 +115,23 @@ template<box_t__and__tri_t> class directional_analysis_pass {
 
 	public:
 		directional_analysis_pass(const std::string &sphere_file, int res_x, int res_y) 
-		: vertex(0), vertices(0), crgs(res_x, res_y), rt(0), coll(res_x, res_y), dist_scale(1.5) {
+		: vertex(0), vertices(0), timings(0), crgs(res_x, res_y), rt(0), coll(res_x, res_y), dist_scale(1.5) {
 			setup_sample_positions(sphere_file);
 		}
 		directional_analysis_pass(vec3_t &axis, vec3_t &anchor, int samples, int res_x, int res_y)
-		: vertex(0), vertices(0), crgs(res_x, res_y), rt(0), coll(res_x, res_y), dist_scale(1.5) {
+		: vertex(0), vertices(0), timings(0), crgs(res_x, res_y), rt(0), coll(res_x, res_y), dist_scale(1.5) {
 			setup_rotation_positions(axis, anchor, samples);
+		}
+		~directional_analysis_pass() {
+			delete [] vertex;
+			delete [] timings;
 		}
 		void setup_sample_positions(const std::string &sphere_file) {
 			load_ply_file(sphere_file.c_str(), &sphere);
 			auto elem = sphere.element("vertex");
 			vertices = elem->count;
 			vertex = new vec3f[vertices];
+			timings = new float[vertices];
 			int x = elem->index_of("x"),
 				y = elem->index_of("y"),
 				z = elem->index_of("z");
@@ -145,9 +151,27 @@ template<box_t__and__tri_t> class directional_analysis_pass {
 			vertices = at;
 			cout << "got " << vertices << " distinct vertices" << endl;
 		}
+		void mod_and_save_ply(const std::string &out) {
+			sphere.allocate_new_vertex_data({"ms"}, "vertex");
+			auto elem = sphere.element("vertex");
+			int n = elem->count;
+			int x = elem->index_of("x"),
+				y = elem->index_of("y"),
+				z = elem->index_of("z"),
+				m = elem->index_of("ms");
+			for (int i = 0; i < vertices; ++i)
+				for (int j = 0; j < n; ++j) {
+					vec3f new_vert; 
+					make_vec3f(&new_vert, elem->ref(j, x), elem->ref(j, y), elem->ref(j, z));
+					if (vertex[i] == new_vert)
+						elem->ref(j, m) = timings[i];
+				}
+			save_ply_file(out, &sphere);
+		}
 		void setup_rotation_positions(vec3_t &axis, vec3_t &anchor, int samples) {
 			vertices = samples;
 			vertex = new vec3_t[samples];
+			timings = new float[samples];
 			for (int i = 0; i < samples; ++i) {
 				matrix4x4f m;
 				vec4_t a = { x_comp(anchor), x_comp(anchor), x_comp(anchor), 0 }, b;
@@ -178,6 +202,7 @@ template<box_t__and__tri_t> class directional_analysis_pass {
 		}
 		void run() {
 			vec3f null = make_vec3f(0,0,0);
+			float sum = 0;
 			for (int i = 0; i < vertices; ++i) {
 				vec3f pos;// = vertex[i];
 
@@ -200,6 +225,8 @@ template<box_t__and__tri_t> class directional_analysis_pass {
 				crgs.generate_rays();
 
 				rt->trace();
+				sum += rt->timings.front();
+				timings[i] = rt->timings.front();
 
 				ostringstream oss;
 				oss << "/tmp/blub-";
@@ -225,12 +252,6 @@ template<box_t__and__tri_t> class directional_analysis_pass {
 				vec3_t mi = min(light_box);
 				vec3_t ma = max(light_box);
 
-// 				coll.add_pointlight({x_comp(center), y_comp(center), z_comp(mi)}, {I, 0, 0});
-// 				coll.add_pointlight({x_comp(center), y_comp(center), z_comp(ma)}, {0, I, 0});
-				
-// 				coll.add_pointlight({x_comp(center), y_comp(mi), z_comp(center)}, {I, 0, 0});
-// 				coll.add_pointlight({x_comp(center), y_comp(ma), z_comp(center)}, {0, I, 0});
-
 				coll.add_pointlight({x_comp(min(light_box)), y_comp(min(light_box)), z_comp(min(light_box))}, {I, I, I});
 				coll.add_pointlight({x_comp(min(light_box)), y_comp(min(light_box)), z_comp(max(light_box))}, {I, I, I});
 				coll.add_pointlight({x_comp(min(light_box)), y_comp(max(light_box)), z_comp(min(light_box))}, {I, I, I});
@@ -244,7 +265,10 @@ template<box_t__and__tri_t> class directional_analysis_pass {
 
 				coll.shade();
 				coll.save(oss.str());
+
+				cout << "." << flush;
 			}
+			cout << "\naverage time per frame: " << sum/vertices << "ms" << endl;
 		}
 };
 
@@ -281,6 +305,8 @@ int main(int argc, char **argv) {
 		bbvh_child_is_tracer<box_t, tri_t> rt(dap->ray_gen(), bvh, dap->bouncer());
 		dap->tracer(&rt);
 		dap->run();
+		if (cmdline.outfile != "" && cmdline.sphere_series)
+			dap->mod_and_save_ply(cmdline.outfile);
 	}
 	else if (cmdline.positional_series) {
 		uint res_x = 800, res_y = 800;
