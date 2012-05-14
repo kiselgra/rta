@@ -13,6 +13,7 @@ namespace rta {
 	typedef unsigned int uint;
 	typedef float float_t;
 	typedef vec3f vec3_t;
+	typedef vec4f vec4_t;
 
 	
 	struct simple_triangle {
@@ -70,20 +71,32 @@ namespace rta {
 	//! acess vector components by name
 	template<typename T> inline       float_t& x_comp(T &t)            { invalid_instantiation(T); }
 	template<>           inline       float_t& x_comp(vec3_t &t)       { return t.x; }
+	template<>           inline       float_t& x_comp(vec4_t &t)       { return t.x; }
 	template<typename T> inline const float_t& x_comp(const T &t)      { invalid_instantiation(T); }
 	template<>           inline const float_t& x_comp(const vec3_t &t) { return t.x; }
+	template<>           inline const float_t& x_comp(const vec4_t &t) { return t.x; }
 	
 	//! acess vector components by name
 	template<typename T> inline       float_t& y_comp(T &t)            { invalid_instantiation(T); }
 	template<>           inline       float_t& y_comp(vec3_t &t)       { return t.y; }
+	template<>           inline       float_t& y_comp(vec4_t &t)       { return t.y; }
 	template<typename T> inline const float_t& y_comp(const T &t)      { invalid_instantiation(T); }
 	template<>           inline const float_t& y_comp(const vec3_t &t) { return t.y; }
+	template<>           inline const float_t& y_comp(const vec4_t &t) { return t.y; }
 	
 	//! acess vector components by name
 	template<typename T> inline       float_t& z_comp(T &t)            { invalid_instantiation(T); }
 	template<>           inline       float_t& z_comp(vec3_t &t)       { return t.z; }
+	template<>           inline       float_t& z_comp(vec4_t &t)       { return t.z; }
 	template<typename T> inline const float_t& z_comp(const T &t)      { invalid_instantiation(T); }
 	template<>           inline const float_t& z_comp(const vec3_t &t) { return t.z; }
+	template<>           inline const float_t& z_comp(const vec4_t &t) { return t.z; }
+	
+	//! acess vector w components by name
+	template<typename T> inline       float_t& w_comp(T &t)            { invalid_instantiation(T); }
+	template<>           inline       float_t& w_comp(vec4_t &t)       { return t.w; }
+	template<typename T> inline const float_t& w_comp(const T &t)      { invalid_instantiation(T); }
+	template<>           inline const float_t& w_comp(const vec4_t &t) { return t.w; }
 
 	//! access a triangle's vertices by name - a
 	template<typename T> inline       vec3_t& vertex_a(T &t)                     { invalid_instantiation(T); }

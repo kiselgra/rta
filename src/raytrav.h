@@ -109,9 +109,9 @@ template<box_t__and__tri_t> class binary_png_tester : public cpu_ray_bouncer<for
 						vec3_t N, p;
 					   	barycentric_interpolation(&N, &bc, &na, &nb, &nc);
 						// get vertex pos
-						const vec3_t &va = normal_a(*is.ref);
-						const vec3_t &vb = normal_b(*is.ref);
-						const vec3_t &vc = normal_c(*is.ref);
+						const vec3_t &va = vertex_a(*is.ref);
+						const vec3_t &vb = vertex_b(*is.ref);
+						const vec3_t &vc = vertex_c(*is.ref);
 					   	barycentric_interpolation(&p, &bc, &va, &vb, &vc);
 						// compute lambert
 						vec3_t L = l.pos;
@@ -124,9 +124,9 @@ template<box_t__and__tri_t> class binary_png_tester : public cpu_ray_bouncer<for
 						add_components_vec3f(&col, &col, &c);
 // 						add_components_vec3f(&col, &col, &N);
 					}
-					res.pixel(x,y,0) = col.x*255;
-					res.pixel(x,y,1) = col.y*255;
-					res.pixel(x,y,2) = col.z*255;
+					res.pixel(x,y,0) = std::min(int(col.x*255), 255);
+					res.pixel(x,y,1) = std::min(int(col.y*255), 255);
+					res.pixel(x,y,2) = std::min(int(col.z*255), 255);
 				}
 		}
 // 		virtual void bounce_ray(const traversal_state &state, vec3_t *origin, vec3_t *dir) {

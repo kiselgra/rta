@@ -7,6 +7,8 @@
 #include <libobjloader/default.h>
 #include <libplyloader/plyloader.h>
 
+#include <libmcm/matrix.h>
+
 #include <string>
 #include <sstream>
 #include <list>
@@ -95,7 +97,10 @@ vec3f make_vec3f(float x, float y, float z) {
 	return r;
 }
 
-template<typename box_t, typename tri_t> class directional_analysis_pass {
+using namespace rta;
+
+template<box_t__and__tri_t> class directional_analysis_pass {
+		declare_traits_types;
 		ply sphere;
 		vec3f *vertex;
 		int vertices;
@@ -103,11 +108,20 @@ template<typename box_t, typename tri_t> class directional_analysis_pass {
 		rta::basic_raytracer<box_t, tri_t> *rt;
 		rta::binary_png_tester<box_t, tri_t> coll;
 		vec3f obj_center;
+		box_t bb;
 		float bb_diam;
 		float dist_scale;
+
 	public:
-		directional_analysis_pass(const std::string sphere_file, int res_x, int res_y) 
+		directional_analysis_pass(const std::string &sphere_file, int res_x, int res_y) 
 		: vertex(0), vertices(0), crgs(res_x, res_y), rt(0), coll(res_x, res_y), dist_scale(1.5) {
+			setup_sample_positions(sphere_file);
+		}
+		directional_analysis_pass(vec3_t &axis, vec3_t &anchor, int samples, int res_x, int res_y)
+		: vertex(0), vertices(0), crgs(res_x, res_y), rt(0), coll(res_x, res_y), dist_scale(1.5) {
+			setup_rotation_positions(axis, anchor, samples);
+		}
+		void setup_sample_positions(const std::string &sphere_file) {
 			load_ply_file(sphere_file.c_str(), &sphere);
 			auto elem = sphere.element("vertex");
 			vertices = elem->count;
@@ -130,7 +144,19 @@ template<typename box_t, typename tri_t> class directional_analysis_pass {
 			}
 			vertices = at;
 			cout << "got " << vertices << " distinct vertices" << endl;
-
+		}
+		void setup_rotation_positions(vec3_t &axis, vec3_t &anchor, int samples) {
+			vertices = samples;
+			vertex = new vec3_t[samples];
+			for (int i = 0; i < samples; ++i) {
+				matrix4x4f m;
+				vec4_t a = { x_comp(anchor), x_comp(anchor), x_comp(anchor), 0 }, b;
+				make_rotation_matrix4x4f(&m, &axis, (2*3.1416/float(samples))*i);
+				multiply_matrix4x4f_vec4f(&b, &m, &a);
+				x_comp(vertex[i]) = x_comp(b);
+				y_comp(vertex[i]) = y_comp(b);
+				z_comp(vertex[i]) = z_comp(b);
+			}
 		}
 		rta::cam_ray_generator_shirley* ray_gen() { 
 			return &crgs; 
@@ -140,7 +166,7 @@ template<typename box_t, typename tri_t> class directional_analysis_pass {
 			rt = tracer; 
 			tri_t *tris = rt->accel_struct->triangle_ptr();
 			int n = rt->accel_struct->triangle_count();
-			box_t bb = rta::compute_aabb<box_t>(tris, 0, n);
+			bb = rta::compute_aabb<box_t>(tris, 0, n);
 			vec3f diff;
 			sub_components_vec3f(&diff, &max(bb), &min(bb));
 			bb_diam = length_of_vec3f(&diff);
@@ -182,8 +208,38 @@ template<typename box_t, typename tri_t> class directional_analysis_pass {
 				oss << i;
 				oss << ".png";
 
+				box_t light_box = bb;
+				vec3_t diff, delta;
+				sub_components_vec3f(&diff, &max(bb), &min(bb));
+				mul_vec3f_by_scalar(&delta, &diff, 0.1);
+				sub_components_vec3f(&min(light_box), &min(light_box), &delta);
+				add_components_vec3f(&max(light_box), &max(light_box), &delta);
+				
+				vec3_t center;
+				mul_vec3f_by_scalar(&diff, &diff, 0.5);
+				add_components_vec3f(&center, &min(light_box), &diff);
+
 				coll.lights.clear();
-				coll.add_pointlight(pos, {0.9,0.3,0.2});
+				float_t I = 0.3;
+
+				vec3_t mi = min(light_box);
+				vec3_t ma = max(light_box);
+
+// 				coll.add_pointlight({x_comp(center), y_comp(center), z_comp(mi)}, {I, 0, 0});
+// 				coll.add_pointlight({x_comp(center), y_comp(center), z_comp(ma)}, {0, I, 0});
+				
+// 				coll.add_pointlight({x_comp(center), y_comp(mi), z_comp(center)}, {I, 0, 0});
+// 				coll.add_pointlight({x_comp(center), y_comp(ma), z_comp(center)}, {0, I, 0});
+
+				coll.add_pointlight({x_comp(min(light_box)), y_comp(min(light_box)), z_comp(min(light_box))}, {I, I, I});
+				coll.add_pointlight({x_comp(min(light_box)), y_comp(min(light_box)), z_comp(max(light_box))}, {I, I, I});
+				coll.add_pointlight({x_comp(min(light_box)), y_comp(max(light_box)), z_comp(min(light_box))}, {I, I, I});
+				coll.add_pointlight({x_comp(min(light_box)), y_comp(max(light_box)), z_comp(max(light_box))}, {I, I, I});
+				coll.add_pointlight({x_comp(max(light_box)), y_comp(min(light_box)), z_comp(min(light_box))}, {I, I, I});
+				coll.add_pointlight({x_comp(max(light_box)), y_comp(min(light_box)), z_comp(max(light_box))}, {I, I, I});
+				coll.add_pointlight({x_comp(max(light_box)), y_comp(max(light_box)), z_comp(min(light_box))}, {I, I, I});
+				coll.add_pointlight({x_comp(max(light_box)), y_comp(max(light_box)), z_comp(max(light_box))}, {I, I, I});
+
 				coll.reset();
 
 				coll.shade();
@@ -206,36 +262,46 @@ int main(int argc, char **argv) {
 	cout << "loading object" << endl;
 	auto triangle_lists = load_objfile_to_flat_tri_list("/home/kai/render-data/models/drache.obj");
 	
-	/*
-	uint res_x = 512, 
-		 res_y = 512;
-	cout << "initializing rays" << endl;
-	cam_ray_generator_shirley crgs(res_x, res_y);
-	crgs.setup(&cmdline.pos, &cmdline.dir, &cmdline.up, 45);
-	crgs.generate_rays();
-	
-	cout << "building bvh" << endl;
-// 	bbvh_constructor_using_median<bvh_t> ctor(bbvh_constructor_using_median<bvh_t>::object_median);
-	bbvh_constructor_using_median<bvh_t> ctor(bbvh_constructor_using_median<bvh_t>::spatial_median);
-	bvh_t *bvh = ctor.build(&triangle_lists.front());
-	cout << "trace" << endl;
-	binary_png_tester coll(res_x, res_y);
-// 	bbvh_direct_is_tracer<box_t, tri_t> rt(&crgs, bvh, &coll);
-	bbvh_child_is_tracer<box_t, tri_t> rt(&crgs, bvh, &coll);
-	rt.trace();
-	cout << "save" << endl;
-	coll.save("/tmp/blub.png");
-	cout << "done" << endl;
-	*/
 
 
+	if (cmdline.axial_series || cmdline.sphere_series)
 	{
-	directional_analysis_pass<box_t, tri_t> dap("/home/kai/sphere0.ply", 800, 800);
-	bbvh_constructor_using_median<bvh_t> ctor(bbvh_constructor_using_median<bvh_t>::spatial_median);
-	bvh_t *bvh = ctor.build(&triangle_lists.front());
-	bbvh_child_is_tracer<box_t, tri_t> rt(dap.ray_gen(), bvh, dap.bouncer());
-	dap.tracer(&rt);
-	dap.run();
+		directional_analysis_pass<box_t, tri_t> *dap = 0;
+		if (cmdline.axial_series) {
+			cout << "running axial series..." << endl;
+			dap = new directional_analysis_pass<box_t, tri_t>(cmdline.axis, cmdline.anchor, cmdline.samples, 800, 800);
+		}
+		else {
+			cout << "running spherical series..." << endl;
+			dap = new directional_analysis_pass<box_t, tri_t>(cmdline.sphere_file, 800, 800);
+		}
+	
+		bbvh_constructor_using_median<bvh_t> ctor(bbvh_constructor_using_median<bvh_t>::spatial_median);
+		bvh_t *bvh = ctor.build(&triangle_lists.front());
+		bbvh_child_is_tracer<box_t, tri_t> rt(dap->ray_gen(), bvh, dap->bouncer());
+		dap->tracer(&rt);
+		dap->run();
+	}
+	else if (cmdline.positional_series) {
+		uint res_x = 800, res_y = 800;
+		cam_ray_generator_shirley crgs(res_x, res_y);
+		crgs.setup(&cmdline.pos, &cmdline.dir, &cmdline.up, 45);
+		crgs.generate_rays();
+
+		// 	bbvh_constructor_using_median<bvh_t> ctor(bbvh_constructor_using_median<bvh_t>::object_median);
+		bbvh_constructor_using_median<bvh_t> ctor(bbvh_constructor_using_median<bvh_t>::spatial_median);
+		bvh_t *bvh = ctor.build(&triangle_lists.front());
+		
+		binary_png_tester<box_t, tri_t> coll(res_x, res_y);
+		// 	bbvh_direct_is_tracer<box_t, tri_t> rt(&crgs, bvh, &coll);
+		bbvh_child_is_tracer<box_t, tri_t> rt(&crgs, bvh, &coll);
+		rt.trace();
+		coll.save("/tmp/blub.png");
+		cout << "stored result to /tmp/blub.png" << endl;
+	}
+	else {
+		cerr << "Don't know what to do. Try --help." << endl;
+		exit(EXIT_FAILURE);
 	}
 
 	if (0)
