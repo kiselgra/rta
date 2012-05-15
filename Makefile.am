@@ -1,4 +1,4 @@
 
-SUBDIRS = src
+SUBDIRS = src sphs
 
 ACLOCAL_AMFLAGS = -I m4
