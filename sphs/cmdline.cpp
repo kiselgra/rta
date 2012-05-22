@@ -13,10 +13,10 @@ using namespace std;
 const char *argp_program_version = VERSION;
 
 static char doc[]       = PACKAGE ": description";
-static char args_doc[]  = "argumentdescription";
+static char args_doc[]  = "inputfile";
 
 // long option without corresponding short option have to define a symbolic constant >= 300
-enum { FIRST = 300, IGNORE_DUP, OPTS };
+enum { FIRST = 300, IGNORE_DUP, CLEAR_DUP, OPTS };
 
 static struct argp_option options[] = 
 {
@@ -25,6 +25,7 @@ static struct argp_option options[] =
 	{ "output", 'o', "filename", 0, "Write output to the given file." },
 	{ "vertices", 'N', 0,        0, "Print the number of vertices/faces of the model." },
 	{ "ignore-duplicates", IGNORE_DUP, 0, 0, "Force me to ignore duplicate vertices. Note that this option will bias the results!" },
+	{ "clear-duplicates", CLEAR_DUP, 0, 0, "Write a file (called $inpufile.nodup) containing no duplicate vertices." },
 	{ 0 }
 };	
 
@@ -70,6 +71,10 @@ static error_t parse_options(int key, char *arg, argp_state *state)
 
 	case IGNORE_DUP:
 		cmdline.ignore_duplicates = true;
+		break;
+
+	case CLEAR_DUP:
+		cmdline.clear_duplicates = true;
 		break;
 
 	default:

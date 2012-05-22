@@ -12,10 +12,10 @@ struct Cmdline
 	std::string input_file_name;
 	std::string output_file_name;
 	bool print_vertices;
-	bool ignore_duplicates;
+	bool ignore_duplicates, clear_duplicates;
 
 	Cmdline() 
-	: verbose(false), print_vertices(false), ignore_duplicates(false)
+	: verbose(false), print_vertices(false), ignore_duplicates(false), clear_duplicates(false)
 	{
 	}
 };
