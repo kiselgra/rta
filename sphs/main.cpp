@@ -21,39 +21,43 @@ bool operator==(const vec3f &a, const vec3f &b) {
 void clear_duplicate_vertices(ply &p, ply::element_t *elem) {
 	std::vector<vec3f> verts;
 	verts.reserve(elem->count);
-	vec3f *vdata = p.flat_triangle_data("x", "y", "z", [](float f){ return f; });
+	int x = elem->index_of("x"),
+		y = elem->index_of("y"),
+		z = elem->index_of("z");
 
 	for (int i = 0; i < elem->count; ++i) {
+		vec3f curr = { elem->ref(i, x), elem->ref(i, y), elem->ref(i, z) };
 		for (int check = 0; check < verts.size(); ++check)
-			if (verts[check] == vdata[i]) {
+			if (verts[check] == curr) {
 				p.mark_vertex_for_deletion(i, check);
 				cout << "marked   " << i << "\t ---repl---> " << check << endl;
 				break;
 			}
-		verts.push_back(vdata[i]);
+		verts.push_back(curr);
 	}
 
 	p.delete_marked_vertices(elem->name);
-	
-	delete [] vdata;
 }
 
 bool duplicate_vertices(ply &p, ply::element_t *elem) {
 	std::vector<vec3f> verts;
 	verts.reserve(elem->count);
-	vec3f *vdata = p.flat_triangle_data("x", "y", "z", [](float f){ return f; });
-	bool duplicate_found = false;
-	try {
-		for (int i = 0; i < elem->count; ++i) {
-			for (auto v : verts)
-				if (v == vdata[i])
-					throw duplicate_found=true;
-			verts.push_back(vdata[i]);
-		}
+	int x = elem->index_of("x"),
+		y = elem->index_of("y"),
+		z = elem->index_of("z");
+
+	for (int i = 0; i < elem->count; ++i) {
+		vec3f curr = { elem->ref(i, x), elem->ref(i, y), elem->ref(i, z) };
+		for (auto v : verts)
+			if (v == curr) {
+				cout << "At vertex " << i << endl;
+				cout << "   new vertex: " << v.x << "\t" << v.y << "\t" << v.z << endl;
+				cout << "   old vertex: " << curr.x << "\t" << curr.y << "\t" << curr.z << endl;
+				return true;
+			}
+		verts.push_back(curr);
 	}
-	catch (bool) {}
-	delete [] vdata;
-	return duplicate_found;
+	return false;
 }
 
 int main(int argc, char **argv)
