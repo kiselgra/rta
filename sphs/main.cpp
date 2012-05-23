@@ -8,13 +8,19 @@
 #include <algorithm>
 #include <map>
 #include <fstream>
+#include <float.h>
 
 #include "cmdline.h"
+#include "color.h"
 
 using namespace std;
 
 bool operator==(const vec3f &a, const vec3f &b) {
 	return a.x == b.x && a.y == b.y && a.z == b.z;
+}
+
+std::ostream& operator<<(std::ostream &out, const vec3f &v) {
+	out << v.x << " " << v.y << " " << v.z;
 }
 
 
@@ -60,6 +66,48 @@ bool duplicate_vertices(ply &p, ply::element_t *elem) {
 	return false;
 }
 
+void apply(std::function<void(vec3f, float, int)> f, ply::element_t *elem) {
+	int x = elem->index_of("x"),
+		y = elem->index_of("y"),
+		z = elem->index_of("z"),
+		m = elem->index_of("ms");
+	for (int i = 0; i < elem->count; ++i) {
+		vec3f curr = { elem->ref(i, x), elem->ref(i, y), elem->ref(i, z) };
+		float ms = elem->ref(i, m);
+		f(curr, ms, i);
+	}
+}
+
+std::vector<float> find_min_max_time(ply::element_t *elem) {
+	float min = FLT_MAX,
+		  max = 0;
+	apply([&](vec3f pos, float ms, int i) {
+		  	if (ms < min) min = ms;
+			if (ms > max) max = ms;
+		  },
+		  elem);
+	return { min, max };
+}
+
+void scale_by_min_max(ply &p, ply::element_t *elem) {
+	std::vector<float> mm = find_min_max_time(elem);
+	p.allocate_new_vertex_data({"red", "green", "blue"}, elem->name);
+	int r = elem->index_of("red"),
+		g = elem->index_of("green"),
+		b = elem->index_of("blue");
+	float min = mm[0],
+		  max = mm[1];
+	apply([&](vec3f pos, float ms, int i) {
+				float hue = (ms-min)/(max-min) * 120;
+				vec3f col = rgb(hue);
+				elem->ref(i, r) = col.x;
+				elem->ref(i, g) = col.y;
+				elem->ref(i, b) = col.z;
+			},
+			elem);
+
+}
+
 int main(int argc, char **argv)
 {	
 	parse_cmdline(argc, argv);
@@ -99,6 +147,12 @@ int main(int argc, char **argv)
 	float avg = sum/vertices;
 
 	cout << avg << "ms" << endl;
+
+	auto mm = find_min_max_time(elem);
+	cout << "[ " << mm[0] << " : " << mm[1] << " ]" << endl;
+
+	scale_by_min_max(sphere, elem);
+	save_ply_file(cmdline.input_file_name + ".color.ply", &sphere);
 
 	return 0;
 }

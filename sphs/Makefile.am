@@ -3,6 +3,7 @@ bin_PROGRAMS = sphs
 
 # libconfigfiles_la_SOURCES = grammar.yy  lexer.ll  parser.h  token.h lexer.h config_creator.h configfile.h configfile.cpp
 sphs_SOURCES = 	main.cpp \
+				color.cpp color.h \
 				cmdline.cpp cmdline.h
 
 # for bison/flex
