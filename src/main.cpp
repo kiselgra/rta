@@ -274,6 +274,35 @@ template<box_t__and__tri_t> class directional_analysis_pass {
 		}
 };
 
+template<box_t__and__tri_t> struct rt_set {
+	declare_traits_types;
+	acceleration_structure<forward_traits> *as;
+	acceleration_structure_constructor<forward_traits> *ctor;
+	bouncer *bcr;
+	raytracer *rt;
+	ray_generator *rgen;
+};
+
+rt_set<simple_aabb, simple_triangle> make_bvh_stuff(bouncer *b, ray_generator *raygen, std::list<flat_triangle_list> triangle_lists) {
+	typedef simple_triangle tri_t;
+	typedef simple_aabb box_t;
+	typedef binary_bvh<box_t, tri_t> bvh_t;
+
+	bbvh_constructor_using_median<bvh_t> *ctor = new bbvh_constructor_using_median<bvh_t>(bbvh_constructor_using_median<bvh_t>::spatial_median);
+	bvh_t *bvh = ctor->build(&triangle_lists.front());
+
+	bbvh_child_is_tracer<box_t, tri_t> *rt = new bbvh_child_is_tracer<box_t, tri_t>(raygen, bvh, b);
+
+	rt_set<box_t, tri_t> set;
+	set.as = bvh;
+	set.ctor = ctor;
+	set.bcr = b;
+	set.rt = rt;
+	set.rgen = raygen;
+
+	return set;
+}
+
 int main(int argc, char **argv) {
 	parse_cmdline(argc, argv);
 
@@ -315,6 +344,8 @@ int main(int argc, char **argv) {
 		cam_ray_generator_shirley crgs(res_x, res_y);
 		crgs.setup(&cmdline.pos, &cmdline.dir, &cmdline.up, 45);
 		crgs.generate_rays();
+		
+		/*
 
 		// 	bbvh_constructor_using_median<bvh_t> ctor(bbvh_constructor_using_median<bvh_t>::object_median);
 		bbvh_constructor_using_median<bvh_t> ctor(bbvh_constructor_using_median<bvh_t>::spatial_median);
@@ -324,6 +355,14 @@ int main(int argc, char **argv) {
 		// 	bbvh_direct_is_tracer<box_t, tri_t> rt(&crgs, bvh, &coll);
 		bbvh_child_is_tracer<box_t, tri_t> rt(&crgs, bvh, &coll);
 		rt.trace();
+		coll.save("/tmp/blub.png");
+		cout << "stored result to /tmp/blub.png" << endl;
+
+		*/
+
+		binary_png_tester<box_t, tri_t> coll(res_x, res_y);
+		rt_set<simple_aabb, simple_triangle> set = make_bvh_stuff(&coll, &crgs, triangle_lists);
+		set.rt->trace();
 		coll.save("/tmp/blub.png");
 		cout << "stored result to /tmp/blub.png" << endl;
 	}
