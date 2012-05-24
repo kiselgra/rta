@@ -4,7 +4,7 @@
 
 namespace rta {
 
-template<box_t__and__tri_t> class binary_bvh : public acceleraton_structure<forward_traits> {
+template<box_t__and__tri_t> class binary_bvh : public acceleration_structure<forward_traits> {
 	public:
 		declare_traits_types;
 		typedef uint32_t link_t;
@@ -370,19 +370,19 @@ template<box_t__and__tri_t> class bbvh_child_is_tracer : public bbvh_tracer<forw
 //////////////
 //////////////
 
-template<box_t__and__tri_t> class stackess_binary_bvh : public acceleraton_structure<forward_traits> {
+template<box_t__and__tri_t> class stackess_binary_bvh : public acceleration_structure<forward_traits> {
 	public:
 		declare_traits_types;
 		struct node {
 		};
 };
 
-template<box_t__and__tri_t> class multi_bvh_sse : public acceleraton_structure<forward_traits> {
+template<box_t__and__tri_t> class multi_bvh_sse : public acceleration_structure<forward_traits> {
 	public:
 		declare_traits_types;
 };
 
-template<box_t__and__tri_t> class multi_bvh_avx : public acceleraton_structure<forward_traits> {
+template<box_t__and__tri_t> class multi_bvh_avx : public acceleration_structure<forward_traits> {
 	public:
 		declare_traits_types;
 };

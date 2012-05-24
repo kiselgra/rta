@@ -25,16 +25,16 @@ template<typename _tri_t> struct traversal_state {
 
 ////////////////////
 
-template<box_t__and__tri_t> struct acceleraton_structure {
+template<box_t__and__tri_t> struct acceleration_structure {
 	declare_traits_types;
-	virtual ~acceleraton_structure() {}
+	virtual ~acceleration_structure() {}
 	virtual tri_t* triangle_ptr() = 0;
 	virtual int triangle_count() = 0;
 };
 
 template<box_t__and__tri_t> struct acceleration_structure_constructor {
 	declare_traits_types;
-	acceleraton_structure<box_t, tri_t>* build(flat_triangle_list *tris);
+	acceleration_structure<box_t, tri_t>* build(flat_triangle_list *tris);
 };
 
 ////////////////////
@@ -232,8 +232,8 @@ template<box_t__and__tri_t> class basic_raytracer : public raytracer {
 		virtual float trace_rays() = 0;
 	public:
 		declare_traits_types;
-		acceleraton_structure<forward_traits> *accel_struct;
-		basic_raytracer(ray_generator *raygen, class bouncer *bouncer, acceleraton_structure<forward_traits> *as) : raygen(raygen), bouncer(bouncer), cpu_bouncer(dynamic_cast<cpu_ray_bouncer<forward_traits>*>(bouncer)), accel_struct(as) {
+		acceleration_structure<forward_traits> *accel_struct;
+		basic_raytracer(ray_generator *raygen, class bouncer *bouncer, acceleration_structure<forward_traits> *as) : raygen(raygen), bouncer(bouncer), cpu_bouncer(dynamic_cast<cpu_ray_bouncer<forward_traits>*>(bouncer)), accel_struct(as) {
 		}
 		virtual void setup_rays() { // potentially uploads ray data to the gpu
 		}
