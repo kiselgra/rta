@@ -23,6 +23,7 @@ std::ostream& operator<<(std::ostream &out, const vec3f &v) {
 	out << v.x << " " << v.y << " " << v.z;
 }
 
+float in_units(float f) { return f/cmdline.unit; }
 
 void clear_duplicate_vertices(ply &p, ply::element_t *elem) {
 	std::vector<vec3f> verts;
@@ -66,46 +67,56 @@ bool duplicate_vertices(ply &p, ply::element_t *elem) {
 	return false;
 }
 
+//! calls f for each vertex. the supplied value for rps is already converted to the desired unit (rps,krps,mrps).
 void apply(std::function<void(vec3f, float, int)> f, ply::element_t *elem) {
 	int x = elem->index_of("x"),
 		y = elem->index_of("y"),
 		z = elem->index_of("z"),
-		m = elem->index_of("ms");
+		m = elem->index_of("rps");
 	for (int i = 0; i < elem->count; ++i) {
 		vec3f curr = { elem->ref(i, x), elem->ref(i, y), elem->ref(i, z) };
-		float ms = elem->ref(i, m);
-		f(curr, ms, i);
+		float x_rps = in_units(elem->ref(i, m));
+		f(curr, x_rps, i);
 	}
 }
 
 std::vector<float> find_min_max_time(ply::element_t *elem) {
 	float min = FLT_MAX,
 		  max = 0;
-	apply([&](vec3f pos, float ms, int i) {
-		  	if (ms < min) min = ms;
-			if (ms > max) max = ms;
+	apply([&](vec3f pos, float x_rps, int i) {
+		  	if (x_rps < min) min = x_rps;
+			if (x_rps > max) max = x_rps;
 		  },
 		  elem);
 	return { min, max };
 }
 
-void scale_by_min_max(ply &p, ply::element_t *elem) {
-	std::vector<float> mm = find_min_max_time(elem);
+void scale_between(ply &p, ply::element_t *elem, float min, float max) {
 	p.allocate_new_vertex_data({"red", "green", "blue"}, elem->name);
 	int r = elem->index_of("red"),
 		g = elem->index_of("green"),
 		b = elem->index_of("blue");
-	float min = mm[0],
-		  max = mm[1];
-	apply([&](vec3f pos, float ms, int i) {
-				float hue = (ms-min)/(max-min) * 120;
+	apply([&](vec3f pos, float x_rps, int i) {
+				float scaled = std::min(1.0f, std::max(0.0f, (x_rps-min)/(max-min)));
+				float hue = scaled * 120;
 				vec3f col = rgb(hue);
 				elem->ref(i, r) = col.x;
 				elem->ref(i, g) = col.y;
 				elem->ref(i, b) = col.z;
 			},
 			elem);
+}
 
+void scale_by_min_max(ply &p, ply::element_t *elem) {
+	std::vector<float> mm = find_min_max_time(elem);
+	float min = mm[0],
+		  max = mm[1];
+	scale_between(p, elem, min, max);
+}
+
+void scale_from_0_to_max(ply &p, ply::element_t *elem) {
+	float max = find_min_max_time(elem)[1];
+	scale_between(p, elem, 0, max);
 }
 
 int main(int argc, char **argv)
@@ -139,19 +150,31 @@ int main(int argc, char **argv)
 	int x = elem->index_of("x"),
 		y = elem->index_of("y"),
 		z = elem->index_of("z"),
-		m = elem->index_of("ms");
+		m = elem->index_of("rps");
+	if (m == -1) {
+		cerr << "this file is missing the 'rps' property in the 'vertex' element." << endl;
+		exit(EXIT_FAILURE);
+	}
 	
 	float sum = 0;
 	for (int i = 0; i < vertices; ++i) 
 		sum += elem->ref(i, m);
 	float avg = sum/vertices;
 
-	cout << avg << "ms" << endl;
+	cout << avg << " rps" << endl;
 
 	auto mm = find_min_max_time(elem);
 	cout << "[ " << mm[0] << " : " << mm[1] << " ]" << endl;
 
-	scale_by_min_max(sphere, elem);
+	if (cmdline.mode == Cmdline::scale_min_max)
+		scale_by_min_max(sphere, elem);
+	else if (cmdline.mode == Cmdline::scale_0_max)
+		scale_from_0_to_max(sphere, elem);
+	else {
+		cerr << "no method of operation specified." << endl;
+		exit(EXIT_FAILURE);
+	}
+
 	save_ply_file(cmdline.input_file_name + ".color.ply", &sphere);
 
 	return 0;

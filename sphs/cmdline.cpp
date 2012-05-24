@@ -26,6 +26,11 @@ static struct argp_option options[] =
 	{ "vertices", 'N', 0,        0, "Print the number of vertices/faces of the model." },
 	{ "ignore-duplicates", IGNORE_DUP, 0, 0, "Force me to ignore duplicate vertices. Note that this option will bias the results!" },
 	{ "clear-duplicates", CLEAR_DUP, 0, 0, "Write a file (called $inpufile.nodup) containing no duplicate vertices." },
+	{ "mode", 'm', "mode",       0, "Select mode of operation. Valid modes are:\n"
+                                    "    minmax: write a version of the file with the vertices colored with indicating the time each sample took, scaled between the minimum (red=slowest) "
+											"and the maximum (green=fastest) rays per second any sample took.\n"
+									"    absolute: generate vertex colors as for minmax, but the lower bound set to zero, i.e. display the absolute values as ranging from red to green." },
+	{ "unit", 'u', "1,k,m",      0, "Make output in terms of rays per second, kilo rps, mega rps. Default: k. " },
 	{ 0 }
 };	
 
@@ -67,6 +72,25 @@ static error_t parse_options(int key, char *arg, argp_state *state)
 
 	case 'N':
 		cmdline.print_vertices = true;
+		break;
+
+	case 'm':
+		if (sarg == "minmax") cmdline.mode = Cmdline::scale_min_max;
+		else if (sarg == "absolute") cmdline.mode = Cmdline::scale_0_max;
+		else {
+			cerr << "invalid mode '" << sarg << "'" << endl;
+			argp_usage(state);
+		}
+		break;
+
+	case 'u':
+		if (sarg == "1") cmdline.unit = 1;
+		else if (sarg == "k" || sarg == "K") cmdline.unit = 1000;
+		else if (sarg == "m" || sarg == "M") cmdline.unit = 1000000;
+		else {
+			cerr << "Unit not supported (yet?): " << sarg << endl;
+			argp_usage(state);
+		}
 		break;
 
 	case IGNORE_DUP:

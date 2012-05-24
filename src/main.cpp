@@ -112,10 +112,11 @@ template<box_t__and__tri_t> class directional_analysis_pass {
 		box_t bb;
 		float bb_diam;
 		float dist_scale;
+		int res_x, res_y;
 
 	public:
 		directional_analysis_pass(const std::string &sphere_file, int res_x, int res_y) 
-		: vertex(0), vertices(0), timings(0), crgs(res_x, res_y), rt(0), coll(res_x, res_y), dist_scale(1.5) {
+		: vertex(0), vertices(0), timings(0), crgs(res_x, res_y), rt(0), coll(res_x, res_y), dist_scale(1.5), res_x(res_x), res_y(res_y) {
 			setup_sample_positions(sphere_file);
 		}
 		directional_analysis_pass(vec3_t &axis, vec3_t &anchor, int samples, int res_x, int res_y)
@@ -152,13 +153,13 @@ template<box_t__and__tri_t> class directional_analysis_pass {
 			cout << "got " << vertices << " distinct vertices" << endl;
 		}
 		void mod_and_save_ply(const std::string &out) {
-			sphere.allocate_new_vertex_data({"ms"}, "vertex");
+			sphere.allocate_new_vertex_data({"rps"}, "vertex");
 			auto elem = sphere.element("vertex");
 			int n = elem->count;
 			int x = elem->index_of("x"),
 				y = elem->index_of("y"),
 				z = elem->index_of("z"),
-				m = elem->index_of("ms");
+				m = elem->index_of("rps");
 			for (int i = 0; i < vertices; ++i)
 				for (int j = 0; j < n; ++j) {
 					vec3f new_vert; 
@@ -225,8 +226,9 @@ template<box_t__and__tri_t> class directional_analysis_pass {
 				crgs.generate_rays();
 
 				rt->trace();
-				sum += rt->timings.front();
-				timings[i] = rt->timings.front();
+				float rps = res_x * res_y * (1000.0f / rt->timings.front());
+				sum += rps;
+				timings[i] = rps;
 
 				ostringstream oss;
 				oss << "/tmp/blub-";
@@ -268,7 +270,7 @@ template<box_t__and__tri_t> class directional_analysis_pass {
 
 				cout << "." << flush;
 			}
-			cout << "\naverage time per frame: " << sum/vertices << "ms" << endl;
+			cout << "\naverage rps per frame: " << sum/vertices << "" << endl;
 		}
 };
 
