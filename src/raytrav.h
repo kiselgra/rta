@@ -30,11 +30,13 @@ template<box_t__and__tri_t> struct acceleration_structure {
 	virtual ~acceleration_structure() {}
 	virtual tri_t* triangle_ptr() = 0;
 	virtual int triangle_count() = 0;
+	virtual std::string identification() = 0;
 };
 
 template<box_t__and__tri_t> struct acceleration_structure_constructor {
 	declare_traits_types;
 	acceleration_structure<box_t, tri_t>* build(flat_triangle_list *tris);
+	virtual std::string identification() = 0;
 };
 
 ////////////////////
@@ -44,6 +46,7 @@ class bouncer { // sequential calls to raytrace
 		virtual void bounce() = 0;
 		virtual bool trace_further_bounces() = 0;
 		virtual void new_pass() {}
+		virtual std::string identification() = 0;
 };
 
 /*! commonly, cpu ray bouncers will require the last triangle intersections.
@@ -71,6 +74,9 @@ template<box_t__and__tri_t> class primary_intersection_collector : public cpu_ra
 // 		}
 		virtual bool trace_further_bounces() {
 			return false;
+		}
+		virtual std::string identification() {
+			return "not implemented yet.";
 		}
 };
 
@@ -143,6 +149,7 @@ template<box_t__and__tri_t> class binary_png_tester : public cpu_ray_bouncer<for
 		void save(const std::string &filename) {
 			res.save_png(filename);
 		}
+		virtual std::string identification() { return "binary_png_tester"; }
 };
 
 ////////////////////
@@ -220,6 +227,7 @@ class raytracer {
 		virtual void setup_rays() = 0;
 		virtual void prepare_bvh_for_tracing() = 0;
 		virtual void trace() = 0;
+		virtual std::string identification() = 0;
 };
 
 template<box_t__and__tri_t> class basic_raytracer : public raytracer {

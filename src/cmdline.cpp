@@ -16,7 +16,7 @@ static char doc[]       = PACKAGE ": ray tracing test suite";
 static char args_doc[]  = "";
 
 // long option without corresponding short option have to define a symbolic constant >= 300
-enum { FIRST = 300, AXIS, ANCHOR, SF, OPTS };
+enum { FIRST = 300, AXIS, ANCHOR, SF, BT, OPTS };
 
 static struct argp_option options[] = 
 {
@@ -31,6 +31,7 @@ static struct argp_option options[] =
 	{ "sphere-file", SF, "filename.ply", 0, "Start spherical measure series using the points on the sphere specified in the given .ply file. Peferred sphere radius: 1."},
 	{ "force-mode", 'f', "[pas]", 0, "When otherwise invalid combinations of --pos, --asix and --sphere_file are given, instead of erroring out, choose the one selected by this flag." },
 	{ "outfile", 'o', "filename", 0, "Write pass specific output to this file, e.g. a modified ply file containing timings." },
+	{ "bvh-trav", BT, "cis|dis",  0, "Intersection mode of the bvh traversal: direct-is, child-is. Default: cis." },
 	{ 0 }
 };	
 
@@ -72,6 +73,13 @@ static error_t parse_options(int key, char *arg, argp_state *state)
 	case SF:      cmdline.sphere_file = sarg; cmdline.sphere_series = true; break;
 	case 'f':     cmdline.force = sarg; break;
 	case 'o':     cmdline.outfile = sarg; break;
+	case BT:      if (sarg == "dis") cmdline.bvh_trav = Cmdline::dis;
+	              else if (sarg == "cis") cmdline.bvh_trav = Cmdline::cis;
+				  else {
+					  cerr << "Unknown bvh traversal scheme: " << sarg << endl;
+					  argp_usage(state);
+				  }
+				  break;
 	
 	case ARGP_KEY_ARG:		// process arguments. 
 							// state->arg_num gives number of current arg

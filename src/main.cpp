@@ -13,6 +13,7 @@
 #include <sstream>
 #include <list>
 #include <float.h>
+#include <unistd.h>
 
 /*
 todo:
@@ -99,6 +100,17 @@ vec3f make_vec3f(float x, float y, float z) {
 
 using namespace rta;
 
+template<box_t__and__tri_t> struct rt_set {
+	declare_traits_types;
+	acceleration_structure<forward_traits> *as;
+	acceleration_structure_constructor<forward_traits> *ctor;
+	bouncer *bcr;
+	basic_raytracer<forward_traits> *rt;
+	ray_generator *rgen;
+	rt_set() : as(0), ctor(0), bcr(0), rt(0), rgen(0) {}
+};
+
+
 template<box_t__and__tri_t> class directional_analysis_pass {
 		declare_traits_types;
 		ply sphere;
@@ -106,8 +118,9 @@ template<box_t__and__tri_t> class directional_analysis_pass {
 		int vertices;
 		float *timings;
 		rta::cam_ray_generator_shirley crgs;
-		rta::basic_raytracer<box_t, tri_t> *rt;
+// 		rta::basic_raytracer<box_t, tri_t> *rt;
 		rta::binary_png_tester<box_t, tri_t> coll;
+		rt_set<box_t, tri_t> the_set;
 		vec3f obj_center;
 		box_t bb;
 		float bb_diam;
@@ -116,11 +129,11 @@ template<box_t__and__tri_t> class directional_analysis_pass {
 
 	public:
 		directional_analysis_pass(const std::string &sphere_file, int res_x, int res_y) 
-		: vertex(0), vertices(0), timings(0), crgs(res_x, res_y), rt(0), coll(res_x, res_y), dist_scale(1.5), res_x(res_x), res_y(res_y) {
+		: vertex(0), vertices(0), timings(0), crgs(res_x, res_y), coll(res_x, res_y), dist_scale(1.5), res_x(res_x), res_y(res_y) {
 			setup_sample_positions(sphere_file);
 		}
 		directional_analysis_pass(vec3_t &axis, vec3_t &anchor, int samples, int res_x, int res_y)
-		: vertex(0), vertices(0), timings(0), crgs(res_x, res_y), rt(0), coll(res_x, res_y), dist_scale(1.5) {
+		: vertex(0), vertices(0), timings(0), crgs(res_x, res_y), coll(res_x, res_y), dist_scale(1.5) {
 			setup_rotation_positions(axis, anchor, samples);
 		}
 		~directional_analysis_pass() {
@@ -167,6 +180,16 @@ template<box_t__and__tri_t> class directional_analysis_pass {
 					if (vertex[i] == new_vert)
 						elem->ref(j, m) = timings[i];
 				}
+
+			char host[65];	// see gethostname(2)
+			gethostname(host, 65);
+			sphere.add_comment("host: " + string(host));
+
+			sphere.add_comment("accel-struct: " + the_set.as->identification());
+			sphere.add_comment("accel-struct-ctor: " + the_set.ctor->identification());
+			sphere.add_comment("ray-tracer: " + the_set.rt->identification());
+			sphere.add_comment("bouncer: " + the_set.bcr->identification());
+
 			save_ply_file(out, &sphere);
 		}
 		void setup_rotation_positions(vec3_t &axis, vec3_t &anchor, int samples) {
@@ -186,11 +209,14 @@ template<box_t__and__tri_t> class directional_analysis_pass {
 		rta::cam_ray_generator_shirley* ray_gen() { 
 			return &crgs; 
 		}
+		void set(rt_set<forward_traits> set) {
+			the_set = set;
+			tracer(set.rt);
+		}
 		//! supposes that the tracer's accelstruct has been set up, already
 		void tracer(rta::basic_raytracer<box_t, tri_t> *tracer) { 
-			rt = tracer; 
-			tri_t *tris = rt->accel_struct->triangle_ptr();
-			int n = rt->accel_struct->triangle_count();
+			tri_t *tris = tracer->accel_struct->triangle_ptr();
+			int n = tracer->accel_struct->triangle_count();
 			bb = rta::compute_aabb<box_t>(tris, 0, n);
 			vec3f diff;
 			sub_components_vec3f(&diff, &max(bb), &min(bb));
@@ -225,8 +251,8 @@ template<box_t__and__tri_t> class directional_analysis_pass {
 				crgs.setup(&pos, &dir, &up, 45);
 				crgs.generate_rays();
 
-				rt->trace();
-				float rps = res_x * res_y * (1000.0f / rt->timings.front());
+				the_set.rt->trace();
+				float rps = res_x * res_y * (1000.0f / the_set.rt->timings.front());
 				sum += rps;
 				timings[i] = rps;
 
@@ -270,17 +296,8 @@ template<box_t__and__tri_t> class directional_analysis_pass {
 
 				cout << "." << flush;
 			}
-			cout << "\naverage rps per frame: " << sum/vertices << "" << endl;
+			cout << "\naverage rps per frame: " << (sum/vertices)/1000.0f << " K" << endl;
 		}
-};
-
-template<box_t__and__tri_t> struct rt_set {
-	declare_traits_types;
-	acceleration_structure<forward_traits> *as;
-	acceleration_structure_constructor<forward_traits> *ctor;
-	bouncer *bcr;
-	raytracer *rt;
-	ray_generator *rgen;
 };
 
 rt_set<simple_aabb, simple_triangle> make_bvh_stuff(bouncer *b, ray_generator *raygen, std::list<flat_triangle_list> triangle_lists) {
@@ -291,7 +308,11 @@ rt_set<simple_aabb, simple_triangle> make_bvh_stuff(bouncer *b, ray_generator *r
 	bbvh_constructor_using_median<bvh_t> *ctor = new bbvh_constructor_using_median<bvh_t>(bbvh_constructor_using_median<bvh_t>::spatial_median);
 	bvh_t *bvh = ctor->build(&triangle_lists.front());
 
-	bbvh_child_is_tracer<box_t, tri_t> *rt = new bbvh_child_is_tracer<box_t, tri_t>(raygen, bvh, b);
+	basic_raytracer<box_t, tri_t> *rt = 0;
+	if (cmdline.bvh_trav == Cmdline::cis)
+		rt = new bbvh_child_is_tracer<box_t, tri_t>(raygen, bvh, b);
+	else
+		rt = new bbvh_direct_is_tracer<box_t, tri_t>(raygen, bvh, b);
 
 	rt_set<box_t, tri_t> set;
 	set.as = bvh;
@@ -331,10 +352,21 @@ int main(int argc, char **argv) {
 			dap = new directional_analysis_pass<box_t, tri_t>(cmdline.sphere_file, 800, 800);
 		}
 	
+		/*
+
 		bbvh_constructor_using_median<bvh_t> ctor(bbvh_constructor_using_median<bvh_t>::spatial_median);
 		bvh_t *bvh = ctor.build(&triangle_lists.front());
 		bbvh_child_is_tracer<box_t, tri_t> rt(dap->ray_gen(), bvh, dap->bouncer());
 		dap->tracer(&rt);
+		dap->run();
+		if (cmdline.outfile != "" && cmdline.sphere_series)
+			dap->mod_and_save_ply(cmdline.outfile);
+
+		*/
+
+		rt_set<simple_aabb, simple_triangle> set = make_bvh_stuff(dap->bouncer(), dap->ray_gen(), triangle_lists);
+// 		dap->tracer(set.rt);
+		dap->set(set);
 		dap->run();
 		if (cmdline.outfile != "" && cmdline.sphere_series)
 			dap->mod_and_save_ply(cmdline.outfile);

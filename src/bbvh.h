@@ -44,6 +44,8 @@ template<box_t__and__tri_t> class binary_bvh : public acceleration_structure<for
 
 		tri_t* triangle_ptr() { return &triangles[0]; }
 		int triangle_count() { return triangles.size(); }
+		
+		virtual std::string identification() { return "binary_bvh"; }
 };
 
 
@@ -65,6 +67,9 @@ class bbvh_constructor_using_median : public acceleration_structure_constructor<
 		std::vector<tri_t> triangles;
 
 		enum axes { X = 0, Y, Z };
+		
+		std::string median_used;
+		virtual std::string identification() { return "bbvh_constructor_using_median: " + median_used; }
 		
 		template<unsigned int N> static int tri_sort(const tri_t *a, const tri_t *b) { // optimize: component-cog.
 			vec3_t cog = center_of_gravity(*a);
@@ -190,6 +195,7 @@ class bbvh_constructor_using_median : public acceleration_structure_constructor<
 
 		bbvh_constructor_using_median(median_t median, uint max_tris_per_node = default_max_tris_per_node) 
 		: median(median), max_tris_per_node(max_tris_per_node) {
+			median_used = median==object_median ? "OM" : "SM";
 		}
 
 		bvh_t* build(flat_triangle_list *tris) {
@@ -217,12 +223,14 @@ template<typename bvh_t, typename bias_t = bbvh_no_bias> class bbvh_constructor_
 	public:
 		bvh_t* build(flat_triangle_list *tris) {
 		}
+		virtual std::string identification() { return "not implemented, yet."; }
 };
 
 template<typename bvh_t, typename bias_t = bbvh_no_bias> class bbvh_constructor_using_binning {
 	public:
 		bvh_t* build(flat_triangle_list *tris) {
 		}
+		virtual std::string identification() { return "not implemented, yet."; }
 };
 
 template<box_t__and__tri_t> class bbvh_tracer : public basic_raytracer<forward_traits> {
@@ -288,6 +296,7 @@ template<box_t__and__tri_t> class bbvh_direct_is_tracer : public bbvh_tracer<for
 				}
 			}
 		}
+		virtual std::string identification() { return "bbvh_direct_is_tracer"; }
 };
 
 
@@ -361,6 +370,7 @@ template<box_t__and__tri_t> class bbvh_child_is_tracer : public bbvh_tracer<forw
 				}
 			}
 		}
+		virtual std::string identification() { return "bbvh_child_is_tracer"; }
 };
 
 
@@ -375,16 +385,19 @@ template<box_t__and__tri_t> class stackess_binary_bvh : public acceleration_stru
 		declare_traits_types;
 		struct node {
 		};
+		virtual std::string identification() { return "not implemented, yet"; }
 };
 
 template<box_t__and__tri_t> class multi_bvh_sse : public acceleration_structure<forward_traits> {
 	public:
 		declare_traits_types;
+		virtual std::string identification() { return "not implemented, yet"; }
 };
 
 template<box_t__and__tri_t> class multi_bvh_avx : public acceleration_structure<forward_traits> {
 	public:
 		declare_traits_types;
+		virtual std::string identification() { return "not implemented, yet"; }
 };
 
 
@@ -396,6 +409,7 @@ template<typename mbvh_t, typename bbvh_ctor_t> class mbvh_sse_contructor : publ
 		mbvh_t* build(flat_triangle_list *tris, bbvh_ctor_t &bbvhctor) {
 			bbvh_t *bbvh = bbvhctor.build(tris);
 		}
+		virtual std::string identification() { return "not implemented, yet"; }
 };
 
 
