@@ -5,7 +5,7 @@
 #include <string>
 #include <iostream>
 #include <sstream>
-
+#include <dlfcn.h>
 
 
 using namespace std;
@@ -32,6 +32,7 @@ static struct argp_option options[] =
 	{ "force-mode", 'f', "[pas]", 0, "When otherwise invalid combinations of --pos, --asix and --sphere_file are given, instead of erroring out, choose the one selected by this flag." },
 	{ "outfile", 'o', "filename", 0, "Write pass specific output to this file, e.g. a modified ply file containing timings." },
 	{ "bvh-trav", BT, "cis|dis",  0, "Intersection mode of the bvh traversal: direct-is, child-is. Default: cis." },
+	{ "module", 'm', "basename",  0, "Use this module." },
 	{ "help", '?', 0,    0, "Give this help list (or show help of a previously specified module, see -m)." },
 	{ 0 }
 };	
@@ -82,6 +83,22 @@ static error_t parse_options(int key, char *arg, argp_state *state)
 					  argp_usage(state);
 				  }
 				  break;
+
+	case 'm': {
+				  void *lib_handle = dlopen("bbvh/.libs/librta-bbvh.so",RTLD_LAZY);
+				  printf("dlopen error=%s\n",dlerror());
+				  printf("lib_handle=%p\n",lib_handle);
+
+				  char* (*fn)() = (char*(*)())dlsym(lib_handle, "identi");
+				  char *error;
+				  if ((error = dlerror()) != NULL)  
+				  {
+					  fprintf(stderr, "%s\n", error);
+					  exit(1);
+				  }
+
+				  cout << fn() << endl;
+			  }
 	
 	case ARGP_KEY_ARG:		// process arguments. 
 							// state->arg_num gives number of current arg

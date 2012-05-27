@@ -1,8 +1,6 @@
-#include "image.h"
-#include "basic_types.h"
+#include "librta/librta.h"
 #include "cmdline.h"
 #include "wall-timer.h"
-#include "intersect.h"
 
 #include <libobjloader/default.h>
 #include <libplyloader/plyloader.h>
@@ -71,8 +69,8 @@ std::list<flat_triangle_list> load_objfile_to_flat_tri_list(const std::string &f
 
 }
 
-#include "raytrav.h"
-#include "bbvh.h"
+#include "librta/raytrav.h"
+#include "bbvh/bbvh.h"
 
 
 ////////////////////
