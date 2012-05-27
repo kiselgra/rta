@@ -32,6 +32,7 @@ static struct argp_option options[] =
 	{ "force-mode", 'f', "[pas]", 0, "When otherwise invalid combinations of --pos, --asix and --sphere_file are given, instead of erroring out, choose the one selected by this flag." },
 	{ "outfile", 'o', "filename", 0, "Write pass specific output to this file, e.g. a modified ply file containing timings." },
 	{ "bvh-trav", BT, "cis|dis",  0, "Intersection mode of the bvh traversal: direct-is, child-is. Default: cis." },
+	{ "help", '?', 0,    0, "Give this help list (or show help of a previously specified module, see -m)." },
 	{ 0 }
 };	
 
@@ -63,6 +64,7 @@ static error_t parse_options(int key, char *arg, argp_state *state)
 	switch (key)
 	{
 	case 'v':	cmdline.verbose = true; 	break;
+	case '?':	argp_state_help(state, stdout, ARGP_HELP_SHORT_USAGE|ARGP_HELP_PRE_DOC|ARGP_HELP_LONG|ARGP_HELP_POST_DOC); 	exit(EXIT_SUCCESS);
 	
 	case 'p':     cmdline.pos    = read_vec3f(sarg); cmdline.positional_series = true; break;
 	case 'd':     cmdline.dir    = read_vec3f(sarg); break;
@@ -97,7 +99,7 @@ static struct argp parser = { options, parse_options, args_doc, doc };
 
 int parse_cmdline(int argc, char **argv)
 {
-	int ret = argp_parse(&parser, argc, argv, /*ARGP_NO_EXIT*/0, 0, 0);
+	int ret = argp_parse(&parser, argc, argv, ARGP_NO_HELP/*ARGP_NO_EXIT*//*0*/, 0, 0);
 		
 	if (cmdline.force == "p") cmdline.positional_series = true, cmdline.axial_series = false, cmdline.sphere_series = false;
 	if (cmdline.force == "a") cmdline.positional_series = false, cmdline.axial_series = true, cmdline.sphere_series = false;
