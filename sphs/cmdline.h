@@ -8,18 +8,21 @@
 //! \brief Translated command line options
 struct Cmdline
 {
-	enum mode_t { none, scale_min_max, scale_0_max };
+	enum mode_t { none, check, scale_min_max, scale_0_max, perf_diff_by_base };
 
 	bool verbose;	//!< wheather or not to be verbose
-	std::string input_file_name;
+	std::string base_file_name, diff_file_name;
 	std::string output_file_name;
 	bool print_vertices;
 	bool ignore_duplicates, clear_duplicates;
 	mode_t mode;
 	float unit;
+	std::string unit_string;
+	bool force;
+	int meta_differences;
 
 	Cmdline() 
-	: verbose(false), print_vertices(false), ignore_duplicates(false), clear_duplicates(false), mode(none), unit(1000)
+	: verbose(false), print_vertices(false), ignore_duplicates(false), clear_duplicates(false), mode(none), unit(1000), unit_string("k"), force(false), meta_differences(1)
 	{
 	}
 };

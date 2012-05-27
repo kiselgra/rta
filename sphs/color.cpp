@@ -28,13 +28,13 @@ vec3f rgb(float hue) {
 		case 5:
 			r = 255; g = 0; b = q;
 	}
-	cout << "hue = " << hue << endl;
-	cout << "hue/60.0 = " << hue/60.0 << endl;
-	cout << "hi = " << hi << endl;
-	cout << "f = " << f << endl;
-	cout << "r = " << r << endl;
-	cout << "g = " << g << endl;
-	cout << "b = " << b << endl;
+// 	cout << "hue = " << hue << endl;
+// 	cout << "hue/60.0 = " << hue/60.0 << endl;
+// 	cout << "hi = " << hi << endl;
+// 	cout << "f = " << f << endl;
+// 	cout << "r = " << r << endl;
+// 	cout << "g = " << g << endl;
+// 	cout << "b = " << b << endl;
 	return { r/255.0f, g/255.0f, b/255.0f };
 }		
 
