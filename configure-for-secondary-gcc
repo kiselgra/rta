@@ -1,0 +1,1 @@
+autoconf && ./configure CXX=g++-4.6.2 CC=gcc-4.6.2 LDFLAGS="-Wl,--rpath=/usr/lib/gcc/x86_64-pc-linux-gnu/4.6.2/"
