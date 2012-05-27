@@ -166,7 +166,7 @@ template<box_t__and__tri_t> class directional_analysis_pass {
 			cout << "got " << vertices << " distinct vertices" << endl;
 		}
 		void mod_and_save_ply(const std::string &out) {
-			sphere.allocate_new_vertex_data({"rps"}, "vertex");
+			sphere.allocate_new_vertex_data({"rps"}, "vertex", ply::property_t::t_float32);
 			auto elem = sphere.element("vertex");
 			int n = elem->count;
 			int x = elem->index_of("x"),
@@ -183,12 +183,12 @@ template<box_t__and__tri_t> class directional_analysis_pass {
 
 			char host[65];	// see gethostname(2)
 			gethostname(host, 65);
-			sphere.add_comment("host: " + string(host));
+			sphere.add_comment("meta host: " + string(host));
 
-			sphere.add_comment("accel-struct: " + the_set.as->identification());
-			sphere.add_comment("accel-struct-ctor: " + the_set.ctor->identification());
-			sphere.add_comment("ray-tracer: " + the_set.rt->identification());
-			sphere.add_comment("bouncer: " + the_set.bcr->identification());
+			sphere.add_comment("meta accel-struct: " + the_set.as->identification());
+			sphere.add_comment("meta accel-struct-ctor: " + the_set.ctor->identification());
+			sphere.add_comment("meta ray-tracer: " + the_set.rt->identification());
+			sphere.add_comment("meta bouncer: " + the_set.bcr->identification());
 
 			save_ply_file(out, &sphere);
 		}
