@@ -13,7 +13,7 @@ using namespace std;
 const char *argp_program_version = VERSION;
 
 static char doc[]       = PACKAGE ": ray tracing test suite";
-static char args_doc[]  = "";
+static char args_doc[]  = "-- [OPTIONS for plugin...]";
 
 // long option without corresponding short option have to define a symbolic constant >= 300
 enum { FIRST = 300, AXIS, ANCHOR, SF, BT, OPTS };
@@ -31,9 +31,8 @@ static struct argp_option options[] =
 	{ "sphere-file", SF, "filename.ply", 0, "Start spherical measure series using the points on the sphere specified in the given .ply file. Peferred sphere radius: 1."},
 	{ "force-mode", 'f', "[pas]", 0, "When otherwise invalid combinations of --pos, --asix and --sphere_file are given, instead of erroring out, choose the one selected by this flag." },
 	{ "outfile", 'o', "filename", 0, "Write pass specific output to this file, e.g. a modified ply file containing timings." },
-	{ "bvh-trav", BT, "cis|dis",  0, "Intersection mode of the bvh traversal: direct-is, child-is. Default: cis." },
 	{ "module", 'm', "basename",  0, "Use this module." },
-	{ "help", '?', 0,    0, "Give this help list (or show help of a previously specified module, see -m)." },
+	{ "help", '?', 0,             0, "Give this help list (or show help of a previously specified module, see -m)." },
 	{ 0 }
 };	
 
@@ -53,6 +52,8 @@ vec3f read_vec3f(const std::string &s) {
 	return v;
 }
 
+char *uncaught_arg[256];
+int uncaught_args = 0;
 
 static error_t parse_options(int key, char *arg, argp_state *state)
 {
@@ -76,32 +77,13 @@ static error_t parse_options(int key, char *arg, argp_state *state)
 	case SF:      cmdline.sphere_file = sarg; cmdline.sphere_series = true; break;
 	case 'f':     cmdline.force = sarg; break;
 	case 'o':     cmdline.outfile = sarg; break;
-	case BT:      if (sarg == "dis") cmdline.bvh_trav = Cmdline::dis;
-	              else if (sarg == "cis") cmdline.bvh_trav = Cmdline::cis;
-				  else {
-					  cerr << "Unknown bvh traversal scheme: " << sarg << endl;
-					  argp_usage(state);
-				  }
-				  break;
 
-	case 'm': {
-				  void *lib_handle = dlopen("bbvh/.libs/librta-bbvh.so",RTLD_LAZY);
-				  printf("dlopen error=%s\n",dlerror());
-				  printf("lib_handle=%p\n",lib_handle);
-
-				  char* (*fn)() = (char*(*)())dlsym(lib_handle, "identi");
-				  char *error;
-				  if ((error = dlerror()) != NULL)  
-				  {
-					  fprintf(stderr, "%s\n", error);
-					  exit(1);
-				  }
-
-				  cout << fn() << endl;
-			  }
-	
 	case ARGP_KEY_ARG:		// process arguments. 
 							// state->arg_num gives number of current arg
+			  if (state->quoted)
+				  uncaught_arg[uncaught_args++] = arg;
+			  else
+				  return ARGP_ERR_UNKNOWN;
 		break;
 
 	default:
@@ -116,7 +98,9 @@ static struct argp parser = { options, parse_options, args_doc, doc };
 
 int parse_cmdline(int argc, char **argv)
 {
-	int ret = argp_parse(&parser, argc, argv, ARGP_NO_HELP/*ARGP_NO_EXIT*//*0*/, 0, 0);
+	uncaught_arg[0] = argv[0];
+	uncaught_args=1;
+	int ret = argp_parse(&parser, argc, argv, ARGP_NO_HELP|ARGP_IN_ORDER/*ARGP_NO_EXIT*//*0*/, 0, 0);
 		
 	if (cmdline.force == "p") cmdline.positional_series = true, cmdline.axial_series = false, cmdline.sphere_series = false;
 	if (cmdline.force == "a") cmdline.positional_series = false, cmdline.axial_series = true, cmdline.sphere_series = false;
@@ -131,6 +115,11 @@ int parse_cmdline(int argc, char **argv)
 
 	return ret;
 }
-	
+
+char** plugin_args(int *n) {
+	*n = uncaught_args;
+	return uncaught_arg;
+}
+
 Cmdline cmdline;
 

@@ -20,10 +20,7 @@ struct Cmdline
 	std::string force;
 	std::string outfile;
 
-	enum bvh_trav_t { cis, dis };
-	bvh_trav_t bvh_trav;
-
-	Cmdline() : verbose(false), positional_series(false), axial_series(false), sphere_series(false), bvh_trav(cis)
+	Cmdline() : verbose(false), positional_series(false), axial_series(false), sphere_series(false)
 	{
 		pos = { 0,0,0 };
 		dir = { 0,0,-1 };
@@ -37,6 +34,7 @@ struct Cmdline
 extern Cmdline cmdline;
 
 int parse_cmdline(int argc, char **argv);
+char** plugin_args(int *n);
 
 #endif
 

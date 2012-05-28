@@ -304,6 +304,7 @@ rt_set<simple_aabb, simple_triangle> make_bvh_stuff(bouncer *b, ray_generator *r
 
 void *lib_handle = 0;
 char* (*plugin_description)() = 0;
+int (*plugin_parse_cmdline)(int argc, char **argv) = 0;
 rt_set<simple_aabb, simple_triangle> (*plugin_create_rt_set)(std::list<flat_triangle_list>&) = 0;
 
 template<typename T> void load_plugin_function(const std::string &name, T &to) {
@@ -325,6 +326,7 @@ void load_plugin_functions() {
 	cout << "PD: " << plugin_description() << endl;
 	
 	load_plugin_function("create_rt_set", plugin_create_rt_set);
+	load_plugin_function("parse_cmdline", plugin_parse_cmdline);
 }
 
 int main(int argc, char **argv) {
@@ -338,6 +340,10 @@ int main(int argc, char **argv) {
 // 	typedef binary_bvh<box_t, tri_t> bvh_t;
 // 	typedef multi_bvh_sse<box_t, tri_t> mbvh_t;
 	load_plugin_functions();
+	int plugin_argc = 0;
+	char **plugin_argv = plugin_args(&plugin_argc);
+	plugin_parse_cmdline(plugin_argc, plugin_argv);
+
 
 	cout << "loading object" << endl;
 	auto triangle_lists = load_objfile_to_flat_tri_list("/home/kai/render-data/models/drache.obj");
