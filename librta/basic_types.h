@@ -41,6 +41,21 @@ namespace rta {
 	};
 
 
+	struct flat_triangle_list {
+		uint triangles;
+		simple_triangle *triangle;
+		flat_triangle_list() : triangles(0), triangle(0) {}
+		flat_triangle_list(int size) : triangles(size), triangle(0) { triangle = new simple_triangle[size]; }
+	};
+
+
+	// be aware that these are defined everywhere!
+	#define box_t__and__tri_t typename _box_t, typename _tri_t
+	#define forward_traits _box_t, _tri_t
+	#define declare_traits_types typedef _box_t box_t; typedef _tri_t tri_t;
+	#define traits_of(X) typename X::box_t, typename X::tri_t
+
+
 
 	#define invalid_instantiation_message "Invalid instantiation of a function allowed for certain types, only."
 	#define invalid_instantiation(TTT) static_assert(fail<TTT>::result, invalid_instantiation_message)

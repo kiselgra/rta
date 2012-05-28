@@ -1,6 +1,8 @@
 #ifndef __RTA_BBVH_H__ 
 #define __RTA_BBVH_H__ 
 
+#include "librta/librta.h"
+#include "librta/wall-timer.h"
 
 namespace rta {
 

@@ -1,6 +1,6 @@
 #include "librta/librta.h"
 #include "cmdline.h"
-#include "wall-timer.h"
+#include "librta/wall-timer.h"
 
 #include <libobjloader/default.h>
 #include <libplyloader/plyloader.h>
@@ -12,6 +12,8 @@
 #include <list>
 #include <float.h>
 #include <unistd.h>
+
+#include <dlfcn.h>
 
 /*
 todo:
@@ -27,19 +29,7 @@ namespace rta {
 
 
 ////////////////////
-#define box_t__and__tri_t typename _box_t, typename _tri_t
-#define forward_traits _box_t, _tri_t
-#define declare_traits_types typedef _box_t box_t; typedef _tri_t tri_t;
-#define traits_of(X) typename X::box_t, typename X::tri_t
-
 ////////////////////
-
-struct flat_triangle_list {
-	uint triangles;
-	simple_triangle *triangle;
-	flat_triangle_list() : triangles(0), triangle(0) {}
-	flat_triangle_list(int size) : triangles(size), triangle(0) { triangle = new simple_triangle[size]; }
-};
 
 std::list<flat_triangle_list> load_objfile_to_flat_tri_list(const std::string &filename) {
 	obj_default::ObjFileLoader loader(filename, "1 0 0 0  0 1 0 0  0 0 1 0  0 0 0 1");
@@ -69,8 +59,7 @@ std::list<flat_triangle_list> load_objfile_to_flat_tri_list(const std::string &f
 
 }
 
-#include "librta/raytrav.h"
-#include "bbvh/bbvh.h"
+// #include "bbvh/bbvh.h"
 
 
 ////////////////////
@@ -97,17 +86,6 @@ vec3f make_vec3f(float x, float y, float z) {
 }
 
 using namespace rta;
-
-template<box_t__and__tri_t> struct rt_set {
-	declare_traits_types;
-	acceleration_structure<forward_traits> *as;
-	acceleration_structure_constructor<forward_traits> *ctor;
-	bouncer *bcr;
-	basic_raytracer<forward_traits> *rt;
-	ray_generator *rgen;
-	rt_set() : as(0), ctor(0), bcr(0), rt(0), rgen(0) {}
-};
-
 
 template<box_t__and__tri_t> class directional_analysis_pass {
 		declare_traits_types;
@@ -186,7 +164,7 @@ template<box_t__and__tri_t> class directional_analysis_pass {
 			sphere.add_comment("meta accel-struct: " + the_set.as->identification());
 			sphere.add_comment("meta accel-struct-ctor: " + the_set.ctor->identification());
 			sphere.add_comment("meta ray-tracer: " + the_set.rt->identification());
-			sphere.add_comment("meta bouncer: " + the_set.bcr->identification());
+			sphere.add_comment("meta bouncer: " + the_set.bouncer->identification());
 
 			save_ply_file(out, &sphere);
 		}
@@ -298,6 +276,7 @@ template<box_t__and__tri_t> class directional_analysis_pass {
 		}
 };
 
+/*
 rt_set<simple_aabb, simple_triangle> make_bvh_stuff(bouncer *b, ray_generator *raygen, std::list<flat_triangle_list> triangle_lists) {
 	typedef simple_triangle tri_t;
 	typedef simple_aabb box_t;
@@ -321,6 +300,32 @@ rt_set<simple_aabb, simple_triangle> make_bvh_stuff(bouncer *b, ray_generator *r
 
 	return set;
 }
+*/
+
+void *lib_handle = 0;
+char* (*plugin_description)() = 0;
+rt_set<simple_aabb, simple_triangle> (*plugin_create_rt_set)(std::list<flat_triangle_list>&) = 0;
+
+template<typename T> void load_plugin_function(const std::string &name, T &to) {
+	to = (T)dlsym(lib_handle, name.c_str());
+	char *error;
+	if ((error = dlerror()) != NULL)  
+	{
+		fprintf(stderr, "%s\n", error);
+		exit(1);
+	}
+}
+
+void load_plugin_functions() {
+	lib_handle = dlopen("bbvh/.libs/librta-bbvh.so",RTLD_LAZY);
+	printf("dlopen error=%s\n",dlerror());
+	printf("lib_handle=%p\n",lib_handle);
+
+	load_plugin_function("description", plugin_description);
+	cout << "PD: " << plugin_description() << endl;
+	
+	load_plugin_function("create_rt_set", plugin_create_rt_set);
+}
 
 int main(int argc, char **argv) {
 	parse_cmdline(argc, argv);
@@ -330,13 +335,17 @@ int main(int argc, char **argv) {
 
 	typedef simple_triangle tri_t;
 	typedef simple_aabb box_t;
-	typedef binary_bvh<box_t, tri_t> bvh_t;
-	typedef multi_bvh_sse<box_t, tri_t> mbvh_t;
+// 	typedef binary_bvh<box_t, tri_t> bvh_t;
+// 	typedef multi_bvh_sse<box_t, tri_t> mbvh_t;
+	load_plugin_functions();
 
 	cout << "loading object" << endl;
 	auto triangle_lists = load_objfile_to_flat_tri_list("/home/kai/render-data/models/drache.obj");
+	if (triangle_lists.size() > 1)
+		cerr << "Models with more than one submesh are not supported, yet." << endl;
 	
 
+	rt_set<simple_aabb, simple_triangle> set = plugin_create_rt_set(triangle_lists);
 
 	if (cmdline.axial_series || cmdline.sphere_series)
 	{
@@ -362,8 +371,10 @@ int main(int argc, char **argv) {
 
 		*/
 
-		rt_set<simple_aabb, simple_triangle> set = make_bvh_stuff(dap->bouncer(), dap->ray_gen(), triangle_lists);
-// 		dap->tracer(set.rt);
+		set.bouncer = dap->bouncer();
+		set.rt->ray_bouncer(set.bouncer);
+		set.rgen = dap->ray_gen();
+		set.rt->ray_generator(set.rgen);
 		dap->set(set);
 		dap->run();
 		if (cmdline.outfile != "" && cmdline.sphere_series)
@@ -391,7 +402,6 @@ int main(int argc, char **argv) {
 		*/
 
 		binary_png_tester<box_t, tri_t> coll(res_x, res_y);
-		rt_set<simple_aabb, simple_triangle> set = make_bvh_stuff(&coll, &crgs, triangle_lists);
 		set.rt->trace();
 		coll.save("/tmp/blub.png");
 		cout << "stored result to /tmp/blub.png" << endl;
@@ -401,6 +411,7 @@ int main(int argc, char **argv) {
 		exit(EXIT_FAILURE);
 	}
 
+	/*
 	if (0)
 	{
 		bbvh_constructor_using_binning<bvh_t> ctor;
@@ -415,6 +426,7 @@ int main(int argc, char **argv) {
 		bbvh_constructor_using_median<bvh_t> bvhctor(bbvh_constructor_using_median<bvh_t>::object_median);
 		mbvh_t *my_mbvh = ctor.build(&tris, bvhctor);
 	}
+	*/
 
 
 	return 0;

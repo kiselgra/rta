@@ -2,6 +2,7 @@
 #define __RTA_RAYTRAV_H__ 
 
 #include <algorithm>  // min,max
+#include <list>
 
 namespace rta {
 
@@ -234,14 +235,15 @@ template<box_t__and__tri_t> class basic_raytracer : public raytracer {
 // 		struct trace_thread {
 // 		};
 	protected:
-		ray_generator *raygen;
-		class bouncer *bouncer;
+		rta::ray_generator *raygen;
+		rta::bouncer *bouncer;
 		cpu_ray_bouncer<forward_traits> *cpu_bouncer;
 		virtual float trace_rays() = 0;
 	public:
 		declare_traits_types;
-		acceleration_structure<forward_traits> *accel_struct;
-		basic_raytracer(ray_generator *raygen, class bouncer *bouncer, acceleration_structure<forward_traits> *as) : raygen(raygen), bouncer(bouncer), cpu_bouncer(dynamic_cast<cpu_ray_bouncer<forward_traits>*>(bouncer)), accel_struct(as) {
+		rta::acceleration_structure<forward_traits> *accel_struct;
+
+		basic_raytracer(rta::ray_generator *raygen, class bouncer *bouncer, acceleration_structure<forward_traits> *as) : raygen(raygen), bouncer(bouncer), cpu_bouncer(dynamic_cast<cpu_ray_bouncer<forward_traits>*>(bouncer)), accel_struct(as) {
 		}
 		virtual void setup_rays() { // potentially uploads ray data to the gpu
 		}
@@ -257,6 +259,8 @@ template<box_t__and__tri_t> class basic_raytracer : public raytracer {
 			} while (bouncer->trace_further_bounces());
 		}
 		std::vector<float> timings;
+		void ray_generator(rta::ray_generator *rg) { raygen = rg; }
+		void ray_bouncer(rta::bouncer *rb) { bouncer = rb; cpu_bouncer = dynamic_cast<cpu_ray_bouncer<forward_traits>*>(rb); }
 };
 
 ////////////////////
