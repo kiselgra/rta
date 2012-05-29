@@ -6,6 +6,7 @@ librta_librctest_la_CPPFLAGS = -D PACKAGE=\"$(PACKAGE)\" -D VERSION=\"$(VERSION)
 librta_librctest_la_CXXFLAGS = -msse3
 
 librta_librctest_la_LDFLAGS = -module -avoid-version # do i want "avoid-version"?
+librta_librctest_la_LIBADD = -ltbb -lrc-test -lpthread
 
 
 plugin_dir = $(top_builddir)/built-plugins

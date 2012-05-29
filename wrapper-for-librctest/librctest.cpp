@@ -16,11 +16,86 @@
 #include <vector>
 #include <ctime>
 
+#include "librta/librta.h"
+
+namespace rctest {
+
 using namespace std;
 using namespace rc;
 using namespace lib3dmath;
 
 int argc; char **argv;
+
+typedef lib3dmath::vec3f vec3f;
+typedef lib3dmath::vec4f vec4f;
+typedef lib3dmath::vec3i vec3i;
+
+ifs_preperator<vec3f> flat_tris_to_ifs_prep(rta::flat_triangle_list &ftl) {
+	std::vector<vec3f> v, n, t;
+	v.reserve(ftl.triangles*3);
+	n.reserve(ftl.triangles*3);
+	std::vector<vec3i> vi, ni, nt;
+	vi.reserve(ftl.triangles*3);
+	ni.reserve(ftl.triangles*3);
+	for (int i = 0; i < ftl.triangles; i++) {
+		v[3*i+0] = vec3f(ftl.triangle[i].a.x, ftl.triangle[i].a.y, ftl.triangle[i].a.z);
+		v[3*i+1] = vec3f(ftl.triangle[i].b.x, ftl.triangle[i].b.y, ftl.triangle[i].b.z);
+		v[3*i+2] = vec3f(ftl.triangle[i].c.x, ftl.triangle[i].c.y, ftl.triangle[i].c.z);
+		n[3*i+0] = vec3f(ftl.triangle[i].na.x, ftl.triangle[i].na.y, ftl.triangle[i].na.z);
+		n[3*i+1] = vec3f(ftl.triangle[i].nb.x, ftl.triangle[i].nb.y, ftl.triangle[i].nb.z);
+		n[3*i+2] = vec3f(ftl.triangle[i].nc.x, ftl.triangle[i].nc.y, ftl.triangle[i].nc.z);
+	}
+	for (int i = 0; i < ftl.triangles*3; i++) {
+		vi[i] = i;
+		ni[i] = i;
+	}
+	ifs_preperator<vec3f> prep;
+	prep.add_model_data(&v, &n, &t);
+	prep.insert_mesh_data(&vi, &ni, &nt);
+	prep.ready();
+	return prep;
+}
+
+extern "C" {
+	char* description() {
+		return (char*)"kai's da ray tracer";
+	}
+
+	int parse_cmdline(int argc, char **argv)
+	{
+// 		argv[0] = plugin_name;
+// 		int ret = argp_parse(&parser, argc, argv, 0/*ARGP_NO_EXIT*//*0*/, 0, 0);
+		return 0;
+	}
+
+	rta::rt_set<rta::simple_aabb, rta::simple_triangle> create_rt_set(std::list<rta::flat_triangle_list> &triangle_lists) {
+		cout << "T>" << endl;
+		flat_tris_to_ifs_prep(triangle_lists.front());
+		cout << "k>" << endl;
+		/*
+		typedef simple_triangle tri_t;
+		typedef simple_aabb box_t;
+		typedef binary_bvh<box_t, tri_t> bvh_t;
+
+		bbvh_constructor_using_median<bvh_t> *ctor = new bbvh_constructor_using_median<bvh_t>(bbvh_constructor_using_median<bvh_t>::spatial_median);
+		bvh_t *bvh = ctor->build(&triangle_lists.front());
+
+		basic_raytracer<box_t, tri_t> *rt = 0;
+		if (cmdline.bvh_trav == Cmdline::cis)
+			rt = new bbvh_child_is_tracer<box_t, tri_t>(0, bvh, 0);
+		else
+			rt = new bbvh_direct_is_tracer<box_t, tri_t>(0, bvh, 0);
+
+		rt_set<box_t, tri_t> set;
+		set.as = bvh;
+		set.ctor = ctor;
+		set.rt = rt;
+		
+		return set;
+		*/
+	}
+
+}
 
 // i guess this is far from complete...
 std::string bvh_string()
@@ -120,6 +195,7 @@ template<typename Trav, typename RC, typename AS> void render(RC &rc, AS *as)
 	}
 
 	// output statistics
+	/*
 	if (cmdline.rec_out != "")
 	{
 		ofstream out(cmdline.rec_out.c_str(), ios_base::app | ios_base::out);
@@ -145,6 +221,7 @@ template<typename Trav, typename RC, typename AS> void render(RC &rc, AS *as)
 		out << "workstation: " << hostname << endl;
 		out << endl;
 	}
+	*/
 }
 
 define_profile_type(bvh_builder_profile);
@@ -592,8 +669,8 @@ ObjFileLoader* load_model(const std::string &filename)
 
 int main(int argc, char **argv)
 {	
-	::argc = argc;
-	::argv = argv;
+	rctest::argc = argc;
+	rctest::argv = argv;
 #ifdef HAVE_CALLGRIND
 	CALLGRIND_STOP_INSTRUMENTATION;
 #endif
@@ -803,3 +880,4 @@ int main(int argc, char **argv)
 	return 0;
 }
 
+}

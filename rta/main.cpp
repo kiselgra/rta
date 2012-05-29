@@ -323,8 +323,9 @@ void load_plugin_functions() {
 		exit(EXIT_FAILURE);
 	}
 	lib_handle = dlopen(("built-plugins/" + cmdline.module + ".so").c_str(),RTLD_LAZY);
+	printf("dlopen error=%s\n",dlerror());
 	if (lib_handle == 0)
-		lib_handle = dlopen(("bbvh/.libs/librta-" + cmdline.module + ".so").c_str(),RTLD_LAZY);
+		lib_handle = dlopen(("built-plugins/librta-" + cmdline.module + ".so").c_str(),RTLD_LAZY);
 	printf("dlopen error=%s\n",dlerror());
 	printf("lib_handle=%p\n",lib_handle);
 

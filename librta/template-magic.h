@@ -1,6 +1,6 @@
 /* $Id$ */
-#ifndef __TEMPLATE_MAGIC_H__ 
-#define __TEMPLATE_MAGIC_H__ 
+#ifndef __RTA_TEMPLATE_MAGIC_H__ 
+#define __RTA_TEMPLATE_MAGIC_H__ 
 
 // #include "librc-test/vecs.h"
 
