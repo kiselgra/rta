@@ -8,7 +8,7 @@ AC_CONFIG_MACRO_DIR([m4])
 # name one of your source files here
 AC_CONFIG_SRCDIR([rta/main.cpp])
 AC_CONFIG_HEADER([config.h])
-AC_CONFIG_FILES(Makefile librta/Makefile rta/Makefile bbvh/Makefile sphs/Makefile)
+AC_CONFIG_FILES(Makefile librta/Makefile rta/Makefile bbvh/Makefile wrapper-for-librctest/Makefile sphs/Makefile)
 
 
 # Checks for programs.
