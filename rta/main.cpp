@@ -109,7 +109,7 @@ template<box_t__and__tri_t> class directional_analysis_pass {
 			setup_sample_positions(sphere_file);
 		}
 		directional_analysis_pass(vec3_t &axis, vec3_t &anchor, int samples, int res_x, int res_y)
-		: vertex(0), vertices(0), timings(0), crgs(res_x, res_y), coll(res_x, res_y), dist_scale(1.5) {
+		: vertex(0), vertices(0), timings(0), crgs(res_x, res_y), coll(res_x, res_y), dist_scale(1.5), res_x(res_x), res_y(res_y) {
 			setup_rotation_positions(axis, anchor, samples);
 		}
 		~directional_analysis_pass() {
@@ -406,8 +406,12 @@ int main(int argc, char **argv) {
 		cout << "stored result to /tmp/blub.png" << endl;
 
 		*/
+		
 
 		binary_png_tester<box_t, tri_t> coll(res_x, res_y);
+		set.rt->ray_bouncer(&coll);
+		set.rt->ray_generator(&crgs);
+
 		set.rt->trace();
 		coll.save("/tmp/blub.png");
 		cout << "stored result to /tmp/blub.png" << endl;
