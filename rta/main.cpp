@@ -318,7 +318,13 @@ template<typename T> void load_plugin_function(const std::string &name, T &to) {
 }
 
 void load_plugin_functions() {
-	lib_handle = dlopen("bbvh/.libs/librta-bbvh.so",RTLD_LAZY);
+	if (cmdline.module == "") {
+		cerr << "No module specified!" << endl;
+		exit(EXIT_FAILURE);
+	}
+	lib_handle = dlopen(("built-plugins/" + cmdline.module + ".so").c_str(),RTLD_LAZY);
+	if (lib_handle == 0)
+		lib_handle = dlopen(("bbvh/.libs/librta-" + cmdline.module + ".so").c_str(),RTLD_LAZY);
 	printf("dlopen error=%s\n",dlerror());
 	printf("lib_handle=%p\n",lib_handle);
 

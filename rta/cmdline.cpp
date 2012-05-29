@@ -12,8 +12,9 @@ using namespace std;
 
 const char *argp_program_version = VERSION;
 
-static char doc[]       = PACKAGE ": ray tracing test suite";
-static char args_doc[]  = "-- [OPTIONS for plugin...]";
+static char doc[]       = PACKAGE ": ray tracing test suite\n\n"
+                          "The specified module is looked up (in built-plugins/) as librta-${name}.so and ${name}.so.";
+static char args_doc[]  = "module -- [OPTIONS for module...]";
 
 // long option without corresponding short option have to define a symbolic constant >= 300
 enum { FIRST = 300, AXIS, ANCHOR, SF, BT, OPTS };
@@ -77,13 +78,16 @@ static error_t parse_options(int key, char *arg, argp_state *state)
 	case SF:      cmdline.sphere_file = sarg; cmdline.sphere_series = true; break;
 	case 'f':     cmdline.force = sarg; break;
 	case 'o':     cmdline.outfile = sarg; break;
+	case 'm':     cmdline.module = sarg; break;
 
 	case ARGP_KEY_ARG:		// process arguments. 
 							// state->arg_num gives number of current arg
 			  if (state->quoted)
 				  uncaught_arg[uncaught_args++] = arg;
-			  else
+			  else if (state->arg_num != 0)
 				  return ARGP_ERR_UNKNOWN;
+			  else
+				  cmdline.module = sarg;
 		break;
 
 	default:
