@@ -116,10 +116,10 @@ extern "C" {
 		bvh_t *bvh = ctor->build(&triangle_lists.front());
 
 		basic_raytracer<box_t, tri_t> *rt = 0;
-// 		if (cmdline.bvh_trav == Cmdline::cis)
+		if (cmdline.bvh_trav == Cmdline::cis)
 			rt = new bbvh_child_is_tracer<box_t, tri_t>(0, bvh, 0);
-// 		else
-// 			rt = new bbvh_direct_is_tracer<box_t, tri_t>(0, bvh, 0);
+		else
+			rt = new bbvh_direct_is_tracer<box_t, tri_t>(0, bvh, 0);
 
 		rt_set<box_t, tri_t> set;
 		set.as = bvh;
