@@ -12,7 +12,6 @@ struct Cmdline
 	typedef lib3dmath::vec3f vec3f;
 	bool verbose;	//!< wheather or not to be verbose
 	int threads;
-	unsigned int res_x, res_y;
 
 	bool use_sse;
 
@@ -60,7 +59,7 @@ struct Cmdline
 	mat4f matrix;
 #endif
 
-	Cmdline() : verbose(false), threads(-1), res_x(512), res_y(256), use_sse(false), test_aabb_intersection(false), dump(false), 
+	Cmdline() : verbose(false), threads(-1), use_sse(false), test_aabb_intersection(false), dump(false), 
 			traversal_scheme(BVH), median(OBJECT), bvh_opt(SORT_PIHS), 
 			force_sse_median_adjustment(false), force_no_median_adjustment(false), 
 			force_sequential_tri_is(false), force_nonopt_tri_is(false), no_triangle_cache(false),
@@ -73,7 +72,8 @@ struct Cmdline
 
 extern Cmdline cmdline;
 
-int parse_cmdline(int argc, char **argv);
+// int parse_cmdline(int argc, char **argv);
+int librc_parse_cmdline(int argc, char **argv);
 
 #endif
 

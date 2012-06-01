@@ -107,7 +107,7 @@ extern "C" {
 		return ret;
 	}
 
-	rt_set<simple_aabb, simple_triangle> create_rt_set(std::list<flat_triangle_list> &triangle_lists) {
+	rt_set<simple_aabb, simple_triangle> create_rt_set(std::list<flat_triangle_list> &triangle_lists, int w, int h) {
 		typedef simple_triangle tri_t;
 		typedef simple_aabb box_t;
 		typedef binary_bvh<box_t, tri_t> bvh_t;

@@ -27,6 +27,7 @@ using namespace std;
 
 namespace rta {
 
+	int res_x = 320, res_y = 320;
 
 ////////////////////
 ////////////////////
@@ -93,7 +94,7 @@ template<box_t__and__tri_t> class directional_analysis_pass {
 		vec3f *vertex;
 		int vertices;
 		float *timings;
-		rta::cam_ray_generator_shirley crgs;
+		rta::cam_ray_generator_shirley *crgs;
 // 		rta::basic_raytracer<box_t, tri_t> *rt;
 		rta::binary_png_tester<box_t, tri_t> coll;
 		rt_set<box_t, tri_t> the_set;
@@ -105,12 +106,14 @@ template<box_t__and__tri_t> class directional_analysis_pass {
 
 	public:
 		directional_analysis_pass(const std::string &sphere_file, int res_x, int res_y) 
-		: vertex(0), vertices(0), timings(0), crgs(res_x, res_y), coll(res_x, res_y), dist_scale(1.5), res_x(res_x), res_y(res_y) {
+		: vertex(0), vertices(0), timings(0), coll(res_x, res_y), dist_scale(1.5), res_x(res_x), res_y(res_y), crgs(0) {
 			setup_sample_positions(sphere_file);
+			crgs = new cam_ray_generator_shirley(res_x, res_y);
 		}
 		directional_analysis_pass(vec3_t &axis, vec3_t &anchor, int samples, int res_x, int res_y)
-		: vertex(0), vertices(0), timings(0), crgs(res_x, res_y), coll(res_x, res_y), dist_scale(1.5), res_x(res_x), res_y(res_y) {
+		: vertex(0), vertices(0), timings(0), coll(res_x, res_y), dist_scale(1.5), res_x(res_x), res_y(res_y), crgs(0) {
 			setup_rotation_positions(axis, anchor, samples);
+			crgs = new cam_ray_generator_shirley(res_x, res_y);
 		}
 		~directional_analysis_pass() {
 			delete [] vertex;
@@ -182,8 +185,8 @@ template<box_t__and__tri_t> class directional_analysis_pass {
 				z_comp(vertex[i]) = z_comp(b);
 			}
 		}
-		rta::cam_ray_generator_shirley* ray_gen() { 
-			return &crgs; 
+		rta::cam_ray_generator_shirley*& ray_gen() { 
+			return crgs; 
 		}
 		void set(rt_set<forward_traits> set) {
 			the_set = set;
@@ -224,8 +227,8 @@ template<box_t__and__tri_t> class directional_analysis_pass {
 				vec3f right;
 				cross_vec3f(&right, &dir, &up);
 				cross_vec3f(&up, &dir, &right);
-				crgs.setup(&pos, &dir, &up, 45);
-				crgs.generate_rays();
+				crgs->setup(&pos, &dir, &up, 45);
+				crgs->generate_rays();
 
 				the_set.rt->trace();
 				float rps = res_x * res_y * (1000.0f / the_set.rt->timings.front());
@@ -305,7 +308,7 @@ rt_set<simple_aabb, simple_triangle> make_bvh_stuff(bouncer *b, ray_generator *r
 void *lib_handle = 0;
 char* (*plugin_description)() = 0;
 int (*plugin_parse_cmdline)(int argc, char **argv) = 0;
-rt_set<simple_aabb, simple_triangle> (*plugin_create_rt_set)(std::list<flat_triangle_list>&) = 0;
+rt_set<simple_aabb, simple_triangle> (*plugin_create_rt_set)(std::list<flat_triangle_list>&,int,int) = 0;
 
 template<typename T> void load_plugin_function(const std::string &name, T &to) {
 	to = (T)dlsym(lib_handle, name.c_str());
@@ -322,10 +325,10 @@ void load_plugin_functions() {
 		cerr << "No module specified!" << endl;
 		exit(EXIT_FAILURE);
 	}
-	lib_handle = dlopen(("built-plugins/" + cmdline.module + ".so").c_str(),RTLD_LAZY);
+	lib_handle = dlopen(("built-plugins/" + cmdline.module + ".so").c_str(),RTLD_NOW);
 	printf("dlopen error=%s\n",dlerror());
 	if (lib_handle == 0)
-		lib_handle = dlopen(("built-plugins/librta-" + cmdline.module + ".so").c_str(),RTLD_LAZY);
+		lib_handle = dlopen(("built-plugins/librta-" + cmdline.module + ".so").c_str(),RTLD_NOW);
 	printf("dlopen error=%s\n",dlerror());
 	printf("lib_handle=%p\n",lib_handle);
 
@@ -358,18 +361,18 @@ int main(int argc, char **argv) {
 		cerr << "Models with more than one submesh are not supported, yet." << endl;
 	
 
-	rt_set<simple_aabb, simple_triangle> set = plugin_create_rt_set(triangle_lists);
+	rt_set<simple_aabb, simple_triangle> set = plugin_create_rt_set(triangle_lists, res_x, res_y);
 
 	if (cmdline.axial_series || cmdline.sphere_series)
 	{
 		directional_analysis_pass<box_t, tri_t> *dap = 0;
 		if (cmdline.axial_series) {
 			cout << "running axial series..." << endl;
-			dap = new directional_analysis_pass<box_t, tri_t>(cmdline.axis, cmdline.anchor, cmdline.samples, 800, 800);
+			dap = new directional_analysis_pass<box_t, tri_t>(cmdline.axis, cmdline.anchor, cmdline.samples, res_x, res_y);
 		}
 		else {
 			cout << "running spherical series..." << endl;
-			dap = new directional_analysis_pass<box_t, tri_t>(cmdline.sphere_file, 800, 800);
+			dap = new directional_analysis_pass<box_t, tri_t>(cmdline.sphere_file, res_x, res_y);
 		}
 	
 		/*
@@ -386,18 +389,28 @@ int main(int argc, char **argv) {
 
 		set.bouncer = dap->bouncer();
 		set.rt->ray_bouncer(set.bouncer);
-		set.rgen = dap->ray_gen();
-		set.rt->ray_generator(set.rgen);
+		if (set.rgen) {
+			set.rt->ray_generator(set.rgen);
+			cam_ray_generator_shirley *crgs = dynamic_cast<cam_ray_generator_shirley*>(set.rgen);
+			if (crgs == 0)
+				throw std::logic_error("the ray generator set by the plugin is not compatible!");
+			dap->ray_gen() = crgs;
+		}
+		else {
+			set.rgen = dap->ray_gen();
+			set.rt->ray_generator(set.rgen);
+		}
 		dap->set(set);
 		dap->run();
 		if (cmdline.outfile != "" && cmdline.sphere_series)
 			dap->mod_and_save_ply(cmdline.outfile);
 	}
 	else if (cmdline.positional_series) {
-		uint res_x = 800, res_y = 800;
-		cam_ray_generator_shirley crgs(res_x, res_y);
-		crgs.setup(&cmdline.pos, &cmdline.dir, &cmdline.up, 45);
-		crgs.generate_rays();
+		uint res_x = rta::res_x, res_y = rta::res_y;
+		cam_ray_generator_shirley *crgs = new cam_ray_generator_shirley(res_x, res_y);
+		cout << "cmdline.pos: " << cmdline.pos << endl;
+		cout << "cmdline.dir: " << cmdline.dir << endl;
+		cout << "cmdline.up:  " << cmdline.up << endl;
 		
 		/*
 
@@ -417,7 +430,11 @@ int main(int argc, char **argv) {
 
 		binary_png_tester<box_t, tri_t> coll(res_x, res_y);
 		set.rt->ray_bouncer(&coll);
-		set.rt->ray_generator(&crgs);
+		if (set.rgen)
+			crgs = dynamic_cast<cam_ray_generator_shirley*>(set.rgen);
+		set.rt->ray_generator(crgs);
+		crgs->setup(&cmdline.pos, &cmdline.dir, &cmdline.up, 45);
+		crgs->generate_rays();
 
 		set.rt->trace();
 		coll.save("/tmp/blub.png");

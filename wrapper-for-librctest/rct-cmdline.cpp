@@ -25,7 +25,6 @@ static struct argp_option options[] =
 {
 	// --[opt]		short/const		arg-descr		?		option-descr
 	{ "verbose", 	'v', 			0,				0, 		"Be verbose." },
-	{ "resolution", 'r',			"widthxheight", 0,		"Resolution of the rendered image. The keywords 'fullhd' und 'halfhd' may be used too." },
 	{ "threads", 	't', 			"n",			0,		"Number of threads used."},
 	{ "sse",		's',			0,				0,		"Use SSE version."},
 	{ "test-aabb",	TESTAABB,		"type",			0,		"Test/benchmark a ray/box intersection method. help lists the available methods." },
@@ -105,32 +104,6 @@ static error_t parse_options(int key, char *arg, argp_state *state)
 				else
 					cmdline.threads = val;
 				break;
-
-	case 'r':{
-				if (sarg == "fullhd")
-				{
-					cmdline.res_x = 1920;
-					cmdline.res_y = 1080;
-					break;
-				}
-				else if (sarg == "halfhd")
-				{
-					cmdline.res_x = 1280;
-					cmdline.res_y = 720;
-					break;
-				}
-				int separator = sarg.find_first_of("x,");
-				if (separator == string::npos)
-				{
-					cerr << "invalid resolution specification: " << sarg << endl;
-					break;
-				}
-				int w = atoi(sarg.substr(0, separator).c_str());
-				int h = atoi(sarg.substr(separator+1).c_str());
-				cmdline.res_x = w;
-				cmdline.res_y = h;
-				break;
-			 }
 
 	case 's': 		cmdline.use_sse = true;	break;
 	case DUMP:		cmdline.dump = true;	break;
@@ -221,7 +194,7 @@ static error_t parse_options(int key, char *arg, argp_state *state)
 
 static struct argp parser = { options, parse_options, args_doc, doc };
 
-int parse_cmdline(int argc, char **argv)
+int librc_parse_cmdline(int argc, char **argv)
 {
 	int ret = argp_parse(&parser, argc, argv, /*ARGP_NO_EXIT*/0, 0, 0);
 
