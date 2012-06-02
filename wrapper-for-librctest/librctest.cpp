@@ -76,36 +76,90 @@ std::string bvh_string();
 struct rctest_component {
 };
 
-template<typename Trav, typename RC, typename AS> struct concrete_rctest_component : public rctest_component {
+template<typename Trav, typename InnerTrav, typename RC, typename AS> struct concrete_rctest_component : public rctest_component {
 	RC *rc;
 	AS *as;
 // 	Trav *trav;
 };
 
-template<typename Trav, typename RC, typename AS> 
-struct rctest_raytracer : public rta::basic_raytracer<rta::simple_aabb, rta::simple_triangle>, public concrete_rctest_component<Trav, RC, AS> {
+
+	/*! this scheme traverses primary rays and stores their intersection results
+	 * 	note that this is not restricted to camera rays.
+	 * 	\attention: you have to allocate the image yourself!
+	 */
+	template<typename Trav> class collect_primary_ray_intersection_information_plugin
+	{
+	public:
+		typedef typename Trav::Rc Rc;
+		typedef typename Trav::bvh_type bvh_type;
+		typedef typename Trav::bvh_trav_state bvh_trav_state;
+		typedef typename Rc::vector_type administrative_arith_t;
+		typedef typename Rc::triangle_type triangle_type;
+		typedef typename image<triangle_intersection, 1>::ref hitpoints_ref;
+		typedef typename image<triangle_type*, 1>::ref hittri_ref;
+		static hitpoints_ref result_is;
+		static hittri_ref result_tri;
+
+		static void reset()
+		{
+		}
+		static void for_ray(int x, int y, const typename Trav::Rc::vector_type &rc_dir, const typename Trav::Rc::vector_type &rc_eye,  
+							typename Trav::bvh_trav_state &state, typename Trav::Rc *rc, const typename Trav::bvh_type &bvh)
+		{
+			state.reset(x, y);
+			typename Trav::vector_type eye(rc_eye);
+			typename Trav::triangle_traits::vector_type eye_tis(rc_eye);
+			typename Trav::vector_type dir(rc_dir);
+			typename Trav::triangle_traits::vector_type dir_tis(rc_dir);
+
+			Trav::trav(eye, dir, eye_tis, dir_tis, state, bvh);
+			
+			result_is->pixel(state.x, state.y, 0) = state.intersection;
+			result_tri->pixel(state.x, state.y, 0) = state.triangle_ref;
+		}
+		static void allocate(unsigned int w, unsigned int h)
+		{
+			result_is = hitpoints_ref(new image<triangle_intersection, 1>(w, h));
+			result_tri = hittri_ref(new image<triangle_type*, 1>(w, h));
+		}
+	};
+	template<typename Trav> typename collect_primary_ray_intersection_information_plugin<Trav>::hitpoints_ref collect_primary_ray_intersection_information_plugin<Trav>::result_is;
+	template<typename Trav> typename collect_primary_ray_intersection_information_plugin<Trav>::hittri_ref collect_primary_ray_intersection_information_plugin<Trav>::result_tri;
+
+template<typename Trav, typename InnerTrav, typename RC, typename AS> 
+struct rctest_raytracer : public rta::basic_raytracer<rta::simple_aabb, rta::simple_triangle>, public concrete_rctest_component<Trav, InnerTrav, RC, AS> {
 	using basic_raytracer<rta::simple_aabb, rta::simple_triangle>::raygen;
 	using basic_raytracer<rta::simple_aabb, rta::simple_triangle>::cpu_bouncer;
+	typename collect_primary_ray_intersection_information_plugin<InnerTrav>::hitpoints_ref result_is;
 	rctest_raytracer(rta::ray_generator *raygen, rta::bouncer *bouncer, rta::acceleration_structure<rta::simple_aabb, rta::simple_triangle> *as) 
 	: basic_raytracer(raygen, bouncer, as) {
+		result_is = collect_primary_ray_intersection_information_plugin<InnerTrav>::result_is;
 	}
 	virtual float trace_rays() {
+		for (uint y = 0; y < raygen->res_y(); ++y)
+			for (uint x = 0; x < raygen->res_x(); ++x) {
+				rc::triangle_intersection &ti = collect_primary_ray_intersection_information_plugin<InnerTrav>::result_is->pixel(x,y,0);
+				ti.t = FLT_MAX;
+			}
 		wall_time_timer wtt; wtt.start();
 		this->rc->template cast_through<Trav>(*this->as, cmdline.threads);
 		float ms = wtt.look();
 		for (uint y = 0; y < raygen->res_y(); ++y)
 			for (uint x = 0; x < raygen->res_x(); ++x) {
-				rc::triangle_intersection ti = collect_primary_ray_intersection_information<Trav>::result_is->pixel(x,y,0);
-				typename RC::triangle_type tri = collect_primary_ray_intersection_information<Trav>::result_tri->pixel(x,y,0);
+				rc::triangle_intersection ti = collect_primary_ray_intersection_information_plugin<InnerTrav>::result_is->pixel(x,y,0);
+				typename RC::triangle_type tri;
+			  	if (collect_primary_ray_intersection_information_plugin<InnerTrav>::result_tri->pixel(x,y,0))
+					tri = *collect_primary_ray_intersection_information_plugin<InnerTrav>::result_tri->pixel(x,y,0);
 				int idx = tri.ta;
 				rta::triangle_intersection<rta::simple_triangle> is; 
 				is.beta = ti.beta; 
 				is.gamma = ti.gamma;
+				is.t = ti.t;
 				is.ref = this->accel_struct->triangle_ptr() + idx;
 				cpu_bouncer->save_intersection(x,y,is);
 			}
-		cout << "writing to /tmp/lala.png" << endl;
-		this->rc->save_image("/tmp/lala.png");
+// 		cout << "writing to /tmp/lala.png" << endl;
+// 		this->rc->save_image("/tmp/lala.png");
 		return ms;
 	}
 	std::string identification() {
@@ -113,15 +167,15 @@ struct rctest_raytracer : public rta::basic_raytracer<rta::simple_aabb, rta::sim
 	}
 };
 
-template<typename Trav, typename RC, typename AS> 
-struct rctest_as_ctor : public rta::acceleration_structure_constructor<rta::simple_aabb, rta::simple_triangle>, public concrete_rctest_component<Trav, RC, AS> {
+template<typename Trav, typename InnerTrav, typename RC, typename AS> 
+struct rctest_as_ctor : public rta::acceleration_structure_constructor<rta::simple_aabb, rta::simple_triangle>, public concrete_rctest_component<Trav, InnerTrav, RC, AS> {
 	std::string identification() {
 		return "kai's da rt ctor. dummy.";
 	}
 };
 
-template<typename Trav, typename RC, typename AS> 
-struct rctest_as : public rta::acceleration_structure<rta::simple_aabb, rta::simple_triangle>, public concrete_rctest_component<Trav, RC, AS> {
+template<typename Trav, typename InnerTrav, typename RC, typename AS> 
+struct rctest_as : public rta::acceleration_structure<rta::simple_aabb, rta::simple_triangle>, public concrete_rctest_component<Trav, InnerTrav, RC, AS> {
 	int tri_cnt;
 	tri_t *p;
 	rctest_as() : tri_cnt(flat_tris->triangles),  p(flat_tris->triangle) {}
@@ -141,8 +195,8 @@ ostream& operator<<(ostream &o, rta::vec3_t v) {
 	return o;
 }
 
-template<typename Trav, typename RC, typename AS> 
-struct rctest_rgen : public rta::cam_ray_generator_shirley, public concrete_rctest_component<Trav, RC, AS> {
+template<typename Trav, typename InnerTrav, typename RC, typename AS> 
+struct rctest_rgen : public rta::cam_ray_generator_shirley, public concrete_rctest_component<Trav, InnerTrav, RC, AS> {
 	rctest_rgen(int w, int h, RC *rc) : cam_ray_generator_shirley(w, h) { this->rc = rc; }
 	virtual void generate_rays() {
 // 	for (uint y = 0; y < res_y(); ++y)
@@ -271,25 +325,25 @@ vec3f upper_light_pos, lower_light_pos;
 
 
 
-template<typename Trav, typename RC, typename AS> void render(RC *rc, AS *as, ifs<typename RC::vector_type> *i, rctest_component *&res)
+template<typename Trav, typename InnerTrav, typename RC, typename AS> void render(RC *rc, AS *as, ifs<typename RC::vector_type> *i, rctest_component *&res)
 {
 
+	collect_primary_ray_intersection_information_plugin<InnerTrav>::allocate(width, height);
 
-	res = new concrete_rctest_component<Trav, RC, AS>;
-	((concrete_rctest_component<Trav, RC, AS>*)res)->rc = rc;
-	((concrete_rctest_component<Trav, RC, AS>*)res)->as = as;
-	rctest_as<Trav, RC, AS> *my_as = new rctest_as<Trav, RC, AS>;
-	rctest_as_ctor<Trav, RC, AS> *my_ctor = new rctest_as_ctor<Trav, RC, AS>;
-	rctest_raytracer<Trav, RC, AS> *my_rt = new rctest_raytracer<Trav, RC, AS>(0, 0, my_as);
-	((concrete_rctest_component<Trav, RC, AS>*)my_rt)->rc = rc;
-	((concrete_rctest_component<Trav, RC, AS>*)my_rt)->as = as;
+
+	res = new concrete_rctest_component<Trav, InnerTrav, RC, AS>;
+	((concrete_rctest_component<Trav, InnerTrav, RC, AS>*)res)->rc = rc;
+	((concrete_rctest_component<Trav, InnerTrav, RC, AS>*)res)->as = as;
+	rctest_as<Trav, InnerTrav, RC, AS> *my_as = new rctest_as<Trav, InnerTrav, RC, AS>;
+	rctest_as_ctor<Trav, InnerTrav, RC, AS> *my_ctor = new rctest_as_ctor<Trav, InnerTrav, RC, AS>;
+	rctest_raytracer<Trav, InnerTrav, RC, AS> *my_rt = new rctest_raytracer<Trav, InnerTrav, RC, AS>(0, 0, my_as);
+	((concrete_rctest_component<Trav, InnerTrav, RC, AS>*)my_rt)->rc = rc;
+	((concrete_rctest_component<Trav, InnerTrav, RC, AS>*)my_rt)->as = as;
 	set.rt = my_rt;
 	set.as = my_as; // my ass
 	set.ctor = my_ctor;
-	set.rgen = new rctest_rgen<Trav, RC, AS>(width, height, rc);
+	set.rgen = new rctest_rgen<Trav, InnerTrav, RC, AS>(width, height, rc);
 
-
-	collect_primary_ray_intersection_information<Trav>::allocate(width, height);
 
 	tbb::task_scheduler_init task_sched(cmdline.threads);
 
@@ -403,8 +457,8 @@ void ray_casting_with_bvh(vector<ifs_triangle<V> > &tris, ifs<V> *i, rctest_comp
 	else
 	{
 // 		rc.cast_through(*mybvh, cmdline.threads);
-// 		render<outer_traversal_loop<ray_caster, collect_primary_ray_intersection_information<bvh_traversal<ray_caster> > > >(rc, mybvh, i, res);
-		render<outer_traversal_loop<ray_caster, primary_rays_with_shading<bvh_traversal<ray_caster> > > >(rc, mybvh, i, res);
+		render<outer_traversal_loop<ray_caster, collect_primary_ray_intersection_information_plugin<bvh_traversal<ray_caster>>>, bvh_traversal<ray_caster>>(rc, mybvh, i, res);
+// 		render<outer_traversal_loop<ray_caster, primary_rays_with_shading<bvh_traversal<ray_caster> > > >(rc, mybvh, i, res);
 	}
 	// clear image if dump was set. prevents stupid errors.
 // 	rc->save_image("/tmp/test.png");
@@ -436,8 +490,12 @@ void ray_casting_with_mbvh(vector<ifs_triangle<V> > &tris, ifs<V> *i, rctest_com
 // 	print_rusage("after building mbvh");
 		
 	typedef typename if_then_else<	!Precomp,
-									outer_traversal_loop<ray_caster, primary_rays_with_shading<mbvh_traversal<ray_caster> > >,
-									outer_traversal_loop<ray_caster, primary_rays_with_shading<mbvh_traversal_precomp<ray_caster> > > >::Result traversal_func;
+									outer_traversal_loop<ray_caster, collect_primary_ray_intersection_information_plugin<mbvh_traversal<ray_caster> > >,
+									outer_traversal_loop<ray_caster, collect_primary_ray_intersection_information_plugin<mbvh_traversal_precomp<ray_caster> > > >::Result traversal_func;
+
+	typedef typename if_then_else<	!Precomp,
+									collect_primary_ray_intersection_information_plugin<mbvh_traversal<ray_caster>>,
+									collect_primary_ray_intersection_information_plugin<mbvh_traversal_precomp<ray_caster>>>::Result inner_traversal_func;
 
 	cout << "starting the real action..." << endl;
 	if (cmdline.dump)
@@ -447,7 +505,7 @@ void ray_casting_with_mbvh(vector<ifs_triangle<V> > &tris, ifs<V> *i, rctest_com
 	}
 	else
 	{
-		render<traversal_func>(rc, mymbvh, i, res);
+		render<traversal_func, inner_traversal_func>(rc, mymbvh, i, res);
 	}
 	// clear image if dump was set. prevents stupid errors.
 // 	rc->save_image("/tmp/test.png");
@@ -487,9 +545,12 @@ void ray_casting_with_pbvh(vector<ifs_triangle<V> > &tris, ifs<V> *i, rctest_com
 	{
 	*/
 	typedef typename if_then_else<is_pbvh_no_precomp<Pbvh>::Result, 
-								  outer_traversal_loop<ray_caster, primary_rays_with_shading<pbvh_traversal<ray_caster> > >, 
-								  outer_traversal_loop<ray_caster, primary_rays_with_shading<pbvh_traversal_precomp<ray_caster> > > >::Result traversal_func;
-	render<traversal_func>(rc, mypbvh, i, res);
+								  outer_traversal_loop<ray_caster, collect_primary_ray_intersection_information_plugin<pbvh_traversal<ray_caster> > >, 
+								  outer_traversal_loop<ray_caster, collect_primary_ray_intersection_information_plugin<pbvh_traversal_precomp<ray_caster> > > >::Result traversal_func;
+	typedef typename if_then_else<is_pbvh_no_precomp<Pbvh>::Result, 
+								  collect_primary_ray_intersection_information_plugin<pbvh_traversal<ray_caster>>, 
+								  collect_primary_ray_intersection_information_plugin<pbvh_traversal_precomp<ray_caster>>>::Result inner_traversal_func;
+	render<traversal_func, inner_traversal_func>(rc, mypbvh, i, res);
 // 	}
 	// clear image if dump was set. prevents stupid errors.
 // 	rc->save_image("/tmp/test.png");
