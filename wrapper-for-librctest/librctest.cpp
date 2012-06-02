@@ -79,7 +79,6 @@ struct rctest_component {
 template<typename Trav, typename InnerTrav, typename RC, typename AS> struct concrete_rctest_component : public rctest_component {
 	RC *rc;
 	AS *as;
-// 	Trav *trav;
 };
 
 
@@ -158,8 +157,6 @@ struct rctest_raytracer : public rta::basic_raytracer<rta::simple_aabb, rta::sim
 				is.ref = this->accel_struct->triangle_ptr() + idx;
 				cpu_bouncer->save_intersection(x,y,is);
 			}
-// 		cout << "writing to /tmp/lala.png" << endl;
-// 		this->rc->save_image("/tmp/lala.png");
 		return ms;
 	}
 	std::string identification() {
@@ -199,13 +196,6 @@ template<typename Trav, typename InnerTrav, typename RC, typename AS>
 struct rctest_rgen : public rta::cam_ray_generator_shirley, public concrete_rctest_component<Trav, InnerTrav, RC, AS> {
 	rctest_rgen(int w, int h, RC *rc) : cam_ray_generator_shirley(w, h) { this->rc = rc; }
 	virtual void generate_rays() {
-// 	for (uint y = 0; y < res_y(); ++y)
-// 				for (uint x = 0; x < res_x(); ++x) {
-// 					*origin(x, y) = position;
-// 					generate_ray_dir_from_cam_parameters(direction(x, y), fovy, aspect, x, y, res_x(), res_y(), &dir, &up);
-// 				}
-// 
-		cout << "setting up rays: " << position << ", " << dir << ", " << up << endl;
 		typedef typename RC::vector_type V;
 	   	V p(position.x, position.y, position.z);
 		V d(dir.x, dir.y, dir.z);
@@ -228,7 +218,6 @@ extern "C" {
 	int parse_cmdline(int argc, char **argv)
 	{
 		argv[0] = "librctest";
-// 		int ret = argp_parse(&parser, argc, argv, 0/*ARGP_NO_EXIT*//*0*/, 0, 0);
 		int ret = librc_parse_cmdline(argc, argv);
 		return ret;
 	}
@@ -240,27 +229,6 @@ extern "C" {
 		width = w, height = h;
 		select_mode(*ifsp, cmp);
 		
-		/*
-		typedef simple_triangle tri_t;
-		typedef simple_aabb box_t;
-		typedef binary_bvh<box_t, tri_t> bvh_t;
-
-		bbvh_constructor_using_median<bvh_t> *ctor = new bbvh_constructor_using_median<bvh_t>(bbvh_constructor_using_median<bvh_t>::spatial_median);
-		bvh_t *bvh = ctor->build(&triangle_lists.front());
-
-		basic_raytracer<box_t, tri_t> *rt = 0;
-		if (cmdline.bvh_trav == Cmdline::cis)
-			rt = new bbvh_child_is_tracer<box_t, tri_t>(0, bvh, 0);
-		else
-			rt = new bbvh_direct_is_tracer<box_t, tri_t>(0, bvh, 0);
-
-		rt_set<box_t, tri_t> set;
-		set.as = bvh;
-		set.ctor = ctor;
-		set.rt = rt;
-		
-		return set;
-		*/
 		return set;
 	}
 
@@ -386,35 +354,6 @@ template<typename Trav, typename InnerTrav, typename RC, typename AS> void rende
 		std::ostringstream fn; fn << "/tmp/test-" << std::setfill('0') << std::setw(3) << i << ".png";
 		rc->save_image(fn.str());
 	}
-
-	// output statistics
-	/*
-	if (cmdline.rec_out != "")
-	{
-		ofstream out(cmdline.rec_out.c_str(), ios_base::app | ios_base::out);
-		out << "series: " << cmdline.measuring_series << endl;
-		out << "cmdline: "; 
-		for (int i = 0; i < ::argc; ++i) 
-			out << ::argv[i] << " "; 
-		out << endl;
-		out << "threads: " << cmdline.threads << endl;
-		out << "model: " << cmdline.model_filename << endl;
-		out << "bvh-string: " << bvh_string() << endl;
-		out << "bvh-short: " << ((cmdline.traversal_scheme == Cmdline::BVH) ? 
-		   						string("bvh") : (cmdline.traversal_scheme == Cmdline::MBVH) ? 
-		   							string("mbvh") : string("pbvh")) << endl;
-		out << "precomp: " << ((cmdline.traversal_scheme==Cmdline::MBVH && cmdline.mbvh_precomp 
-		   					|| cmdline.traversal_scheme==Cmdline::PBVH && cmdline.pbvh_opt==Cmdline::PBVH_OPT) ? 
-		   						string("yes") : string("no")) << endl;
-		out << "frames-rendered: " << cmdline.render_passes << endl;
-		out << "resolution: " << cmdline.res_x << "x" << cmdline.res_y << endl;
-		out << "time-ms: " << PB::time_str_of("raycasting") << endl;
-		char hostname[64];
-		gethostname(hostname, 64);
-		out << "workstation: " << hostname << endl;
-		out << endl;
-	}
-	*/
 }
 
 define_profile_type(bvh_builder_profile);
@@ -434,7 +373,6 @@ void ray_casting_with_bvh(vector<ifs_triangle<V> > &tris, ifs<V> *i, rctest_comp
 	cout << "sizeof bvh: " << sizeof(bvh<ifs_triangle<V>, BvhTravTr>) << endl;
 	
 	
-// 	print_rusage("before building bvh");
 	wall_time_timer wtt;
 	wtt.start();
 	BvhBuilder<ifs_triangle<V>, BvhTravTr, Adj, false> bvh_builder;
@@ -444,7 +382,6 @@ void ray_casting_with_bvh(vector<ifs_triangle<V> > &tris, ifs<V> *i, rctest_comp
 	mybvh = bvh_builder(tris);
 	}
 	cout << "bvh construction took " << wtt.look() /1000.0f<< "s" << endl;
-// 	print_rusage("after building bvh");
 		
 
 
@@ -456,12 +393,9 @@ void ray_casting_with_bvh(vector<ifs_triangle<V> > &tris, ifs<V> *i, rctest_comp
 	}
 	else
 	{
-// 		rc.cast_through(*mybvh, cmdline.threads);
 		render<outer_traversal_loop<ray_caster, collect_primary_ray_intersection_information_plugin<bvh_traversal<ray_caster>>>, bvh_traversal<ray_caster>>(rc, mybvh, i, res);
 // 		render<outer_traversal_loop<ray_caster, primary_rays_with_shading<bvh_traversal<ray_caster> > > >(rc, mybvh, i, res);
 	}
-	// clear image if dump was set. prevents stupid errors.
-// 	rc->save_image("/tmp/test.png");
 }
 
 template<typename V, 
@@ -483,11 +417,8 @@ void ray_casting_with_mbvh(vector<ifs_triangle<V> > &tris, ifs<V> *i, rctest_com
 	cout << "sizeof bvh: " << sizeof(Mbvh) << endl;
 	BvhB bvh_builder;
 
-// 	print_rusage("before building mbvh's bvh");
 	Bvh *tmp_bvh = bvh_builder(tris);
-// 	print_rusage("after building bvh, now converting to mbvh");
 	Mbvh *mymbvh = new Mbvh(tmp_bvh);
-// 	print_rusage("after building mbvh");
 		
 	typedef typename if_then_else<	!Precomp,
 									outer_traversal_loop<ray_caster, collect_primary_ray_intersection_information_plugin<mbvh_traversal<ray_caster> > >,
@@ -534,16 +465,7 @@ void ray_casting_with_pbvh(vector<ifs_triangle<V> > &tris, ifs<V> *i, rctest_com
 	Bvh *tmp_bvh = bvh_builder(tris);
 	Pbvh *mypbvh = new Pbvh(tmp_bvh);
 
-	cout << "starting the real action..." << endl;
-/*
-	if (cmdline.dump)
-	{
-		ofstream dumpfile("bvh.out");
-		mymbvh->dump(dumpfile);
-	}
-	else
-	{
-	*/
+	cout << "bvh is ready." << endl;
 	typedef typename if_then_else<is_pbvh_no_precomp<Pbvh>::Result, 
 								  outer_traversal_loop<ray_caster, collect_primary_ray_intersection_information_plugin<pbvh_traversal<ray_caster> > >, 
 								  outer_traversal_loop<ray_caster, collect_primary_ray_intersection_information_plugin<pbvh_traversal_precomp<ray_caster> > > >::Result traversal_func;
@@ -551,10 +473,6 @@ void ray_casting_with_pbvh(vector<ifs_triangle<V> > &tris, ifs<V> *i, rctest_com
 								  collect_primary_ray_intersection_information_plugin<pbvh_traversal<ray_caster>>, 
 								  collect_primary_ray_intersection_information_plugin<pbvh_traversal_precomp<ray_caster>>>::Result inner_traversal_func;
 	render<traversal_func, inner_traversal_func>(rc, mypbvh, i, res);
-// 	}
-	// clear image if dump was set. prevents stupid errors.
-// 	rc->save_image("/tmp/test.png");
-// 	*/
 	
 	#undef dont_care
 }
@@ -631,14 +549,6 @@ void ray_casting_path(vector<ifs_triangle<V> > &tris, ifs<V> *i, rctest_componen
 	point_light<V>::point_lights.push_back(point_light<V>(V(lower_light_pos.x,lower_light_pos.y,lower_light_pos.z), V(.61,.75,1)));
 
 	
-	/*
-// 	bvh_builder_using_object_median<ifs_triangle<V>, bvh_default_traits> bvh_builder;
-// 	BvhBuilder<ifs_triangle<V>, bvh_default_traits, sse_bvh_adjustment> bvh_builder;
-	BvhBuilder<ifs_triangle<V>, bvh_default_traits, no_bvh_adjustment> bvh_builder;
-// 	BvhBuilder<ifs_triangle<V>, bvh_default_traits, Adj> bvh_builder;
-	bvh<ifs_triangle<V>, bvh_default_traits> *mybvh = bvh_builder(tris);
-	*/
-
 	if (cmdline.traversal_scheme == Cmdline::BVH)
 	{
 		if (cmdline.bvh_opt == Cmdline::UNSRT_PIH)
@@ -782,161 +692,13 @@ void ray_casting_path(vector<ifs_triangle<V> > &tris, ifs<V> *i, rctest_componen
 										(tris, i, res);
 		}
 	}
-
-
-	/*
-	cout << "starting the real action..." << endl;
-	if (cmdline.traversal_scheme == Cmdline::BVH)
-	{
-		if (cmdline.dump)
-		{
-			ofstream dumpfile("bvh.out");
-			mybvh->dump(dumpfile);
-		}
-		else
-			rc.cast_through(*mybvh, cmdline.threads);
-	}
-	else if (cmdline.traversal_scheme == Cmdline::MBVH)
-	{
-		mbvh<ifs_triangle<V>, bvh_traits_intersect_box_push_unsorted_if_hit> mymbvh(mybvh);
-		if (cmdline.dump)
-		{
-			ofstream dumpfile("bvh.out");
-			mymbvh.dump(dumpfile);
-		}
-	}
-	*/
-	
-				
-// 	for (typename std::vector<point_light<V> >::iterator it = point_light<V>::point_lights.begin(); it != point_light<V>::point_lights.end(); ++it)
-// 		cout << it->pos << ", " << it->color << endl;
 }
 
 define_profile_type(main_profile);
 
-/*
-ObjFileLoader* create_test_scene()
-{
-	ObjFileLoader *obj = new ObjFileLoader(ObjFileLoader::FAKE, "");
-	int N = 3;
-	int idx = 0;
-	for (int x = -N; x < N; ++x)
-		for (int y = -N; y < N; ++y)
-			for (int z = -N; z < N; ++z)
-			{
-				obj->AddVertex(x, y, z);
-				obj->AddVertex(x, y+1, z+1);
-				obj->AddVertex(x+1, y+1, z);
-				cout << " " << x << " " << y << " " << z << " " << endl;
-				cout << " " << x << " " << y+1 << " " << z+1 << " " <<  endl;
-				cout << " " << x+1 << " " << y+1 << " " << z << " " <<  endl;
-				obj->AddFaceNode(ObjFileLoader::V, ++idx);
-				obj->AddFaceNode(ObjFileLoader::V, ++idx);
-				obj->AddFaceNode(ObjFileLoader::V, ++idx);
-				obj->FaceDone();
-			}
-	cout << idx << " triangles, " << idx/3 << "faces " << endl;
-// 	exit(0);
-
-	return obj;
-}
-
-ObjFileLoader* load_model(const std::string &filename)
-{
-	mat4f trafo;
-	ObjFileLoader *obj = new ObjFileLoader(filename, trafo);
-
-	// applies the trafo
-	vector<ifs_triangle<vec3f> > tris;
-	ifs<vec3f> *i = obj->convert(tris);
-	aabb<vec3f> bb = compute_aabb<vec3f>(tris);
-
-	float size = 8.0;
-	if (!cmdline.eye_dist_set)
-		cmdline.eye_dist = 1.5 * size;
-
-	upper_light_pos = cmdline.init_up * size * 1.5;
-	lower_light_pos = -cmdline.init_up * size * 1.5;
-
-	// scale
-	vec3f dist = bb.max - bb.min;
-	float largest = max(dist.x, max(dist.y, dist.z));
-	mat4f scale(vec4f(size/largest, size/largest, size/largest, 1));
-
-	// translate
-	vec3f trans = -size*(dist/2 + bb.min);
-	scale[0][3] = trans.x / largest;
-	scale[1][3] = trans.y / largest;
-	scale[2][3] = trans.z / largest;
-
-	obj->Trafo(scale * obj->Trafo());
-
-	cout << cmdline.init_up << endl;
-	cout << cmdline.init_dir << endl;
-	cout << cmdline.rotation_axis << endl;
-	return obj;
-}
-*/
 
 int select_mode(ifs_preperator<vec3f> &ifsgen, rctest_component *&res)
 {	
-	/*
-	rctest::argc = argc;
-	rctest::argv = argv;
-#ifdef HAVE_CALLGRIND
-	CALLGRIND_STOP_INSTRUMENTATION;
-#endif
-	int done = 1;
-	try
-	{
-		Profile<main_profile<> > p;
-
-		if (parse_cmdline(argc, argv) != 0)
-			return -1;
-
-		if (cmdline.test_aabb_intersection)
-		{
-			test_aabb_intersection();
-			throw done;
-		}
-
-// 		tbb::task_scheduler_init task_sched(cmdline.threads);
-		start_tbb(cmdline.threads);
-
-	// 	cout << "threads = " << cmdline.threads << endl;
-
-// 		print_rusage("starting to load the model now");
-		cout << "loading model " << cmdline.model_filename << " ..." << endl;
-
-// 		ObjFileLoader obj("bunny-70k.obj", "0.05 0 0 0   0 0 -0.05 4   0 -0.05 0 -6   0 0 0 1");
-// 		ObjFileLoader obj("bunny-5000.obj", "30 0 0 0   0 30 0 -2   0 0 30 -6   0 0 0 1");
-		ObjFileLoader *obj = load_model(cmdline.model_filename);
-		
-// 		vector<ifs_triangle<vec3f> > tris;
-// 		ifs<vec3f> *i = obj->convert(tris);
-
-// 		vector<ifs_triangle<vec3f> > tris;
-// 		ifs<vec3f> *i = obj->convert(tris);
-
-// 		print_rusage("making ifs");
-		ifs_preperator<vec3f> ifsgen;
-		obj->convert(&ifsgen);
-		ifsgen.ready();
-
-		vector<ifs_triangle<vec3f> > &tris = ifsgen.tri_arr;
-		ifs<vec3f> *i = ifsgen.set;
-// 		print_rusage("done makeing ifs");
-
-// 		delete obj;
-// 		print_rusage("deleted obj");
-		
-		compute_aabb<vec3f>(tris[0]);
-
-// 		print_rusage("main, after loading the obj model");
-
-		cout << "converting model..." << endl;
-		*/
-		
 		start_tbb(cmdline.threads);
 
 		vector<ifs_triangle<vec3f> > &tris = ifsgen.tri_arr;
@@ -953,7 +715,6 @@ int select_mode(ifs_preperator<vec3f> &ifsgen, rctest_component *&res)
 			clock_t end = clock();
 // 			cout << "conversion took " << (end-start)/(CLOCKS_PER_SEC/1000) << " msec" << endl;
 
-// 			print_rusage("after converting the model to sse");
 			if ( ! cmdline.force_no_median_adjustment)
 			{
 				typedef sse_bvh_adjustment adj;
@@ -1021,7 +782,6 @@ int select_mode(ifs_preperator<vec3f> &ifsgen, rctest_component *&res)
 		else
 		{
 			cout << " * not using sse" << endl;
-// 			print_rusage("after doing nothing because sse is off");
 			if (!cmdline.force_sse_median_adjustment)
 			{
 				typedef no_bvh_adjustment adj;
@@ -1086,10 +846,6 @@ int select_mode(ifs_preperator<vec3f> &ifsgen, rctest_component *&res)
 					cerr << "unkonw splitting approach" << endl;
 			}
 		}
-
-// 		delete obj;
-
-
 	return 0;
 }
 
