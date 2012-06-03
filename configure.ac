@@ -1,14 +1,14 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 AC_PREREQ(2.61)
-AC_INIT([rta], [0.0.1], [((lambda (x y z) (string-append x "@" y "." z ".org")) "stuff" "projects" "selgrad")])
+AC_INIT([rta], [0.0.1], [((lambda (x y z) (string-append x @ y . z .org)) stuff projects selgrad)])
 AM_INIT_AUTOMAKE
 AC_CONFIG_MACRO_DIR([m4])
 
 # name one of your source files here
 AC_CONFIG_SRCDIR([rta/main.cpp])
 AC_CONFIG_HEADER([config.h])
-AC_CONFIG_FILES(Makefile librta/Makefile rta/Makefile bbvh/Makefile wrapper-for-librctest/Makefile sphs/Makefile)
+AC_CONFIG_FILES(Makefile librta/Makefile rta/Makefile bbvh/Makefile wrapper-for-librctest/Makefile sbvh/Makefile sphs/Makefile)
 
 
 # Checks for programs.

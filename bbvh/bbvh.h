@@ -17,7 +17,7 @@ template<box_t__and__tri_t> class binary_bvh : public acceleration_structure<for
 			bool inner()         { return (type_left_elems&0x01)==1; }
 			void make_inner()    { type_left_elems |= 0x01; }
 			void make_leaf()     { type_left_elems &= (~1); }
-			void left(link_t n)  { type_left_elems = ((type_left_elems&(~1)) | (n<<1)); }
+			void left(link_t n)  { type_left_elems = ((type_left_elems&(~1)) | (n<<1)); }  //!< erases leaf/inner bit.
 			link_t left()        { return type_left_elems>>1; }
 			void elems(uint n)   { type_left_elems = ((type_left_elems&(~1)) | (n<<1)); }
 			uint elems()         { return type_left_elems>>1; }
@@ -56,8 +56,10 @@ struct bbvh_no_bias {
 	}
 };
 
-template<typename bvh_t, typename bias_t = bbvh_no_bias> 
-class bbvh_constructor_using_median : public acceleration_structure_constructor<typename bvh_t::box_t, typename bvh_t::tri_t> {
+template<typename bvh_t_, typename bias_t = bbvh_no_bias> 
+class bbvh_constructor_using_median : public acceleration_structure_constructor<typename bvh_t_::box_t, typename bvh_t_::tri_t> {
+	public:
+		typedef bvh_t_ bvh_t;
 	protected:
 		typedef typename bvh_t::node node_t;
 		typedef typename bvh_t::box_t box_t;
@@ -71,7 +73,6 @@ class bbvh_constructor_using_median : public acceleration_structure_constructor<
 		enum axes { X = 0, Y, Z };
 		
 		std::string median_used;
-		virtual std::string identification() { return "bbvh_constructor_using_median: " + median_used; }
 		
 		template<unsigned int N> static int tri_sort(const tri_t *a, const tri_t *b) { // optimize: component-cog.
 			vec3_t cog = center_of_gravity(*a);
@@ -219,6 +220,7 @@ class bbvh_constructor_using_median : public acceleration_structure_constructor<
 
 			return bvh;
 		}
+		virtual std::string identification() { return "bbvh_constructor_using_median: " + median_used; }
 };
 
 template<typename bvh_t, typename bias_t = bbvh_no_bias> class bbvh_constructor_using_sah {
@@ -381,14 +383,6 @@ template<box_t__and__tri_t> class bbvh_child_is_tracer : public bbvh_tracer<forw
 //////////////
 //////////////
 //////////////
-
-template<box_t__and__tri_t> class stackess_binary_bvh : public acceleration_structure<forward_traits> {
-	public:
-		declare_traits_types;
-		struct node {
-		};
-		virtual std::string identification() { return "not implemented, yet"; }
-};
 
 template<box_t__and__tri_t> class multi_bvh_sse : public acceleration_structure<forward_traits> {
 	public:
