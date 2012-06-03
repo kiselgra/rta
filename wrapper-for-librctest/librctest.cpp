@@ -425,8 +425,8 @@ void ray_casting_with_mbvh(vector<ifs_triangle<V> > &tris, ifs<V> *i, rctest_com
 									outer_traversal_loop<ray_caster, collect_primary_ray_intersection_information_plugin<mbvh_traversal_precomp<ray_caster> > > >::Result traversal_func;
 
 	typedef typename if_then_else<	!Precomp,
-									collect_primary_ray_intersection_information_plugin<mbvh_traversal<ray_caster>>,
-									collect_primary_ray_intersection_information_plugin<mbvh_traversal_precomp<ray_caster>>>::Result inner_traversal_func;
+									mbvh_traversal<ray_caster>,
+									mbvh_traversal_precomp<ray_caster>>::Result inner_traversal_func;
 
 	cout << "starting the real action..." << endl;
 	if (cmdline.dump)
@@ -470,8 +470,8 @@ void ray_casting_with_pbvh(vector<ifs_triangle<V> > &tris, ifs<V> *i, rctest_com
 								  outer_traversal_loop<ray_caster, collect_primary_ray_intersection_information_plugin<pbvh_traversal<ray_caster> > >, 
 								  outer_traversal_loop<ray_caster, collect_primary_ray_intersection_information_plugin<pbvh_traversal_precomp<ray_caster> > > >::Result traversal_func;
 	typedef typename if_then_else<is_pbvh_no_precomp<Pbvh>::Result, 
-								  collect_primary_ray_intersection_information_plugin<pbvh_traversal<ray_caster>>, 
-								  collect_primary_ray_intersection_information_plugin<pbvh_traversal_precomp<ray_caster>>>::Result inner_traversal_func;
+								  pbvh_traversal<ray_caster>, 
+								  pbvh_traversal_precomp<ray_caster>>::Result inner_traversal_func;
 	render<traversal_func, inner_traversal_func>(rc, mypbvh, i, res);
 	
 	#undef dont_care
