@@ -158,6 +158,19 @@ Eine naivere Traversionsmethode ist den betrachteten Knoten selbst zu schneiden 
 In dem Fall ergibt sich eine ähnliche Situation wie bei der SBVH: werden die Knoten nach einem bestimmten Musten auf den Stack abgelegt schlägt sich das Richtungsabhängig nieder, wird randomisiert (was an der Stelle (aka inner loop) per se keine gute Idee ist) erhält man nur Average-Case Performance.
 
 
+\subsection{Traversion ohne Skip-Pointer}
+\begin{tabular}{ll}
+$L(k,d)$	&	left child of $k$ (when the ray direction is in octant $d$) \\
+$R(k,d)$	&	right child of $k$ (ditto) \\
+$P(k)$		&	parent of $k$\\
+$N(k,d)$	&	$\left\{\begin{array}{lr} L(k,d)	&	\text{$k$ inner node}\\
+                                          S(k,d)	&	\text{$k$ leaf node}\\
+										  \end{array}\right.$	\\
+$S(k,d)$	&	$\left\{\begin{array}{lr} S(P(k),d)	&	R(P(k),d) = k\\
+                                          R(P(k),d)	&	\text{otherwise}\\
+										  \end{array}\right.$
+\end{tabular}
+
 \bibliographystyle{plainnat}
 \bibliography{/home/kai/orga/bib}
 
