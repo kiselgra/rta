@@ -7,4 +7,5 @@ library_include_HEADERS =
 
 # setting c preprocessor flags for main project
 librta_la_CPPFLAGS = -D PACKAGE=\"$(PACKAGE)\" -D VERSION=\"$(VERSION)\"
+librta_la_CXXFLAGS = -Wreturn-type
 

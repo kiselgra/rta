@@ -4,6 +4,7 @@ librta_bbvh_la_SOURCES = main.cpp \
 					  bbvh.h
 
 librta_bbvh_la_CPPFLAGS = -D PACKAGE=\"$(PACKAGE)\" -D VERSION=\"$(VERSION)\" -I$(top_builddir)
+librta_bbvh_la_CXXFLAGS = -Wreturn-type
 
 librta_bbvh_la_LDFLAGS = -module -avoid-version # do i want "avoid-version"?
 
