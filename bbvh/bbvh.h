@@ -241,7 +241,6 @@ template<box_t__and__tri_t, typename bvh_t_> class bbvh_tracer : public basic_ra
 	public:
 		declare_traits_types;
 		typedef bvh_t_ bbvh_t;
-// 		typedef binary_bvh<box_t, tri_t> bbvh_t;
 	protected:
 		bbvh_t *bvh;
 	public:
@@ -249,10 +248,10 @@ template<box_t__and__tri_t, typename bvh_t_> class bbvh_tracer : public basic_ra
 		}
 };
 
-template<box_t__and__tri_t> class bbvh_direct_is_tracer : public bbvh_tracer<forward_traits, binary_bvh<forward_traits>> {
+template<box_t__and__tri_t, typename bvh_t_> class bbvh_direct_is_tracer : public bbvh_tracer<forward_traits, bvh_t_> {
 	public:
 		declare_traits_types;
-		typedef binary_bvh<box_t, tri_t> bbvh_t;
+		typedef bvh_t_ bbvh_t;
 		typedef typename bbvh_t::node_t node_t;
 		using basic_raytracer<forward_traits>::raygen;
 		using basic_raytracer<forward_traits>::cpu_bouncer;
@@ -308,7 +307,6 @@ template<box_t__and__tri_t> class bbvh_direct_is_tracer : public bbvh_tracer<for
 template<box_t__and__tri_t, typename bvh_t_> class bbvh_child_is_tracer : public bbvh_tracer<forward_traits, bvh_t_> {
 	public:
 		declare_traits_types;
-// 		typedef binary_bvh<box_t, tri_t> bbvh_t;
 		typedef bvh_t_ bbvh_t;
 		typedef typename bbvh_t::node_t node_t;
 		using basic_raytracer<forward_traits>::raygen;

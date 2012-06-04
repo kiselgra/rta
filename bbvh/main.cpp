@@ -119,7 +119,7 @@ extern "C" {
 		if (cmdline.bvh_trav == Cmdline::cis)
 			rt = new bbvh_child_is_tracer<box_t, tri_t, binary_bvh<box_t, tri_t>>(0, bvh, 0);
 		else
-			rt = new bbvh_direct_is_tracer<box_t, tri_t>(0, bvh, 0);
+			rt = new bbvh_direct_is_tracer<box_t, tri_t, binary_bvh<box_t, tri_t>>(0, bvh, 0);
 
 		rt_set<box_t, tri_t> set;
 		set.as = bvh;

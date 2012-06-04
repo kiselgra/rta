@@ -14,11 +14,11 @@ using namespace rta;
 //
 
 struct Cmdline {
-	enum bvh_trav_t { cis, dis };
+	enum bvh_trav_t { bbvh_cis, bbvh_dis };
 	bvh_trav_t bvh_trav;
 	bool verbose;
 
-	Cmdline() : bvh_trav(cis), verbose(false) {}
+	Cmdline() : bvh_trav(bbvh_cis), verbose(false) {}
 };
 static Cmdline cmdline;
 
@@ -34,7 +34,11 @@ static struct argp_option options[] =
 {
 	// --[opt]		short/const		arg-descr		?		option-descr
 	{ "verbose", 'v', 0,          0, "Be verbose." },
-	{ "bvh-trav", BT, "cis|dis",  0, "Intersection mode of the bvh traversal: direct-is, child-is. Default: cis." },
+	{ "bvh-trav", BT, "mode",  0, "Intersection mode of the bvh traversal: \n"
+		                                            "    sbvh: ...\n"
+													"    bbvh-dis: bbvh-style traversal using direct-is (i.e. not stackless!).\n"
+													"    bbvh-cis: bbvh-style traversal using child-is (i.e. not stackless!).\n"
+													"    Default: sbvh." },
 	{ 0 }
 };
 
@@ -65,8 +69,8 @@ static error_t parse_options(int key, char *arg, argp_state *state)
 	switch (key)
 	{
 	case 'v':	cmdline.verbose = true; 	break;
-	case BT:      if (sarg == "dis") cmdline.bvh_trav = Cmdline::dis;
-	              else if (sarg == "cis") cmdline.bvh_trav = Cmdline::cis;
+	case BT:      if (sarg == "bbvh-dis")      cmdline.bvh_trav = Cmdline::bbvh_dis;
+	              else if (sarg == "bbvh-cis") cmdline.bvh_trav = Cmdline::bbvh_cis;
 				  else {
 					  cerr << "Unknown bvh traversal scheme: " << sarg << endl;
 					  argp_usage(state);
@@ -120,7 +124,10 @@ extern "C" {
 
 		cout << "create rt" << endl;
 		basic_raytracer<box_t, tri_t> *rt = 0;
-		rt = new bbvh_child_is_tracer<box_t, tri_t, sbvh_t>(0, sbvh, 0);
+		if (cmdline.bvh_trav == Cmdline::bbvh_cis)
+			rt = new bbvh_child_is_tracer<box_t, tri_t, sbvh_t>(0, sbvh, 0);
+		else
+			rt = new bbvh_direct_is_tracer<box_t, tri_t, sbvh_t>(0, sbvh, 0);
 
 		rt_set<box_t, tri_t> set;
 		set.as = sbvh;
