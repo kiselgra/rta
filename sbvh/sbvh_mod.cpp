@@ -108,15 +108,27 @@ extern "C" {
 	}
 
 	rt_set<simple_aabb, simple_triangle> create_rt_set(std::list<flat_triangle_list> &triangle_lists, int w, int h) {
+		cout << "creating set" << endl;
 		typedef simple_triangle tri_t;
 		typedef simple_aabb box_t;
 		typedef binary_bvh<box_t, tri_t> bvh_t;
 		typedef stackless_bvh<box_t, tri_t> sbvh_t;
 		typedef bbvh_constructor_using_median<bvh_t> bbvh_ctor_t;
+		cout << "building bvh" << endl;
 		sbvh_constructor<sbvh_t, bbvh_ctor_t> *ctor = new sbvh_constructor<sbvh_t, bbvh_ctor_t>(bbvh_ctor_t::spatial_median);
 		sbvh_t *sbvh = ctor->build(&triangle_lists.front());
-		cout << "jep" << endl;
-		exit(0);
+
+		cout << "create rt" << endl;
+		basic_raytracer<box_t, tri_t> *rt = 0;
+		rt = new bbvh_child_is_tracer<box_t, tri_t, sbvh_t>(0, sbvh, 0);
+
+		rt_set<box_t, tri_t> set;
+		set.as = sbvh;
+		set.ctor = ctor;
+		set.rt = rt;
+
+		return set;
+
 // 		bvh_t *bvh = ctor->build(&triangle_lists.front());
 // 
 // 		basic_raytracer<box_t, tri_t> *rt = 0;

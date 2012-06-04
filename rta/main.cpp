@@ -27,7 +27,7 @@ using namespace std;
 
 namespace rta {
 
-	int res_x = 320, res_y = 320;
+	int res_x = 800, res_y = 800;
 
 ////////////////////
 ////////////////////

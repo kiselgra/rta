@@ -45,6 +45,11 @@ namespace rta {
 			int triangle_count() { return triangles.size(); }
 		
 			virtual std::string identification() { return "stackless_binary_bvh"; }
+			
+			//! take the triangles stored in the array. \attention does so destructively!
+			void take_triangle_array(std::vector<tri_t> &t) {
+				triangles.swap(t);
+			}
 	};
 
 	template<typename sbvh_t, typename bvh_ctor_t, typename bias_t = bbvh_no_bias> 
@@ -71,6 +76,7 @@ namespace rta {
 					int right = left + 1;
 					next_free_node += 2;
 					stackless_node->children(left);
+					stackless_node->make_inner();
 
 					convert_node(binary_bvh, stackless_bvh, bvh_node->left(), left);
 					convert_node(binary_bvh, stackless_bvh, bvh_node->right(), right);
@@ -99,6 +105,10 @@ namespace rta {
 
 				next_free_node = 1;
 				convert_node(bbvh, stackless_bvh, 0, 0);
+
+				stackless_bvh->take_triangle_array(bbvh->triangles);
+
+				return stackless_bvh;
 			}
 	};
 

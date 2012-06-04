@@ -237,10 +237,11 @@ template<typename bvh_t, typename bias_t = bbvh_no_bias> class bbvh_constructor_
 		virtual std::string identification() { return "not implemented, yet."; }
 };
 
-template<box_t__and__tri_t> class bbvh_tracer : public basic_raytracer<forward_traits> {
+template<box_t__and__tri_t, typename bvh_t_> class bbvh_tracer : public basic_raytracer<forward_traits> {
 	public:
 		declare_traits_types;
-		typedef binary_bvh<box_t, tri_t> bbvh_t;
+		typedef bvh_t_ bbvh_t;
+// 		typedef binary_bvh<box_t, tri_t> bbvh_t;
 	protected:
 		bbvh_t *bvh;
 	public:
@@ -248,7 +249,7 @@ template<box_t__and__tri_t> class bbvh_tracer : public basic_raytracer<forward_t
 		}
 };
 
-template<box_t__and__tri_t> class bbvh_direct_is_tracer : public bbvh_tracer<forward_traits> {
+template<box_t__and__tri_t> class bbvh_direct_is_tracer : public bbvh_tracer<forward_traits, binary_bvh<forward_traits>> {
 	public:
 		declare_traits_types;
 		typedef binary_bvh<box_t, tri_t> bbvh_t;
@@ -256,7 +257,7 @@ template<box_t__and__tri_t> class bbvh_direct_is_tracer : public bbvh_tracer<for
 		using basic_raytracer<forward_traits>::raygen;
 		using basic_raytracer<forward_traits>::cpu_bouncer;
 
-		bbvh_direct_is_tracer(ray_generator *gen, bbvh_t *bvh, class bouncer *b) : bbvh_tracer<forward_traits>(gen, bvh, b) {
+		bbvh_direct_is_tracer(ray_generator *gen, bbvh_t *bvh, class bouncer *b) : bbvh_tracer<forward_traits, bbvh_t>(gen, bvh, b) {
 		}
 		virtual float trace_rays() {
 			wall_time_timer wtt; wtt.start();
@@ -277,7 +278,7 @@ template<box_t__and__tri_t> class bbvh_direct_is_tracer : public bbvh_tracer<for
 			node_t *curr = 0;
 			while (state.sp >= 0) {
 				uint node = state.pop();
-				curr = &bbvh_tracer<forward_traits>::bvh->nodes[node];
+				curr = &bbvh_tracer<forward_traits, bbvh_t>::bvh->nodes[node];
 				if (curr->inner()) {
 					float dist;
 					if (intersect_aabb(curr->box, origin, dir, dist))
@@ -290,7 +291,7 @@ template<box_t__and__tri_t> class bbvh_direct_is_tracer : public bbvh_tracer<for
 					int elems = curr->elems();
 					int offset = curr->tris();
 					for (int i = 0; i < elems; ++i) {
-						tri_t *t = &bbvh_tracer<forward_traits>::bvh->triangles[offset+i];
+						tri_t *t = &bbvh_tracer<forward_traits, bbvh_t>::bvh->triangles[offset+i];
 						triangle_intersection<tri_t> is(t);
 						if (intersect_tri_opt(*t, origin, dir, is)) {
 							if (is.t < state.intersection.t)
@@ -304,15 +305,16 @@ template<box_t__and__tri_t> class bbvh_direct_is_tracer : public bbvh_tracer<for
 };
 
 
-template<box_t__and__tri_t> class bbvh_child_is_tracer : public bbvh_tracer<forward_traits> {
+template<box_t__and__tri_t, typename bvh_t_> class bbvh_child_is_tracer : public bbvh_tracer<forward_traits, bvh_t_> {
 	public:
 		declare_traits_types;
-		typedef binary_bvh<box_t, tri_t> bbvh_t;
+// 		typedef binary_bvh<box_t, tri_t> bbvh_t;
+		typedef bvh_t_ bbvh_t;
 		typedef typename bbvh_t::node_t node_t;
 		using basic_raytracer<forward_traits>::raygen;
 		using basic_raytracer<forward_traits>::cpu_bouncer;
 
-		bbvh_child_is_tracer(ray_generator *gen, bbvh_t *bvh, class bouncer *b) : bbvh_tracer<forward_traits>(gen, bvh, b) {
+		bbvh_child_is_tracer(ray_generator *gen, bbvh_t *bvh, class bouncer *b) : bbvh_tracer<forward_traits, bvh_t_>(gen, bvh, b) {
 		}
 		virtual float trace_rays() {
 			wall_time_timer wtt; wtt.start();
@@ -333,15 +335,15 @@ template<box_t__and__tri_t> class bbvh_child_is_tracer : public bbvh_tracer<forw
 			node_t *curr = 0;
 			while (state.sp >= 0) {
 				uint node = state.pop();
-				curr = &bbvh_tracer<forward_traits>::bvh->nodes[node];
+				curr = &bbvh_tracer<forward_traits, bbvh_t>::bvh->nodes[node];
 				if (curr->inner()) {
 					float dist_l, dist_r;
 					uint n_left   = curr->left();
-					node_t *left  = &bbvh_tracer<forward_traits>::bvh->nodes[n_left];
+					node_t *left  = &bbvh_tracer<forward_traits, bbvh_t>::bvh->nodes[n_left];
 					bool do_left  = intersect_aabb(left->box, origin, dir, dist_l);
 					
 					uint n_right  = curr->right();
-					node_t *right = &bbvh_tracer<forward_traits>::bvh->nodes[n_right];
+					node_t *right = &bbvh_tracer<forward_traits, bbvh_t>::bvh->nodes[n_right];
 					bool do_right = intersect_aabb(right->box, origin, dir, dist_r);
 
 					do_left  = do_left  && dist_l < state.intersection.t;
@@ -364,7 +366,7 @@ template<box_t__and__tri_t> class bbvh_child_is_tracer : public bbvh_tracer<forw
 					int elems = curr->elems();
 					int offset = curr->tris();
 					for (int i = 0; i < elems; ++i) {
-						tri_t *t = &bbvh_tracer<forward_traits>::bvh->triangles[offset+i];
+						tri_t *t = &bbvh_tracer<forward_traits, bbvh_t>::bvh->triangles[offset+i];
 						triangle_intersection<tri_t> is(t);
 						if (intersect_tri_opt(*t, origin, dir, is)) {
 							if (is.t < state.intersection.t)
