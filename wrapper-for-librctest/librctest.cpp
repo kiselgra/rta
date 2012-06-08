@@ -166,6 +166,9 @@ struct rctest_raytracer : public rta::basic_raytracer<rta::simple_aabb, rta::sim
 
 template<typename Trav, typename InnerTrav, typename RC, typename AS> 
 struct rctest_as_ctor : public rta::acceleration_structure_constructor<rta::simple_aabb, rta::simple_triangle>, public concrete_rctest_component<Trav, InnerTrav, RC, AS> {
+	virtual rta::acceleration_structure<rta::simple_aabb, rta::simple_triangle>* build(rta::flat_triangle_list *tris) {
+		return 0;
+	}
 	std::string identification() {
 		return "kai's da rt ctor. dummy.";
 	}
