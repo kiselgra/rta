@@ -36,7 +36,7 @@ template<box_t__and__tri_t> struct acceleration_structure {
 
 template<box_t__and__tri_t> struct acceleration_structure_constructor {
 	declare_traits_types;
-	acceleration_structure<box_t, tri_t>* build(flat_triangle_list *tris);
+	virtual acceleration_structure<box_t, tri_t>* build(flat_triangle_list *tris) = 0;
 	virtual std::string identification() = 0;
 };
 
