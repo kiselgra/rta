@@ -88,13 +88,13 @@ template<box_t__and__tri_t> class binary_png_tester : public cpu_ray_bouncer<for
 		std::list<light> lights;
 		typedef _tri_t tri_t;
 		binary_png_tester(uint w, uint h) : cpu_ray_bouncer<forward_traits>(w,h), res(w,h) {
-			reset();
 		}
-		void reset() {
+		void reset(vec3f c) {
 			for (int y = 0; y < res.h; ++y)
 				for (int x = 0; x < res.w; ++x)
-					for (int c = 0; c < 3; ++c)
-						res.pixel(x,y,c) = 0;
+					res.pixel(x,y,0) = std::min(int(c.x*255), 255),
+					res.pixel(x,y,1) = std::min(int(c.y*255), 255),
+					res.pixel(x,y,2) = std::min(int(c.z*255), 255);
 		}
 		void add_pointlight(const vec3_t &at, const vec3_t &col) {
 			lights.push_back({at,col});

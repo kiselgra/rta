@@ -21,6 +21,8 @@ struct Cmdline
 	std::string outfile;
 	std::string module;
 
+	vec3f back_col, light_col;
+
 	Cmdline() : verbose(false), positional_series(false), axial_series(false), sphere_series(false)
 	{
 		pos = { 0,0,0 };
@@ -29,6 +31,8 @@ struct Cmdline
 		axis = { 0, 0, 1 };
 		anchor = { 1, 0, 0 };
 		samples = 1;
+		back_col = { 0,0,0 };
+		light_col = { 1,1,1 };
 	}
 };
 

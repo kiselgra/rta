@@ -109,11 +109,13 @@ template<box_t__and__tri_t> class directional_analysis_pass {
 		: vertex(0), vertices(0), timings(0), coll(res_x, res_y), dist_scale(1.5), res_x(res_x), res_y(res_y), crgs(0) {
 			setup_sample_positions(sphere_file);
 			crgs = new cam_ray_generator_shirley(res_x, res_y);
+			coll.reset(cmdline.back_col);
 		}
 		directional_analysis_pass(vec3_t &axis, vec3_t &anchor, int samples, int res_x, int res_y)
 		: vertex(0), vertices(0), timings(0), coll(res_x, res_y), dist_scale(1.5), res_x(res_x), res_y(res_y), crgs(0) {
 			setup_rotation_positions(axis, anchor, samples);
 			crgs = new cam_ray_generator_shirley(res_x, res_y);
+			coll.reset(cmdline.back_col);
 		}
 		~directional_analysis_pass() {
 			delete [] vertex;
@@ -255,20 +257,23 @@ template<box_t__and__tri_t> class directional_analysis_pass {
 
 				coll.lights.clear();
 				float_t I = 0.3;
+				float_t l_r = I * cmdline.light_col.x,
+						l_g = I * cmdline.light_col.y,
+						l_b = I * cmdline.light_col.z;
 
 				vec3_t mi = min(light_box);
 				vec3_t ma = max(light_box);
 
-				coll.add_pointlight({x_comp(min(light_box)), y_comp(min(light_box)), z_comp(min(light_box))}, {I, I, I});
-				coll.add_pointlight({x_comp(min(light_box)), y_comp(min(light_box)), z_comp(max(light_box))}, {I, I, I});
-				coll.add_pointlight({x_comp(min(light_box)), y_comp(max(light_box)), z_comp(min(light_box))}, {I, I, I});
-				coll.add_pointlight({x_comp(min(light_box)), y_comp(max(light_box)), z_comp(max(light_box))}, {I, I, I});
-				coll.add_pointlight({x_comp(max(light_box)), y_comp(min(light_box)), z_comp(min(light_box))}, {I, I, I});
-				coll.add_pointlight({x_comp(max(light_box)), y_comp(min(light_box)), z_comp(max(light_box))}, {I, I, I});
-				coll.add_pointlight({x_comp(max(light_box)), y_comp(max(light_box)), z_comp(min(light_box))}, {I, I, I});
-				coll.add_pointlight({x_comp(max(light_box)), y_comp(max(light_box)), z_comp(max(light_box))}, {I, I, I});
+				coll.add_pointlight({x_comp(min(light_box)), y_comp(min(light_box)), z_comp(min(light_box))}, {l_r, l_g, l_b});
+				coll.add_pointlight({x_comp(min(light_box)), y_comp(min(light_box)), z_comp(max(light_box))}, {l_r, l_g, l_b});
+				coll.add_pointlight({x_comp(min(light_box)), y_comp(max(light_box)), z_comp(min(light_box))}, {l_r, l_g, l_b});
+				coll.add_pointlight({x_comp(min(light_box)), y_comp(max(light_box)), z_comp(max(light_box))}, {l_r, l_g, l_b});
+				coll.add_pointlight({x_comp(max(light_box)), y_comp(min(light_box)), z_comp(min(light_box))}, {l_r, l_g, l_b});
+				coll.add_pointlight({x_comp(max(light_box)), y_comp(min(light_box)), z_comp(max(light_box))}, {l_r, l_g, l_b});
+				coll.add_pointlight({x_comp(max(light_box)), y_comp(max(light_box)), z_comp(min(light_box))}, {l_r, l_g, l_b});
+				coll.add_pointlight({x_comp(max(light_box)), y_comp(max(light_box)), z_comp(max(light_box))}, {l_r, l_g, l_b});
 
-				coll.reset();
+				coll.reset(cmdline.back_col);
 
 				coll.shade();
 				coll.save(oss.str());
