@@ -24,8 +24,8 @@ static Cmdline cmdline;
 
 const char *argp_program_version = VERSION;
 
-static char plugin_name[] = "bbvh";
-static char doc[]       = "bbvh: a rta plugin.";
+static char plugin_name[] = "sbvh";
+static char doc[]       = "sbvh: a rta plugin.";
 static char args_doc[]  = "";
 
 enum { FIRST = 300, BT, OPTS };
