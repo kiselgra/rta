@@ -36,4 +36,4 @@ echo ">"
 echo "> comparison bbvh vs sbvh-bbvh-mode"
 echo ">"
 
-$sphs $cis $sbvh_po -m perf -o sbvh-cis-rel-to-cis.ply >/dev/null
+$sphs $cis $sbvh_po -m perf -o sbvh-po-rel-to-cis.ply >/dev/null
