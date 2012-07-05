@@ -20,9 +20,10 @@ struct Cmdline
 	std::string unit_string;
 	bool force;
 	int meta_differences;
+	bool bump;
 
 	Cmdline() 
-	: verbose(false), print_vertices(false), ignore_duplicates(false), clear_duplicates(false), mode(none), unit(1000), unit_string("k"), force(false), meta_differences(1)
+	: verbose(false), print_vertices(false), ignore_duplicates(false), clear_duplicates(false), mode(none), unit(1000), unit_string("k"), force(false), meta_differences(1), bump(false)
 	{
 	}
 };

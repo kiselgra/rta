@@ -177,7 +177,8 @@ void divide_diff_by_base(ply &p, ply::element_t *base, ply::element_t *diff) {
 				cout << rb << "\t/\t" << ra << "\t=\t" << rb/ra << endl;
 				float scaled = rb/ra;
 				float hue = scaled * 120;
-				if (hue > 120) hue += 60;
+				if (cmdline.bump)
+					if (hue > 120) hue += 60;
 				vec3f col = rgb(hue);
 				base->ref(i, r) = col.x * 255;
 				base->ref(i, g) = col.y * 255;

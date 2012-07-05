@@ -16,7 +16,7 @@ static char doc[]       = PACKAGE ": Visualize performance measurements taken on
 static char args_doc[]  = "basefile [second]";
 
 // long option without corresponding short option have to define a symbolic constant >= 300
-enum { FIRST = 300, IGNORE_DUP, CLEAR_DUP, OPTS };
+enum { FIRST = 300, IGNORE_DUP, CLEAR_DUP, BUMP, OPTS };
 
 static struct argp_option options[] = 
 {
@@ -31,13 +31,14 @@ static struct argp_option options[] =
 	                                "    check: just check the input data and return 0 if everything is fine.\n"
                                     "    minmax: write a version of the file with the vertices colored with indicating the time each sample took, scaled between the minimum (red=slowest) "
 											"and the maximum (green=fastest) rays per second any sample took.\n"
-									"    absolute: generate vertex colors as for minmax, but the lower bound set to zero, i.e. display the absolute values as ranging from red to green."
+									"    absolute: generate vertex colors as for minmax, but the lower bound set to zero, i.e. display the absolute values as ranging from red to green.\n"
 // 	                                "    relative-to: show performance relative to the specified reference value (see --reference).\n"
 	                                "    perf: show the performance of the second file relative to the first (b/a).\n"
 									},
 	{ "unit", 'u', "1,k,m",      0, "Make output in terms of rays per second, kilo rps, mega rps. Default: k. " },
 	{ "force", 'f', 0,           0, "Force the comparison, disregarding meta data differences." },
 	{ "max-differences", 'd', "n", 0, "How many different values in the rta meta data are allowed to still compare two files. Default: 1." },
+	{ "bump-better-performance", BUMP, 0, 0, "This bumps the output color values for performance values which are greater than the reference value. This clearly shows the breaking point, might, however, produce images which are interpreted wrongly." },
 	{ 0 }
 };	
 
@@ -109,6 +110,10 @@ static error_t parse_options(int key, char *arg, argp_state *state)
 
 	case CLEAR_DUP:
 		cmdline.clear_duplicates = true;
+		break;
+
+	case BUMP:
+		cmdline.bump = true;
 		break;
 
 	case 'f':
