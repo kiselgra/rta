@@ -14,7 +14,7 @@ using namespace rta;
 //
 
 struct Cmdline {
-	enum bvh_trav_t { bbvh_cis, bbvh_dis, preorder_sbvh };
+	enum bvh_trav_t { bbvh_cis, bbvh_dis, preorder_sbvh, sbvh_oi };
 	bvh_trav_t bvh_trav;
 	bool verbose;
 
@@ -35,7 +35,7 @@ static struct argp_option options[] =
 	// --[opt]		short/const		arg-descr		?		option-descr
 	{ "verbose", 'v', 0,          0, "Be verbose." },
 	{ "bvh-trav", BT, "mode",  0, "Intersection mode of the bvh traversal: \n"
-		                                            "    sbvh: ...\n"
+		                                            "    sbvh: order independent sbvh traversal.\n"
 													"    po-sbvh: pre order stackess bvh traversal: stackless with a fixed traversal order. see --randomize.\n"
 													"    bbvh-dis: bbvh-style traversal using direct-is (i.e. not stackless!).\n"
 													"    bbvh-cis: bbvh-style traversal using child-is (i.e. not stackless!).\n"
@@ -73,6 +73,7 @@ static error_t parse_options(int key, char *arg, argp_state *state)
 	case BT:      if (sarg == "bbvh-dis")      cmdline.bvh_trav = Cmdline::bbvh_dis;
 	              else if (sarg == "bbvh-cis") cmdline.bvh_trav = Cmdline::bbvh_cis;
 	              else if (sarg == "po-sbvh")  cmdline.bvh_trav = Cmdline::preorder_sbvh;
+	              else if (sarg == "sbvh")  cmdline.bvh_trav = Cmdline::sbvh_oi;
 				  else {
 					  cerr << "Unknown bvh traversal scheme: " << sarg << endl;
 					  argp_usage(state);
@@ -118,7 +119,9 @@ extern "C" {
 		typedef simple_triangle tri_t;
 		typedef simple_aabb box_t;
 		typedef binary_bvh<box_t, tri_t> bvh_t;
+		typedef binary_bvh_with_split_axis<box_t, tri_t> bvh_with_sa_t;
 		typedef stackless_bvh<box_t, tri_t> sbvh_t;
+		typedef order_independent_sbvh<box_t, tri_t> oi_sbvh_t;
 		typedef preorder_stackless_bvh<box_t, tri_t> preorder_sbvh_t;
 		typedef bbvh_constructor_using_median<bvh_t> bbvh_ctor_t;
 		cout << "building bvh" << endl;
@@ -133,6 +136,10 @@ extern "C" {
 				break;
 			case Cmdline::preorder_sbvh:
 				ctor = new sbvh_preorder_constructor<preorder_sbvh_t, bbvh_ctor_t>(bbvh_ctor_t::spatial_median);
+				sbvh = ctor->build(&triangle_lists.front());
+				break;
+			case Cmdline::sbvh_oi:
+				ctor = new sbvh_constructor<oi_sbvh_t, bbvh_ctor_t>(bbvh_ctor_t::spatial_median);
 				sbvh = ctor->build(&triangle_lists.front());
 				break;
 			default:

@@ -50,6 +50,42 @@ template<box_t__and__tri_t> class binary_bvh : public acceleration_structure<for
 		virtual std::string identification() { return "binary_bvh"; }
 };
 
+/*! a binary bvh like \ref binary_bvh which stores the split axis, too.
+ *  \note the split axis is not stored compactly, (yet?).
+ *  
+ *  this structure is intended for use in the contruction of other acceleration structures for
+ *  which we wan't to take advantage of the already implented space subdivision.
+ */
+template<box_t__and__tri_t> class binary_bvh_with_split_axis : public acceleration_structure<forward_traits> {
+	public:
+		declare_traits_types;
+		typedef uint32_t link_t;
+		struct node : public binary_bvh<forward_traits>::node {
+			uint axis;
+			void split_axis(uint a) { axis = a; }
+			uint split_axis()       { return axis; }
+		};
+		typedef node node_t;
+
+		std::vector<node> nodes;
+		std::vector<tri_t> triangles;
+
+		//! take the nodes stored in the array. \attention does so destructively!
+		void take_node_array(std::vector<node> &n) {
+			nodes.swap(n);
+		}
+		
+		//! take the triangles stored in the array. \attention does so destructively!
+		void take_triangle_array(std::vector<tri_t> &t) {
+			triangles.swap(t);
+		}
+
+		tri_t* triangle_ptr() { return &triangles[0]; }
+		int triangle_count() { return triangles.size(); }
+		
+		virtual std::string identification() { return "binary_bvh"; }
+};
+
 
 struct bbvh_no_bias {
 	static void apply(uint &begin, uint &mid, uint &end) {

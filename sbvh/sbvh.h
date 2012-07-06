@@ -392,6 +392,37 @@ namespace rta {
 	};
 
 
+	/*! stackless, direction independent bvh.
+	 * 	there is no need for a special o.i. ctor as the \ref sbvh_constructor can be used to construct this kind of sbvh
+	 * 	(since it implements the syntactical interface of \ref stackless_bvh).
+	 * 	the only augmentation required is to incorporate the split axis information into ray direction codes,
+	 * 	which is done at construction time per node (in the incorporate function).
+	 */
+
+	template<box_t__and__tri_t> class order_independent_sbvh : public acceleration_structure<forward_traits> {
+		public:
+			declare_traits_types;
+			typedef uint32_t link_t;
+
+			struct node : public stackless_bvh<forward_traits>::node {
+				template<typename base_node> void incorporate(base_node *n) {}
+			};
+			typedef node node_t;
+
+			std::vector<node> nodes;
+			std::vector<tri_t> triangles;
+		
+			tri_t* triangle_ptr() { return &triangles[0]; }
+			int triangle_count() { return triangles.size(); }
+		
+			virtual std::string identification() { return "order_independent_stackless_binary_bvh"; }
+			
+			//! take the triangles stored in the array. \attention does so destructively!
+			void take_triangle_array(std::vector<tri_t> &t) {
+				triangles.swap(t);
+			}
+	};
+
 
 }
 
