@@ -8,6 +8,21 @@ namespace rta {
 	/*! stackless bvh in the general form requiering back-traversal.
 	 *  can be used with bbvh ray tracer, too.
 	 *  i.e. this is not really a stackless bvh ;)
+	 *
+	 *  the node's incorporate function is used to transfer additional data of the base bvh node
+	 *  into a "derived" stackless node.
+	 *
+	 *  \note derived is not meant in the object oriented sense!
+	 *  the interface is merely syntactic, i.e. this is the template function you would define
+	 *  in a node class you can subsitute for this node type as template parameter to the sbvh ctor.
+	 *
+	 *  you may also derive, but take care that no virtual stuff is involved, otherwise things may 
+	 *  go wrong becase we rely on the syntactic interface, only.
+	 *
+	 *  furthermore, this is a requirement for node types constructed by the \ref sbvh_constructor.
+	 *  if you generate your nodes based on this ctor's output such a function is, of course, not 
+	 *  required.
+	 *
 	 */
 	template<box_t__and__tri_t> class stackless_bvh : public acceleration_structure<forward_traits> {
 		public:
@@ -39,6 +54,7 @@ namespace rta {
 				// 3. triangles in leaf
 				void elems(link_t n)    { children_tris = ((children_tris&(~255)) | n); }
 				link_t elems()          { return children_tris&255; }
+				template<typename base_node> void incorporate(base_node *n) {}
 			};
 			typedef node node_t;
 
@@ -61,7 +77,6 @@ namespace rta {
 	class sbvh_constructor : public acceleration_structure_constructor<typename sbvh_t::box_t, typename sbvh_t::tri_t> {
 		protected:
 			typedef typename bvh_ctor_t::bvh_t bbvh_t;
-	// 		typedef typename bvh_t::node node_t;
 			typedef typename sbvh_t::box_t box_t;
 			typedef typename sbvh_t::tri_t tri_t;
 			typedef typename sbvh_t::link_t link_t;
@@ -76,6 +91,7 @@ namespace rta {
 
 				stackless_node->box = bvh_node->box;
 				stackless_node->parent(parent);
+				stackless_node->incorporate(bvh_node);
 				if (bvh_node->inner()) {
 					int left = next_free_node;
 					int right = left + 1;
@@ -204,6 +220,7 @@ namespace rta {
 						link_t tris()           { return tris_; }
 						void elems(link_t n)    { elems_ = n; }
 						link_t elems()          { return elems_; }
+						template<typename base_node> void incorporate(base_node *n) {}
 					};
 					typedef node node_t;
 
