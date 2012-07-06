@@ -7,6 +7,7 @@ namespace rta {
 
 	/*! stackless bvh in the general form requiering back-traversal.
 	 *  can be used with bbvh ray tracer, too.
+	 *  i.e. this is not really a stackless bvh ;)
 	 */
 	template<box_t__and__tri_t> class stackless_bvh : public acceleration_structure<forward_traits> {
 		public:
@@ -116,8 +117,20 @@ namespace rta {
 				return stackless_bvh;
 			}
 	};
+
+	/*! preoder sbvh.
+	 *  this is the classical stackless bvh implementation with direction dependent performance.
+	 *  the creation of the structure is split into three parts.
+	 *  1. we create a generic bvh (\ref sbvh_constructor), but with an extended strucutre (\ref fat_sbvh) for the bbvh nodes.
+	 *     this enables us to annotate the bbvh nodes with the indices the corresponding (reordered) sbvh nodes are stored at.
+	 *     \question i'm not sure why the other fields are not shared. maybe convenience?
+	 *  2. we convert the fat_sbvh nodes to preorder_stackless_bvh::nodes, the memory layout as dictated by the stackless method.
+	 *
+	 *  this bvh has to be traversed with a traverser able to handle the structure (not like the generic (s)bvh above,
+	 *  which can be traversed with the standard bbvh traverser. \ref preorder_sbvh_tracer.
+	 */
 	
-	/*! stackless bvh stored in pre order, for classical an 8sbvh traversal. */
+	/*! stackless bvh stored in pre order, for classical and 8sbvh traversal. */
 	template<box_t__and__tri_t> class preorder_stackless_bvh : public acceleration_structure<forward_traits> {
 		public:
 			declare_traits_types;
@@ -305,7 +318,7 @@ namespace rta {
 			}
 	};
 
-	template<box_t__and__tri_t, typename sbvh_t_> class preoder_sbvh_tracer : public basic_raytracer<forward_traits> {
+	template<box_t__and__tri_t, typename sbvh_t_> class preorder_sbvh_tracer : public basic_raytracer<forward_traits> {
 		public:
 			declare_traits_types;
 			typedef sbvh_t_ sbvh_t;
@@ -314,7 +327,7 @@ namespace rta {
 			using basic_raytracer<forward_traits>::cpu_bouncer;
 			sbvh_t *sbvh;
 
-			preoder_sbvh_tracer(ray_generator *gen, sbvh_t *bvh, class bouncer *b) : basic_raytracer<forward_traits>(gen, b, bvh), sbvh(bvh) {
+			preorder_sbvh_tracer(ray_generator *gen, sbvh_t *bvh, class bouncer *b) : basic_raytracer<forward_traits>(gen, b, bvh), sbvh(bvh) {
 			}
 			virtual float trace_rays() {
 				wall_time_timer wtt; wtt.start();
@@ -358,7 +371,7 @@ namespace rta {
 					}
 				}
 			}
-			virtual std::string identification() { return "preoder sbvh tracer"; }
+			virtual std::string identification() { return "preorder sbvh tracer"; }
 	};
 
 

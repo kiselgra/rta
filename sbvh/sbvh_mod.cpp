@@ -150,7 +150,7 @@ extern "C" {
 				rt = new bbvh_direct_is_tracer<box_t, tri_t, sbvh_t>(0, dynamic_cast<sbvh_t*>(sbvh), 0);
 				break;
 			case Cmdline::preorder_sbvh:
-				rt = new preoder_sbvh_tracer<box_t, tri_t, preorder_sbvh_t>(0, dynamic_cast<preorder_sbvh_t*>(sbvh), 0);
+				rt = new preorder_sbvh_tracer<box_t, tri_t, preorder_sbvh_t>(0, dynamic_cast<preorder_sbvh_t*>(sbvh), 0);
 				break;
 			default:
 				cerr << "unhandled case in sbvh trav switch! (" << cmdline.bvh_trav << ")" << endl;
