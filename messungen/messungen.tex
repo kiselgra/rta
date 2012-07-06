@@ -134,7 +134,8 @@ Bestimmte Messungen sind im Git eingecheckt. Hier soll stehen was sie tun und wi
 
 \section{Einfache BBVHs und SBVHs \hfill 2012-07-04}
 
-\section{cis vs dis}
+Alle Messungen auf Istar\marginpar{Istar}.
+
 \newcommand\Cis{\texttt{Cis}\ }
 \newcommand\Dis{\texttt{Dis}\ }
 \newcommand\cis{\texttt{cis}\ }
@@ -142,6 +143,7 @@ Bestimmte Messungen sind im Git eingecheckt. Hier soll stehen was sie tun und wi
 \newcommand\newword[1]{\marginpar{#1}}
 \newcommand\frage{\marginpar{\tt \Large ?}}
 \newcommand\todo{\marginpar{\tt \Large Todo!}}
+\newcommand\file[1]{{\tt #1}}
 
 \newword\dis
 \Dis ist die naivste Traversionmethode: 
@@ -164,7 +166,55 @@ Die Messreihe umfasst 642 Bilder der Form:
 \includegraphics[width=\textwidth]{messreihe-bsp.png}
 \end{center}
 
-Das Skript zu den Messungen (sowie die Messergebnisse selbst) liegt unter \todo \url{messungen/2012-07-04/}.
+Das Skript zu den Messungen (sowie die Messergebnisse selbst) liegt unter \url{messungen/2012-07-04/}.
+
+Gemessen wurden folgende Vergleiche:
+\begin{itemize}
+\item \file{dis-rel-to-cis}:
+	Performance von \dis relativ zu \cis (also \cis/\dis), auf der guten Seite ist \dis $3.9$\% schneller, 
+	insgesamt erreicht es aber nur $66.5$\% der Performance.
+\item \file{sbvh-cis-rel-to-cis} und \file{sbvh-dis-rel-to-dis}:
+	Es wird jeweils die generische Stackless-Bvh und die normale BBVH mit \cis bzw.\ \dis gemessen.
+	Der Vergleich zeigt, dass die Struktur allein keinen Unterschied macht (was auch nicht überrascht).
+\item \file{sbvh-po-rel-to-cis}:
+	Der wirklich interessante Vergleich: die postorder Stackless-Bvh relattiv zu \cis.
+	\begin{center}
+	\includegraphics[width=.45\textwidth]{2012-07-04/sbvh-vs-bbvh-good.png}\hfill
+	\includegraphics[width=.45\textwidth]{2012-07-04/sbvh-vs-bbvh-ramp.png}
+	\end{center}
+	Auf dem ersten Bild ist kaum ein Unterschied zu erkennen, der schwarze Rahmen markiert wo beide etwa gleich auf sind, im inneren Bereich ist die
+	stackless Variante etwas schneller.
+	Das zweite Bild zeigt, dass der Performance außerhalb der optimalen Richtung stark abfällt.
+\item \file{sbvh-po-masked-good-part}, \file{bbvh-dis-masked-good-part} und \file{bbvh-cis-marked-same-part}:
+	Hier wurde der ``gute'' Oktant extrahiert und die Performance für die drei Varianten verglichen.
+	Wie oben erwähnt ist \dis in dem Bereich $3.9$\% schneller als \cis.
+	Die stackless Variante kommt auf 6\%.
+
+	Hier ein Beispiel für die maskierten Kugeln:
+	\begin{center}
+	\includegraphics[width=.45\textwidth]{2012-07-04/masked-sphere.png}\hfill
+	\end{center}
+
+\end{itemize}
+
+Bis auf die letzte Messung sind alle Messungen in dem beiden Shellskripten abgelegt.
+Die letzte wurde wiefolgt durchgeführt:
+
+{\small
+\begin{verbatim}
+$ sphs 2012-07-04--E--sbvh-po-sbvh.ply -m mask -O -1,-1,-1 -o sbvh-po-masked-good-part.ply
+...
+$ sphs 2012-07-04--A--bbvh-dis.ply -m mask -O -1,-1,-1 -o bbvh-dis-masked-good-part.ply
+...
+$ sphs 2012-07-04--B--bbvh-cis.ply -m mask -O -1,-1,-1 -o bbvh-cis-masked-same-part.ply
+...
+$ sphs bbvh-cis-masked-same-part.ply -m check
+bbvh-cis-masked-same-part.ply: average of 2437.66 krps, [ 2090.49 : 2882.08 ]
+$ sphs sbvh-po-masked-good-part.ply -m check
+sbvh-po-masked-good-part.ply: average of 2299.54 krps, [ 2038.42 : 2725.35 ]
+$ sphs bbvh-dis-masked-good-part.ply -m check
+bbvh-dis-masked-good-part.ply: average of 2390.23 krps, [ 1944.38 : 2871.17 ]
+\end{verbatim}}
 
 \end{document}
 
