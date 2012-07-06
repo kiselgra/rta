@@ -85,8 +85,14 @@ bool duplicate_vertices(ply &p, ply::element_t *elem) {
 	return false;
 }
 
-//! calls f for each vertex. the supplied value for rps is already converted to the desired unit (rps,krps,mrps).
-void apply(std::function<void(vec3f, float, int)> f, ply::element_t *elem) {
+void ignore_zero1(vec3f, float, int) { }
+void ignore_zero2(vec3f, vec3f, float, float, int) { }
+
+/*! calls f for each vertex. the supplied value for rps is already converted to the desired unit (rps,krps,mrps).
+ *  \note vertices which have 0 for rps (a frame would take an infinite amount of time) are handled via the second function
+ *  (defaulting to not handing them at all).
+ */
+void apply(std::function<void(vec3f, float, int)> f, ply::element_t *elem, std::function<void(vec3f, float, int)> zero_handler = ignore_zero1) {
 	int x = elem->index_of("x"),
 		y = elem->index_of("y"),
 		z = elem->index_of("z"),
@@ -94,12 +100,19 @@ void apply(std::function<void(vec3f, float, int)> f, ply::element_t *elem) {
 	for (int i = 0; i < elem->count; ++i) {
 		vec3f curr = { elem->ref(i, x), elem->ref(i, y), elem->ref(i, z) };
 		float x_rps = in_units(elem->ref(i, m));
-		f(curr, x_rps, i);
+		if (x_rps != 0)
+			f(curr, x_rps, i);
+		else 
+			zero_handler(curr, x_rps, i);
 	}
 }
 
-//! calls f for each vertex. the supplied value for rps is already converted to the desired unit (rps,krps,mrps).
-void apply(std::function<void(vec3f, vec3f, float, float, int)> f, ply::element_t *base_elem, ply::element_t *diff_elem) {
+/*! calls f for each vertex. the supplied value for rps is already converted to the desired unit (rps,krps,mrps).
+ *  \note vertices which have 0 for rps (a frame would take an infinite amount of time) are handled via the second function
+ *  (defaulting to not handing them at all).
+ */
+void apply(std::function<void(vec3f, vec3f, float, float, int)> f, ply::element_t *base_elem, ply::element_t *diff_elem, 
+           std::function<void(vec3f, vec3f, float, float, int)> zero_handler = ignore_zero2) {
 	int x = base_elem->index_of("x"),   xx = diff_elem->index_of("x"),
 		y = base_elem->index_of("y"),   yy = diff_elem->index_of("y"),
 		z = base_elem->index_of("z"),   zz = diff_elem->index_of("z"),
@@ -109,7 +122,10 @@ void apply(std::function<void(vec3f, vec3f, float, float, int)> f, ply::element_
 		vec3f diff_curr = { diff_elem->ref(i, xx), diff_elem->ref(i, yy), diff_elem->ref(i, zz) };
 		float base_x_rps = in_units(base_elem->ref(i, m));
 		float diff_x_rps = in_units(diff_elem->ref(i, mm));
-		f(base_curr, diff_curr, base_x_rps, diff_x_rps, i);
+		if (base_x_rps != 0 && diff_x_rps != 0)
+			f(base_curr, diff_curr, base_x_rps, diff_x_rps, i);
+		else
+			zero_handler(base_curr, diff_curr, base_x_rps, diff_x_rps, i);
 	}
 }
 
@@ -174,7 +190,7 @@ void divide_diff_by_base(ply &p, ply::element_t *base, ply::element_t *diff) {
 		g = base->index_of("green"),
 		b = base->index_of("blue");
 	apply([&](vec3f left, vec3f right, float ra, float rb, int i) {
-				cout << rb << "\t/\t" << ra << "\t=\t" << rb/ra << endl;
+// 				cout << rb << "\t/\t" << ra << "\t=\t" << rb/ra << endl;
 				float scaled = rb/ra;
 				float hue = scaled * 120;
 				if (cmdline.bump)
@@ -186,6 +202,24 @@ void divide_diff_by_base(ply &p, ply::element_t *base, ply::element_t *diff) {
 			},
 			base,
 			diff);
+}
+
+// masking
+void clear_unmasked_octants(ply &p, ply::element_t *base) {
+	apply([&](vec3f pos, float rps, int i) {
+				bool any = false;
+				int r = base->index_of("rps");
+				for (auto o : cmdline.masked_octants)
+					if (o.x * pos.x >= 0 &&    // same sign or one is zero
+						o.y * pos.y >= 0 &&
+						o.z * pos.z >= 0) {
+						any = true;
+						break;
+					}
+				if (!any)
+					base->ref(i, r) = 0;
+			},
+			base);
 }
 
 // checking
@@ -225,9 +259,12 @@ void check_ply_data(ply::element_t *elem, const std::string &filename, bool verb
 	
 	if (verbose) {
 		float sum = 0;
+		int by = 0;
 		for (int i = 0; i < vertices; ++i) 
-			sum += in_units(elem->ref(i, m));
-		float avg = sum/vertices;
+			if (elem->ref(i, m) != 0)
+				sum += in_units(elem->ref(i, m)),
+				by++;
+		float avg = sum/by;
 
 		auto mm = find_min_max_time(elem);
 		cout << filename << ": average of " << avg << " " << cmdline.unit_string << "rps, [ " << mm[0] << " : " << mm[1] << " ]" << endl;
@@ -335,6 +372,7 @@ int main(int argc, char **argv)
 			divide_diff_by_base(base_sphere, base_elem, diff_elem);
 		else {
 			cerr << "Chosen mode is not valid when two files are spcified." << endl;
+			cerr << "(b=" << cmdline.base_file_name << ", d=" << cmdline.diff_file_name << ", m=" << cmdline.mode << ")" << endl;
 			exit(EXIT_FAILURE);
 		}
 	}
@@ -343,8 +381,11 @@ int main(int argc, char **argv)
 			scale_by_min_max(base_sphere, base_elem);
 		else if (cmdline.mode == Cmdline::scale_0_max)
 			scale_from_0_to_max(base_sphere, base_elem);
+		else if (cmdline.mode == Cmdline::mask)
+			clear_unmasked_octants(base_sphere, base_elem);
 		else {
 			cerr << "Chosen mode is not valid when only one file is spcified." << endl;
+			cerr << "(b=" << cmdline.base_file_name << ", d=" << cmdline.diff_file_name << ", m=" << cmdline.mode << ")" << endl;
 			exit(EXIT_FAILURE);
 		}
 	}

@@ -4,6 +4,7 @@
 #include <argp.h>
 #include <string>
 #include <iostream>
+#include <sstream>
 #include <cstdlib>
 
 
@@ -34,11 +35,13 @@ static struct argp_option options[] =
 									"    absolute: generate vertex colors as for minmax, but the lower bound set to zero, i.e. display the absolute values as ranging from red to green.\n"
 // 	                                "    relative-to: show performance relative to the specified reference value (see --reference).\n"
 	                                "    perf: show the performance of the second file relative to the first (b/a).\n"
+	                                "    mask: produce a copy of the input file with all vertices replaced by 0.\n"
 									},
 	{ "unit", 'u', "1,k,m",      0, "Make output in terms of rays per second, kilo rps, mega rps. Default: k. " },
 	{ "force", 'f', 0,           0, "Force the comparison, disregarding meta data differences." },
 	{ "max-differences", 'd', "n", 0, "How many different values in the rta meta data are allowed to still compare two files. Default: 1." },
 	{ "bump-better-performance", BUMP, 0, 0, "This bumps the output color values for performance values which are greater than the reference value. This clearly shows the breaking point, might, however, produce images which are interpreted wrongly." },
+	{ "mask-octant", 'O', "x,y,z", 0, "Select a given octant to be present in the output. Works only with -m mask. Specify like 1,1,1, -1,1,-1." },
 	{ 0 }
 };	
 
@@ -48,6 +51,14 @@ string& replace_nl(string &s)
 		if (s[i] == '\n' || s[i] == '\r')
 			s[i] = ' ';
 	return s;
+}
+
+vec3f read_vec3f(const std::string &s) {
+	istringstream iss(s);
+	vec3f v;
+	char sep;
+	iss >> v.x >> sep >> v.y >> sep >> v.z;
+	return v;
 }
 
 
@@ -79,6 +90,10 @@ static error_t parse_options(int key, char *arg, argp_state *state)
 		cmdline.output_file_name = sarg;
 		break;
 
+	case 'O':
+		cmdline.masked_octants.push_back(read_vec3f(sarg));
+		break;
+
 	case 'N':
 		cmdline.print_vertices = true;
 		break;
@@ -88,6 +103,7 @@ static error_t parse_options(int key, char *arg, argp_state *state)
 		else if (sarg == "minmax")   cmdline.mode = Cmdline::scale_min_max;
 		else if (sarg == "absolute") cmdline.mode = Cmdline::scale_0_max;
 		else if (sarg == "perf")     cmdline.mode = Cmdline::perf_diff_by_base;
+		else if (sarg == "mask")     cmdline.mode = Cmdline::mask;
 		else {
 			cerr << "invalid mode '" << sarg << "'" << endl;
 			argp_usage(state);
