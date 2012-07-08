@@ -144,6 +144,7 @@ Alle Messungen auf Istar\marginpar{Istar}.
 \newcommand\frage{\marginpar{\tt \Large ?}}
 \newcommand\todo{\marginpar{\tt \Large Todo!}}
 \newcommand\file[1]{{\tt #1}}
+\newcommand\code[1]{{\tt #1}}
 
 \newword\dis
 \Dis ist die naivste Traversionmethode: 
@@ -215,6 +216,34 @@ sbvh-po-masked-good-part.ply: average of 2299.54 krps, [ 2038.42 : 2725.35 ]
 $ sphs bbvh-dis-masked-good-part.ply -m check
 bbvh-dis-masked-good-part.ply: average of 2390.23 krps, [ 1944.38 : 2871.17 ]
 \end{verbatim}}
+
+
+
+
+\section{SBVH mit on-the-fly Skip-Pointer Berechnung\hfill 2012-07-04}
+Achtung: 
+\begin{itemize}
+\item Der Skip-Code und der Trav-Loop sind noch zu optimieren.
+\item Es fehlt noch die eigentliche Ray-Code Implementierung damit das zu Richtungsunabhängigen SBVH wird.
+\end{itemize}
+
+Trotzdem erste Ergebnisse:
+Implementiert wurde ein SBHV Traverser für eine SBVH die \code{parent}, \code{left} und \code{right} Links enthält.
+Skip wird dann nach dem Verfahren das in der SBVH Doku (siehe \file{.../sbvh/doc}) beschrieben wurde, für jeden
+	Knoten neu bestimmt.
+Auf der CPU ist anzunehmen, dass das etwas langsamer läuft, als die vorbestimmten Skip-Pointer zu verwenden.
+
+{\small\begin{verbatim}
+$ rta --sphere-file sphs/sphere2.ply -b 1,1,1 -l 1,0,0 \
+      -o 2012-07-08--A--sbvh-oi-1.ply sbvh -- --bvh-trav sbvh
+...
+$ sphs 2012-07-08--A--sbvh-oi-1.ply -m check
+2012-07-08--A--sbvh-oi-1.ply: average of 1389.96 krps, [ 714.661 : 2748.15 ]
+$ sphs -m check 2012-07-08--A--sbvh-oi-1-good-part.ply 
+2012-07-08--A--sbvh-oi-1-good-part.ply: average of 2311.36 krps, [ 1962.87 : 2748.15 ]
+\end{verbatim}}
+
+Das entspricht etwa den Erwartungen: Das Verfahren ist etwas langsamer als die vorbestimmte SBVH Version.
 
 \end{document}
 
