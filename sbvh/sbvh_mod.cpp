@@ -159,6 +159,11 @@ extern "C" {
 			case Cmdline::preorder_sbvh:
 				rt = new preorder_sbvh_tracer<box_t, tri_t, preorder_sbvh_t>(0, dynamic_cast<preorder_sbvh_t*>(sbvh), 0);
 				break;
+			case Cmdline::sbvh_oi:
+				cout << "---> " << sbvh << endl;
+				cout << "---> " << dynamic_cast<oi_sbvh_t*>(sbvh) << endl;
+				rt = new order_independent_sbvh_tracer<box_t, tri_t, oi_sbvh_t>(0, dynamic_cast<oi_sbvh_t*>(sbvh), 0);
+				break;
 			default:
 				cerr << "unhandled case in sbvh trav switch! (" << cmdline.bvh_trav << ")" << endl;
 				exit(EXIT_FAILURE);

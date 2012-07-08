@@ -405,6 +405,15 @@ namespace rta {
 			typedef uint32_t link_t;
 
 			struct node : public stackless_bvh<forward_traits>::node {
+				// we just recycle the 8 bit used to store the triangle count
+				void raycodes(char c)   { this->children_tris = ((this->children_tris&(~255)) | (link_t)c); }
+				char raycodes()         { return (char)(this->children_tris&255); }
+				// we'll have to fix this, too.
+				void children(link_t n) { this->children_tris = (this->children_tris&255) | (n<<8); }
+				link_t children()       { return this->children_tris>>8; }
+				link_t left()           { return this->children_tris>>8; }
+				link_t right()          { return (this->children_tris>>8)+1; }
+
 				template<typename base_node> void incorporate(base_node *n) {}
 			};
 			typedef node node_t;
@@ -421,6 +430,80 @@ namespace rta {
 			void take_triangle_array(std::vector<tri_t> &t) {
 				triangles.swap(t);
 			}
+	};
+
+	/*! sbvh traverser for the \ref order_independent_sbvh. */
+	template<box_t__and__tri_t, typename sbvh_t_> class order_independent_sbvh_tracer : public basic_raytracer<forward_traits> {
+		public:
+			declare_traits_types;
+			typedef sbvh_t_ sbvh_t;
+			typedef typename sbvh_t::node_t node_t;
+			using basic_raytracer<forward_traits>::raygen;
+			using basic_raytracer<forward_traits>::cpu_bouncer;
+			sbvh_t *sbvh;
+
+			order_independent_sbvh_tracer(ray_generator *gen, sbvh_t *bvh, class bouncer *b) : basic_raytracer<forward_traits>(gen, b, bvh), sbvh(bvh) {
+			}
+			virtual float trace_rays() {
+				wall_time_timer wtt; wtt.start();
+				traversal_state<tri_t> state;
+				for (uint y = 0; y < raygen->res_y(); ++y) {
+					for (uint x = 0; x < raygen->res_x(); ++x) {
+						state.reset(x,y);
+						trace_ray(state, raygen->origin(x,y), raygen->direction(x,y));
+						cpu_bouncer->save_intersection(x,y,state.intersection);
+					}
+				}
+				float ms = wtt.look();
+				return ms;
+			}
+			uint next(node_t *node) {
+				return node->left();
+			}
+			// TODO: check for performance bug? unnecessary stuff...
+			uint skip(node_t *node, int node_id) {
+				uint parent_id = node->parent();
+				node_t *parent = &sbvh->nodes[parent_id];
+				if (parent_id == node_id)
+					return 0;
+				uint parent_right = parent->right();
+				if (parent_right == node_id)
+					return skip(parent, parent_id);
+				else
+					return parent_right;
+			}
+			void trace_ray(traversal_state<tri_t> &state, const vec3_t *origin, const vec3_t *dir) {
+				uint curr = 0;
+				node_t *node = 0;
+				
+				while (1) {
+					node = &sbvh->nodes[curr];
+					if (node->inner()) {
+						float dist = 0;
+						bool hit = intersect_aabb(node->box, origin, dir, dist);
+						if (hit && dist < state.intersection.t)
+							curr = next(node);
+						else
+							curr = skip(node, curr);
+					}
+					else {
+						int elems = node->elems();
+						int offset = node->tris();
+						for (int i = 0; i < elems; ++i) {
+							tri_t *t = &sbvh->triangles[offset+i];
+							triangle_intersection<tri_t> is(t);
+							if (intersect_tri_opt(*t, origin, dir, is)) {
+								if (is.t < state.intersection.t)
+									state.intersection = is;
+							}
+						}
+						curr = skip(node, curr);
+					}
+					if (curr == 0)
+						break;
+				}
+			}
+			virtual std::string identification() { return "order independent sbvh tracer"; }
 	};
 
 
