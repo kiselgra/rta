@@ -220,7 +220,7 @@ bbvh-dis-masked-good-part.ply: average of 2390.23 krps, [ 1944.38 : 2871.17 ]
 
 
 
-\section{SBVH mit on-the-fly Skip-Pointer Berechnung\hfill 2012-07-04}
+\section{SBVH mit on-the-fly Skip-Pointer Berechnung\hfill 2012-07-08}
 Achtung: 
 \begin{itemize}
 \item Der Skip-Code und der Trav-Loop sind noch zu optimieren.
@@ -244,6 +244,22 @@ $ sphs -m check 2012-07-08--A--sbvh-oi-1-good-part.ply
 \end{verbatim}}
 
 Das entspricht etwa den Erwartungen: Das Verfahren ist etwas langsamer als die vorbestimmte SBVH Version.
+
+\section{Richtungsunabhängige SBVH\hfill 2012-07-09}
+Die Messung liegt unter 2012-07-09, da es eigentlich zu gestern gehört.
+
+SBVH mit optimalen, on the fly berechneten, Skip und Next Pointern.
+
+{\small\begin{verbatim}
+$ sphs -m check 2012-07-09--A--sbvh-oi-for-real.ply 
+2012-07-09--A--sbvh-oi-for-real.ply: average of 2123.64 krps, [ 1556.26 : 2910.16 ]
+
+# vergelich zu bbvh/cis
+$ sphs -m check ../2012-07-04/2012-07-04--B--bbvh-cis.ply 
+../2012-07-04/2012-07-04--B--bbvh-cis.ply: average of 2193.58 krps, [ 1509.64 : 3031.61 ]
+\end{verbatim}}
+
+Die aktuelle Version der SBVH ist also mit der \cis Variante vergleichbar! {\tt:)}
 
 \end{document}
 
