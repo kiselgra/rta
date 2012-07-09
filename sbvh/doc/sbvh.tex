@@ -117,6 +117,7 @@
 
 % ]]]
 \usepackage[numbers]{natbib}
+\usepackage{a4wide}
 
 
 \title{Anmerkungen zur Stackless BVHs}
@@ -170,6 +171,66 @@ $S(k,d)$	&	$\left\{\begin{array}{lr} S(P(k),d)	&	R(P(k),d) = k\\
                                           R(P(k),d)	&	\text{otherwise}\\
 										  \end{array}\right.$
 \end{tabular}
+
+\subsection{Ray Codes}
+Wie oben angedeutet ist die Entscheidung immer relativ zur Strahlrichtung, z.B. Skip von Knoten $k$ bei Strahlrichtung $d$,
+	was jeweils auf $L(k,d)$ bzw. $R(k,d)$ herunterkocht.
+Praktisch heißt das, dass die Kindknoten abhängig von der Strahlrichtung vertauscht werden müssen.
+Die Achse nach der das Volumen des Knotens unterteilt wurde spielt auch eine Rolle, weil eben diese Komponente der Strahlrichtung ausschlaggebend ist.
+
+\paragraph{Pro Knoten.}
+Für jeden Knoten wird deshalb gespeichert, für welche der 8 Grundrichtungen ein Vertauschen der Kindknoten nötig ist 
+	(das sind die Richtungen die eine negativen Wert in der Komponenten der Split-Ebene haben).
+Die Lookup-Tabelle $S$ ist wiefolgt aufgebaut:
+\newcommand\tmp[3]{$\left(\begin{array}{c}#1\\#2\\#3\end{array}\right)$}
+{\tiny \begin{center}\begin{tabular}{|cccccccc|}
+\hline
+\tmp{-}{-}{-} & \tmp{-}{-}{+} & \tmp{-}{+}{-} & \tmp{-}{+}{+} &
+\tmp{+}{-}{-} & \tmp{+}{-}{+} & \tmp{+}{+}{-} & \tmp{+}{+}{+} \\
+\hline
+\end{tabular}\end{center}}
+
+Für jede der 8 so indizierten Position der Tabelle wird gespeichert ob für diese Richtung die Kindknoten vertauscht werden müssen.
+Interpretiert man $+$ als 0 und $-$ als 1 in der Tabelle ergeben sich folgende Codes für die Split-Achsen:
+\begin{center}\begin{tabular}{lr}
+X & 10101010\\
+Y & 11001100\\
+Z & 11110000\\
+\end{tabular}\end{center}
+
+
+\paragraph{Pro Strahl.}
+Zu Begin der Traversion der BVH mit einem Strahl $\mathbf{o}+d\mathbf{t}$ wird für diesen ein Richtungs Code, der \emph{Ray Code}, bestimmt.
+Dazu wird $+$ und $-$ wie oben auf Zahlen abgebildet und die so erhaltene Richtung (z.B. $(d_z\ d_y\ d_x)=(- + -) \to (1\ 0\ 1)=(c_z\ c_y\ c_x)$) 
+	als Binärzahl interpretiert: $c = 4c_z+2c_y+c_x$.
+Diese gibt nun den Index in die Lookup-Tabellen der Knoten.
+
+\paragraph{Traversion.}
+Bei der Traversion wurde zu Beginn der Ray Code $c$ berechnet.
+Zum Bestimmen ob die Kinder eines Knoten vertauscht werden müssen wird nun einfach $s = S\sqcap 2^c$ geprüft. 
+Ist diese Verknüpfung $s\ge0$ müssen die Knoten getauscht werden.
+
+\paragraph{Details}
+Ein paar Eigenschaften:
+\begin{itemize}
+\item Der Vergleich läuft auf 1 bei Vertauschen heraus da die beiden Knoten sequentiell im Speicher liegen, also einfach $s'=s/2^c$
+		auf den Index des Knotens addiert werden muss um den zweiten zu erhalten.
+\item Die Lookup-Tabelle kann in einem Byte abgespeichert werden. Das ist besonders wichtig da so vermieden werden kann, 
+		dass die BVH größer als eine normale BVH ist.
+\item $10101010_2 = \text{aa}_{16}$, $11001100_2 = \text{cc}_{16}$, $11110000_2 = \text{f0}_{16}$.
+\end{itemize}
+
+\paragraph{Beispiel}
+Knoten mit Splitachse X, Strahlrichtung $(- + -)$.
+\begin{itemize}
+\item $S=10101010$, $c=5$,
+\item $s = S_c \sqcap 2^c = 10101010_2 \sqcap 00100000 = 32$.
+\item $s\ge0 \to$ vertauschen nötig.
+\item Das passt auch, weil die Strahlrichtung in X negativ ist.
+\end{itemize}
+
+
+
 
 \bibliographystyle{plainnat}
 \bibliography{/home/kai/orga/bib}
