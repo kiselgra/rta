@@ -124,6 +124,7 @@ extern "C" {
 		typedef order_independent_sbvh<box_t, tri_t> oi_sbvh_t;
 		typedef preorder_stackless_bvh<box_t, tri_t> preorder_sbvh_t;
 		typedef bbvh_constructor_using_median<bvh_t> bbvh_ctor_t;
+		typedef bbvh_constructor_using_median<bvh_with_sa_t> bbvh_ctor_with_sa_t;
 		cout << "building bvh" << endl;
 		acceleration_structure_constructor<box_t, tri_t> *ctor = 0;
 		acceleration_structure<box_t, tri_t> *sbvh = 0;
@@ -139,7 +140,7 @@ extern "C" {
 				sbvh = ctor->build(&triangle_lists.front());
 				break;
 			case Cmdline::sbvh_oi:
-				ctor = new sbvh_constructor<oi_sbvh_t, bbvh_ctor_t>(bbvh_ctor_t::spatial_median);
+				ctor = new sbvh_constructor<oi_sbvh_t, bbvh_ctor_with_sa_t>(bbvh_ctor_with_sa_t::spatial_median);
 				sbvh = ctor->build(&triangle_lists.front());
 				break;
 			default:

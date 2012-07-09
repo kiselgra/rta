@@ -397,6 +397,10 @@ namespace rta {
 	 * 	(since it implements the syntactical interface of \ref stackless_bvh).
 	 * 	the only augmentation required is to incorporate the split axis information into ray direction codes,
 	 * 	which is done at construction time per node (in the incorporate function).
+	 *
+	 * 	\note only the information about the split axis is used. therefore the construction relies on the fact
+	 * 	that for each split the volume "more negative" according to the split axis is stored as the left child
+	 * 	in the tree.
 	 */
 
 	template<box_t__and__tri_t> class order_independent_sbvh : public acceleration_structure<forward_traits> {
@@ -404,17 +408,34 @@ namespace rta {
 			declare_traits_types;
 			typedef uint32_t link_t;
 
+			typedef uint32_t code_t;
+			code_t compute_ray_code(const vec3_t &dir) {
+				code_t code = 0;
+				if (x_comp(dir) < 0) code += 1;
+				if (y_comp(dir) < 0) code += 2;
+				if (z_comp(dir) < 0) code += 4;
+				return code;
+			}
+
 			struct node : public stackless_bvh<forward_traits>::node {
 				// we just recycle the 8 bit used to store the triangle count
-				void raycodes(char c)   { this->children_tris = ((this->children_tris&(~255)) | (link_t)c); }
-				char raycodes()         { return (char)(this->children_tris&255); }
+				void raycodes(uint8_t c)   { this->children_tris = ((this->children_tris&(~255)) | (link_t)c); }
+				uint8_t raycodes()         { return (uint8_t)(this->children_tris&255); }
 				// we'll have to fix this, too.
 				void children(link_t n) { this->children_tris = (this->children_tris&255) | (n<<8); }
 				link_t children()       { return this->children_tris>>8; }
 				link_t left()           { return this->children_tris>>8; }
 				link_t right()          { return (this->children_tris>>8)+1; }
 
-				template<typename base_node> void incorporate(base_node *n) {}
+				//! this is done at construction time, only.
+				template<typename base_node> void incorporate(base_node *n) {
+					uint axis = n->split_axis(); // 0=X ...
+					uint8_t code;
+					if (axis == 0)      code = 0xaa;
+					else if (axis == 1) code = 0xcc;
+					else                code = 0xf0;
+					raycodes(code);
+				}
 			};
 			typedef node node_t;
 
@@ -457,24 +478,45 @@ namespace rta {
 				float ms = wtt.look();
 				return ms;
 			}
-			uint next(node_t *node) {
-				return node->left();
+			uint next(node_t *node, const uint8_t code) {
+				uint8_t c = 1<<code;
+				c = (node->raycodes() & c) >> code;
+				return node->children() + c;
 			}
 			// TODO: check for performance bug? unnecessary stuff...
-			uint skip(node_t *node, int node_id) {
+			uint skip_(node_t *node, int node_id, const uint8_t code) {
 				uint parent_id = node->parent();
 				node_t *parent = &sbvh->nodes[parent_id];
 				if (parent_id == node_id)
 					return 0;
-				uint parent_right = parent->right();
+				
+				uint8_t c = 1<<code;
+				c = (node->raycodes() & c) >> code;
+
+				uint parent_right = parent->children() + 1 - c;
 				if (parent_right == node_id)
-					return skip(parent, parent_id);
+					return skip_(parent, parent_id, code);
+				else
+					return parent_right;
+			}
+			uint skip(node_t *node, int node_id, const uint8_t code) {
+				if (node_id == 0) return 0;
+				uint parent_id = node->parent();
+				node_t *parent = &sbvh->nodes[parent_id];
+
+				uint8_t c = 1<<code;
+				c = (parent->raycodes() & c) >> code;
+
+				uint parent_right = parent->children() + 1 - c;
+				if (parent_right == node_id)
+					return skip(parent, parent_id, code);
 				else
 					return parent_right;
 			}
 			void trace_ray(traversal_state<tri_t> &state, const vec3_t *origin, const vec3_t *dir) {
 				uint curr = 0;
 				node_t *node = 0;
+				uint8_t ray_code = sbvh->compute_ray_code(*dir);
 				
 				while (1) {
 					node = &sbvh->nodes[curr];
@@ -482,9 +524,9 @@ namespace rta {
 						float dist = 0;
 						bool hit = intersect_aabb(node->box, origin, dir, dist);
 						if (hit && dist < state.intersection.t)
-							curr = next(node);
+							curr = next(node, ray_code);
 						else
-							curr = skip(node, curr);
+							curr = skip(node, curr, ray_code);
 					}
 					else {
 						int elems = node->elems();
@@ -497,7 +539,7 @@ namespace rta {
 									state.intersection = is;
 							}
 						}
-						curr = skip(node, curr);
+						curr = skip(node, curr, ray_code);
 					}
 					if (curr == 0)
 						break;
