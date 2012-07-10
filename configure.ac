@@ -8,7 +8,7 @@ AC_CONFIG_MACRO_DIR([m4])
 # name one of your source files here
 AC_CONFIG_SRCDIR([rta/main.cpp])
 AC_CONFIG_HEADER([config.h])
-AC_CONFIG_FILES(Makefile librta/Makefile rta/Makefile bbvh/Makefile wrapper-for-librctest/Makefile sbvh/Makefile sphs/Makefile)
+AC_CONFIG_FILES(Makefile librta/Makefile rta/Makefile bbvh/Makefile wrapper-for-librctest/Makefile sbvh/Makefile sphs/Makefile bbvh-ocl/Makefile)
 
 
 # Checks for programs.
@@ -41,6 +41,11 @@ AC_CHECK_LIB([png], [main])
 AC_CHECK_LIB([objloader], [main])
 AC_CHECK_LIB([plyloader], [main])
 AC_CHECK_LIB([dl], [main])
+
+# optional, well... to become...
+AC_CHECK_LIB([lumocl], [main])
+AC_CHECK_LIB([OpenCL], [main])
+AC_CHECK_LIB([GL], [main])
 
 # Checks for header files.
 AC_HEADER_STDC

@@ -3,6 +3,7 @@
 #define __CMDLINE_H__ 
 
 #include <string>
+#include <cstdlib>
 #include <libmcm/vectors.h>
 
 //! \brief Translated command line options
@@ -22,6 +23,7 @@ struct Cmdline
 	std::string module;
 
 	vec3f back_col, light_col;
+	std::string model;
 
 	Cmdline() : verbose(false), positional_series(false), axial_series(false), sphere_series(false)
 	{
@@ -33,6 +35,8 @@ struct Cmdline
 		samples = 1;
 		back_col = { 0,0,0 };
 		light_col = { 1,1,1 };
+		std::string home = std::getenv("HOME");
+		model = home + "/render-data/models/drache.obj";
 	}
 };
 

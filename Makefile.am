@@ -1,7 +1,8 @@
 
 # the order listed here is the order the directories get built
 #
-SUBDIRS = librta rta bbvh #wrapper-for-librctest 
-SUBDIRS += sbvh sphs
+SUBDIRS = librta rta bbvh sphs #wrapper-for-librctest 
+SUBDIRS += sbvh 
+SUBDIRS += bbvh-ocl 
 
 ACLOCAL_AMFLAGS = -I m4

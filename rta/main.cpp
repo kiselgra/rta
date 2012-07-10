@@ -330,10 +330,10 @@ void load_plugin_functions() {
 		cerr << "No module specified!" << endl;
 		exit(EXIT_FAILURE);
 	}
-	lib_handle = dlopen(("built-plugins/" + cmdline.module + ".so").c_str(),RTLD_NOW);
+	lib_handle = dlopen(("built-plugins/" + cmdline.module + ".so").c_str(),RTLD_LAZY);
 	printf("dlopen error=%s\n",dlerror());
 	if (lib_handle == 0)
-		lib_handle = dlopen(("built-plugins/librta-" + cmdline.module + ".so").c_str(),RTLD_NOW);
+		lib_handle = dlopen(("built-plugins/librta-" + cmdline.module + ".so").c_str(),RTLD_LAZY);
 	printf("dlopen error=%s\n",dlerror());
 	printf("lib_handle=%p\n",lib_handle);
 
@@ -360,8 +360,8 @@ int main(int argc, char **argv) {
 	plugin_parse_cmdline(plugin_argc, plugin_argv);
 
 
-	cout << "loading object" << endl;
-	auto triangle_lists = load_objfile_to_flat_tri_list("/home/kai/render-data/models/drache.obj");
+	cout << "loading object " << cmdline.model << endl;
+	auto triangle_lists = load_objfile_to_flat_tri_list(cmdline.model.c_str());
 	if (triangle_lists.size() > 1)
 		cerr << "Models with more than one submesh are not supported, yet." << endl;
 	

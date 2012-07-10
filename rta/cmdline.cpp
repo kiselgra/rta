@@ -32,7 +32,7 @@ static struct argp_option options[] =
 	{ "sphere-file", SF, "filename.ply", 0, "Start spherical measure series using the points on the sphere specified in the given .ply file. Peferred sphere radius: 1."},
 	{ "force-mode", 'f', "[pas]", 0, "When otherwise invalid combinations of --pos, --asix and --sphere_file are given, instead of erroring out, choose the one selected by this flag." },
 	{ "outfile", 'o', "filename", 0, "Write pass specific output to this file, e.g. a modified ply file containing timings." },
-	{ "module", 'm', "basename",  0, "Use this module." },
+	{ "model", 'm', "filename",  0, "Use this model." },
 	{ "background", 'b', "r,g,b",  0, "Background color for the generated images. Default 0,0,0." },
 	{ "light-color", 'l', "r,g,b",  0, "Color of the lights placed around the rendered object. Default 1,1,1" },
 	{ "help", '?', 0,             0, "Give this help list (or show help of a previously specified module, see -m)." },
@@ -80,7 +80,7 @@ static error_t parse_options(int key, char *arg, argp_state *state)
 	case SF:      cmdline.sphere_file = sarg; cmdline.sphere_series = true; break;
 	case 'f':     cmdline.force = sarg; break;
 	case 'o':     cmdline.outfile = sarg; break;
-	case 'm':     cmdline.module = sarg; break;
+	case 'm':     cmdline.model = sarg; break;
 	case 'b':     cmdline.back_col  = read_vec3f(sarg); break;
 	case 'l':     cmdline.light_col = read_vec3f(sarg); break;
 
