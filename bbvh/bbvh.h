@@ -96,12 +96,12 @@ template<typename bvh_t_, typename bias_t = bbvh_no_bias>
 class bbvh_constructor_using_median : public acceleration_structure_constructor<typename bvh_t_::box_t, typename bvh_t_::tri_t> {
 	public:
 		typedef bvh_t_ bvh_t;
-	protected:
 		typedef typename bvh_t::node node_t;
 		typedef typename bvh_t::box_t box_t;
 		typedef typename bvh_t::tri_t tri_t;
 		typedef typename bvh_t::link_t link_t;
 
+	protected:
 		std::vector<node_t> nodes;
 		const uint max_tris_per_node;
 		std::vector<tri_t> triangles;

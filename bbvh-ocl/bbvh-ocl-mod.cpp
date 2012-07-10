@@ -119,8 +119,8 @@ extern "C" {
 		cout << "creating set" << endl;
 		typedef simple_triangle tri_t;
 		typedef simple_aabb box_t;
-		typedef binary_bvh<box_t, tri_t> bvh_t;
-		typedef bbvh_constructor_using_median<bvh_t> bbvh_ctor_t;
+		typedef ocl::binary_bvh<box_t, tri_t> obvh_t;
+		typedef bbvh_constructor_using_median<obvh_t> bbvh_ctor_t;
 
 		cout << "building bvh" << endl;
 		acceleration_structure_constructor<box_t, tri_t> *ctor = 0;
@@ -129,24 +129,30 @@ extern "C" {
 		ctor = new bbvh_ctor_t(bbvh_ctor_t::spatial_median);
 		bvh = ctor->build(&triangle_lists.front());
 
+		ocl::bbvh_constructor<bbvh_constructor_using_median<obvh_t>> ocl_ctor(*ctx, bbvh_ctor_t::spatial_median);
+
 		cout << "create rt" << endl;
 		basic_raytracer<box_t, tri_t> *rt = 0;
-		switch (cmdline.bvh_trav) {
-			case Cmdline::bbvh_cis:
-				rt = new bbvh_child_is_tracer<box_t, tri_t, bvh_t>(0, dynamic_cast<bvh_t*>(bvh), 0);
-				break;
-			case Cmdline::bbvh_dis:
-				rt = new bbvh_direct_is_tracer<box_t, tri_t, bvh_t>(0, dynamic_cast<bvh_t*>(bvh), 0);
-				break;
-			default:
-				cerr << "unhandled case in bbvh-ocl trav switch! (" << cmdline.bvh_trav << ")" << endl;
-				exit(EXIT_FAILURE);
-		}
+// 		switch (cmdline.bvh_trav) {
+// 			case Cmdline::bbvh_cis:
+// 				rt = new bbvh_child_is_tracer<box_t, tri_t, bvh_t>(0, dynamic_cast<bvh_t*>(bvh), 0);
+// 				break;
+// 			case Cmdline::bbvh_dis:
+				rt = new ocl::bbvh_direct_is_tracer<box_t, tri_t, obvh_t>(0, dynamic_cast<obvh_t*>(bvh), 0, *ctx);
+// 				break;
+// 			default:
+// 				cerr << "unhandled case in bbvh-ocl trav switch! (" << cmdline.bvh_trav << ")" << endl;
+// 				exit(EXIT_FAILURE);
+// 		}
 
 		rt_set<box_t, tri_t> set;
 		set.as = bvh;
 		set.ctor = ctor;
 		set.rt = rt;
+		set.rgen = new ocl::cam_ray_buffer_generator_shirley(w, h, *ctx);
+
+		cout << "OK" << endl;
+		exit(0);
 
 		return set;
 
