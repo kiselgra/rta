@@ -104,6 +104,10 @@ extern "C" {
 		return (char*)"a binary bvh ray tracer";
 	}
 
+	void initialize() {
+		rta::ocl::context = new cl::context;
+	}
+
 	int parse_cmdline(int argc, char **argv)
 	{
 		argv[0] = plugin_name;
@@ -114,7 +118,7 @@ extern "C" {
 	rt_set<simple_aabb, simple_triangle> create_rt_set(std::list<flat_triangle_list> &triangle_lists, int w, int h) {
 		cout << "setting up open cl" << endl;
 		cl::verbose = true;
-		ctx = new cl::context;
+		ctx = rta::ocl::context;
 
 		cout << "creating set" << endl;
 		typedef simple_triangle tri_t;

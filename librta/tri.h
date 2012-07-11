@@ -28,7 +28,7 @@ namespace rta {
 	}
 
 	//! to and dir may point to the same location \attention modifies \c dir
-	void reflect(vec3_t *to, vec3_t *normal, vec3_t *dir) {
+	inline void reflect(vec3_t *to, vec3_t *normal, vec3_t *dir) {
 		// to = dir - 2(dir|normal)normal
 		normalize_vec3f(dir);
 		float_t dot = dot_vec3f(dir, normal);
@@ -36,7 +36,7 @@ namespace rta {
 		sub_components_vec3f(to, dir, to);
 	}
 	
-	void barycentric_interpolation(vec3_t *to, const vec3_t *b_coord, const vec3_t *a, const vec3_t *b, const vec3_t *c) {
+	inline void barycentric_interpolation(vec3_t *to, const vec3_t *b_coord, const vec3_t *a, const vec3_t *b, const vec3_t *c) {
 		vec3_t tmp;
 		mul_vec3f_by_scalar(to,   a,  x_comp(*b_coord));
 		mul_vec3f_by_scalar(&tmp, b,  y_comp(*b_coord));

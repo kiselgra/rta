@@ -76,6 +76,7 @@ namespace rta {
 			public:
 				typedef bvh_t_ bbvh_t;
 				typedef typename bbvh_t::node_t node_t;
+				typedef typename ocl::bouncer_buffer_addon<forward_traits> buffer_addon_t;
 				using basic_raytracer<forward_traits>::raygen;
 				using basic_raytracer<forward_traits>::cpu_bouncer;
 				cl::context &ctx;
@@ -83,6 +84,8 @@ namespace rta {
 				cl::kernel *test_kernel;
 				cl::kernel *test_kernel2;
 				cl::buffer *test_buf;
+				cl::buffer *is_buf;
+				buffer_addon_t *bba;
 		
 				/* remove me!!  TODO
 				 */
@@ -101,31 +104,43 @@ namespace rta {
 
 				bbvh_direct_is_tracer(ray_generator *gen, bbvh_t *bvh, class bouncer *b, cl::context &c) 
 				: basic_raytracer<forward_traits>(gen, b, bvh), ctx(c) {
-					this->gpu = true;
 					test_prog = new cl::program(read_file("test.ocl"), c, "-cl-nv-verbose");
 					test_kernel = new cl::kernel(test_prog->kernel("test"));
-					test_kernel = new cl::kernel(test_prog->kernel("test2"));
+					test_kernel2 = new cl::kernel(test_prog->kernel("test2"));
 					test_buf = new cl::buffer(c, CL_MEM_WRITE_ONLY, 512*sizeof(float));
 
-					test_kernel->start_params();
-					test_kernel->add_param(test_buf, "bla");
-					test_kernel->run(cl::work_size(512), cl::work_size(64));
-					clFinish(c.command_queue);
-					float bu[512];
-					test_buf->copy_from_buffer_blocking(bu, 0, 512*sizeof(float));
-					for (int i = 0; i < 32; ++i) {
-						for (int j = 0; j < 16; ++j) {
-							std::cout << "\t" << bu[16*i + j];
-						}
-						std::cout << std::endl;
-					}
+// 					test_kernel->start_params();
+// 					test_kernel->add_param(test_buf, "bla");
+// 					test_kernel->run(cl::work_size(512), cl::work_size(64));
+// 					clFinish(c.command_queue);
+// 					float bu[512];
+// 					test_buf->copy_from_buffer_blocking(bu, 0, 512*sizeof(float));
+// 					for (int i = 0; i < 32; ++i) {
+// 						for (int j = 0; j < 16; ++j) {
+// 							std::cout << "\t" << bu[16*i + j];
+// 						}
+// 						std::cout << std::endl;
+// 					}
+
+					if (b) ray_bouncer(b);
+				}
+
+				virtual void ray_bouncer(bouncer *rb) {
+					basic_raytracer<forward_traits>::ray_bouncer(rb);
+					bba = dynamic_cast<buffer_addon_t*>(rb);
+					if (bba == 0)
+						throw std::logic_error("while creating ray tracer \"" + identification() + "\": bouncer \"" + 
+						                       rb->identification() + "\" does not have an opencl buffer attachment.");
 				}
 				
 				virtual float trace_rays() {
 					clFinish(ctx.command_queue);
 					wall_time_timer wtt; wtt.start();
 
-					
+					test_kernel2->start_params();
+					test_kernel2->add_param(bba->buffer(), "the intersection output buffer");
+					test_kernel2->run(cl::work_size(raygen->res_y(), raygen->res_x()), 
+					                  cl::work_size(16, 16));
 
 					clFinish(ctx.command_queue);
 					float ms = wtt.look();

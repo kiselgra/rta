@@ -100,6 +100,8 @@ extern "C" {
 		return (char*)"a binary bvh ray tracer";
 	}
 
+	void initialize() {}
+
 	int parse_cmdline(int argc, char **argv)
 	{
 		argv[0] = plugin_name;

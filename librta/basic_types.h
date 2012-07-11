@@ -166,9 +166,9 @@ namespace rta {
 	// output
 
 
-	std::ostream& operator<<(std::ostream &o, const vec3_t &v) { o << "(vec " << v.x << " " << v.y << " " << v.z << ")"; return o; }
-	std::ostream& operator<<(std::ostream &o, const simple_aabb &b) { o << "(aabb " << b.min << " " << b.max << ")"; return o; }
-	std::ostream& operator<<(std::ostream &o, const simple_triangle &t) { o << "(tri " << t.a << " " << t.b << " " << t.c << ")"; return o; }
+	inline std::ostream& operator<<(std::ostream &o, const vec3_t &v) { o << "(vec " << v.x << " " << v.y << " " << v.z << ")"; return o; }
+	inline std::ostream& operator<<(std::ostream &o, const simple_aabb &b) { o << "(aabb " << b.min << " " << b.max << ")"; return o; }
+	inline std::ostream& operator<<(std::ostream &o, const simple_triangle &t) { o << "(tri " << t.a << " " << t.b << " " << t.c << ")"; return o; }
 
 
 	#undef invalid_instantiation

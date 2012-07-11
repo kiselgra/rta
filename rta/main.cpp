@@ -192,7 +192,6 @@ template<box_t__and__tri_t> class directional_analysis_pass {
 		void set(rt_set<forward_traits> set) {
 			the_set = set;
 			tracer(set.rt);
-			std::cout << "------------- settting shader " << set.bouncer << " " << dynamic_cast<lighting_collector<forward_traits>*>(set.bouncer) << std::endl;
 			shader = dynamic_cast<lighting_collector<forward_traits>*>(set.bouncer);
 			shader->triangle_ptr(the_set.as->triangle_ptr());
 		}
@@ -315,6 +314,7 @@ rt_set<simple_aabb, simple_triangle> make_bvh_stuff(bouncer *b, ray_generator *r
 void *lib_handle = 0;
 char* (*plugin_description)() = 0;
 int (*plugin_parse_cmdline)(int argc, char **argv) = 0;
+void (*plugin_initialize)() = 0;
 rt_set<simple_aabb, simple_triangle> (*plugin_create_rt_set)(std::list<flat_triangle_list>&,int,int) = 0;
 
 template<typename T> void load_plugin_function(const std::string &name, T &to) {
@@ -342,8 +342,10 @@ void load_plugin_functions() {
 	load_plugin_function("description", plugin_description);
 	cout << "PD: " << plugin_description() << endl;
 	
+	load_plugin_function("initialize", plugin_initialize);
 	load_plugin_function("create_rt_set", plugin_create_rt_set);
 	load_plugin_function("parse_cmdline", plugin_parse_cmdline);
+	plugin_initialize();
 }
 
 int main(int argc, char **argv) {
@@ -367,6 +369,10 @@ int main(int argc, char **argv) {
 	if (triangle_lists.size() > 1)
 		cerr << "Models with more than one submesh are not supported, yet." << endl;
 	
+	if (ocl::using_ocl()) {
+		res_x = ocl::pow2roundup(res_x);
+		res_y = ocl::pow2roundup(res_y);
+	}
 
 	rt_set<simple_aabb, simple_triangle> set = plugin_create_rt_set(triangle_lists, res_x, res_y);
 
@@ -394,10 +400,10 @@ int main(int argc, char **argv) {
 
 		*/
 
-		if (!set.rt->gpu)
+		if (!ocl::using_ocl())
 			set.bouncer = new direct_diffuse_illumination<box_t, tri_t>(res_x, res_y);
 		else
-			set.bouncer = new ocl::direct_diffuse_illumination<box_t, tri_t>(res_x, res_y);
+			set.bouncer = new ocl::direct_diffuse_illumination<box_t, tri_t>(res_x, res_y, *ocl::context);
 
 		set.rt->ray_bouncer(set.bouncer);
 		if (set.rgen) {

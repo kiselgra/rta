@@ -136,7 +136,7 @@ template<box_t__and__tri_t> class lighting_collector {
 					res.pixel(x,y,0) = std::min(int(col.x*255), 255);
 					res.pixel(x,y,1) = std::min(int(col.y*255), 255);
 					res.pixel(x,y,2) = std::min(int(col.z*255), 255);
-				}
+			}
 		}
 		virtual void add_pointlight(const vec3_t &at, const vec3_t &col) {
 			lights.push_back({at,col});
@@ -244,8 +244,6 @@ class raytracer {
 		virtual void prepare_bvh_for_tracing() = 0;
 		virtual void trace() = 0;
 		virtual std::string identification() = 0;
-		bool gpu;
-		raytracer() : gpu(false) {}
 };
 
 template<box_t__and__tri_t> class basic_raytracer : public raytracer {
@@ -261,6 +259,8 @@ template<box_t__and__tri_t> class basic_raytracer : public raytracer {
 		rta::acceleration_structure<forward_traits> *accel_struct;
 
 		basic_raytracer(rta::ray_generator *raygen, class bouncer *bouncer, acceleration_structure<forward_traits> *as) : raygen(raygen), bouncer(bouncer), cpu_bouncer(dynamic_cast<cpu_ray_bouncer<forward_traits>*>(bouncer)), accel_struct(as) {
+			if (bouncer)
+				basic_raytracer::ray_bouncer(bouncer);
 		}
 		virtual void setup_rays() { // potentially uploads ray data to the gpu
 		}
@@ -277,7 +277,7 @@ template<box_t__and__tri_t> class basic_raytracer : public raytracer {
 		}
 		std::vector<float> timings;
 		void ray_generator(rta::ray_generator *rg) { raygen = rg; }
-		void ray_bouncer(rta::bouncer *rb) { bouncer = rb; cpu_bouncer = dynamic_cast<cpu_ray_bouncer<forward_traits>*>(rb); }
+		virtual void ray_bouncer(rta::bouncer *rb) { bouncer = rb; cpu_bouncer = dynamic_cast<cpu_ray_bouncer<forward_traits>*>(rb); }
 };
 
 ////////////////////
