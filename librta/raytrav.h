@@ -81,44 +81,47 @@ template<box_t__and__tri_t> class primary_intersection_collector : public cpu_ra
 		}
 };
 
-template<box_t__and__tri_t> class binary_png_tester : public cpu_ray_bouncer<forward_traits> {
+template<box_t__and__tri_t> class lighting_collector {
+	public:
+		typedef _tri_t tri_t;
+	protected:
 		image<unsigned char, 3> res;
 		struct light { vec3_t pos, col ; };
+		image<triangle_intersection<tri_t>, 1> *last_intersection;
+		tri_t *triangles;
 	public:
 		std::list<light> lights;
-		typedef _tri_t tri_t;
-		binary_png_tester(uint w, uint h) : cpu_ray_bouncer<forward_traits>(w,h), res(w,h) {
+
+		lighting_collector(uint w, uint h, image<triangle_intersection<tri_t>, 1> *li) : res(w, h), last_intersection(li), triangles(0) {
 		}
-		void reset(vec3f c) {
+		virtual void reset(vec3f c) {
 			for (int y = 0; y < res.h; ++y)
 				for (int x = 0; x < res.w; ++x)
 					res.pixel(x,y,0) = std::min(int(c.x*255), 255),
 					res.pixel(x,y,1) = std::min(int(c.y*255), 255),
 					res.pixel(x,y,2) = std::min(int(c.z*255), 255);
 		}
-		void add_pointlight(const vec3_t &at, const vec3_t &col) {
-			lights.push_back({at,col});
-		}
-		void shade() {
+		virtual void shade() {
 			if (lights.size() == 0) return;
 			for (int y = 0; y < res.h; ++y)
 				for (int x = 0; x < res.w; ++x) {
-					triangle_intersection<tri_t> &is = this->last_intersection.pixel(x,y);
+					triangle_intersection<tri_t> &is = this->last_intersection->pixel(x,y);
 					if (!is.valid()) continue;
 					vec3f col = {0,0,0};
+					tri_t ref = triangles[is.ref];
 					for (light &l : lights) {
 						// get normal
 						vec3_t bc; 
 						is.barycentric_coord(&bc);
-						const vec3_t &na = normal_a(*is.ref);
-						const vec3_t &nb = normal_b(*is.ref);
-						const vec3_t &nc = normal_c(*is.ref);
+						const vec3_t &na = normal_a(ref);
+						const vec3_t &nb = normal_b(ref);
+						const vec3_t &nc = normal_c(ref);
 						vec3_t N, p;
 					   	barycentric_interpolation(&N, &bc, &na, &nb, &nc);
 						// get vertex pos
-						const vec3_t &va = vertex_a(*is.ref);
-						const vec3_t &vb = vertex_b(*is.ref);
-						const vec3_t &vc = vertex_c(*is.ref);
+						const vec3_t &va = vertex_a(ref);
+						const vec3_t &vb = vertex_b(ref);
+						const vec3_t &vc = vertex_c(ref);
 					   	barycentric_interpolation(&p, &bc, &va, &vb, &vc);
 						// compute lambert
 						vec3_t L = l.pos;
@@ -129,28 +132,40 @@ template<box_t__and__tri_t> class binary_png_tester : public cpu_ray_bouncer<for
 						vec3_t c;
 						mul_vec3f_by_scalar(&c, &l.col, dot);
 						add_components_vec3f(&col, &col, &c);
-// 						add_components_vec3f(&col, &col, &N);
 					}
 					res.pixel(x,y,0) = std::min(int(col.x*255), 255);
 					res.pixel(x,y,1) = std::min(int(col.y*255), 255);
 					res.pixel(x,y,2) = std::min(int(col.z*255), 255);
 				}
 		}
-// 		virtual void bounce_ray(const traversal_state &state, vec3_t *origin, vec3_t *dir) {
-// 			res.pixel(state.x,state.y,1) = (state.intersection.valid() ? 255 : 0);
-// 		}
+		virtual void add_pointlight(const vec3_t &at, const vec3_t &col) {
+			lights.push_back({at,col});
+		}
+		virtual void save(const std::string &filename) {
+			res.save_png(filename);
+		}
+		void triangle_ptr(tri_t *t) { triangles = t; }
+};
+
+template<box_t__and__tri_t> class direct_diffuse_illumination : public cpu_ray_bouncer<forward_traits>, public lighting_collector<forward_traits> {
+	public:
+		typedef _tri_t tri_t;
+		typedef cpu_ray_bouncer<forward_traits> bouncer_t;
+		// on the initialization order, see http://www.informit.com/guides/content.aspx?g=cplusplus&seqNum=169
+		direct_diffuse_illumination(uint w, uint h) : cpu_ray_bouncer<forward_traits>(w,h) , lighting_collector<forward_traits>(w,h, 0) {
+			image<triangle_intersection<tri_t>, 1> *li = &this->bouncer_t::last_intersection;
+			lighting_collector<forward_traits>::last_intersection = li;
+		}
 		virtual void bounce() {
-			for (int y = 0; y < res.h; ++y)
-				for (int x = 0; x < res.w; ++x)
-					res.pixel(x,y,1) = this->last_intersection.pixel(x,y).valid() ? 255 : 0;
+// 			for (int y = 0; y < res.h; ++y)
+// 				for (int x = 0; x < res.w; ++x)
+// 					res.pixel(x,y,1) = this->last_intersection.pixel(x,y).valid() ? 255 : 0;
+			this->shade();
 		}
 		virtual bool trace_further_bounces() {
 			return false;
 		}
-		void save(const std::string &filename) {
-			res.save_png(filename);
-		}
-		virtual std::string identification() { return "binary_png_tester"; }
+		virtual std::string identification() { return "direct_diffuse_illumination"; }
 };
 
 ////////////////////
@@ -229,6 +244,8 @@ class raytracer {
 		virtual void prepare_bvh_for_tracing() = 0;
 		virtual void trace() = 0;
 		virtual std::string identification() = 0;
+		bool gpu;
+		raytracer() : gpu(false) {}
 };
 
 template<box_t__and__tri_t> class basic_raytracer : public raytracer {

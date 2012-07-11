@@ -378,7 +378,7 @@ namespace rta {
 						int offset = node->tris();
 						for (int i = 0; i < elems; ++i) {
 							tri_t *t = &sbvh->triangles[offset+i];
-							triangle_intersection<tri_t> is(t);
+							triangle_intersection<tri_t> is(offset+i);
 							if (intersect_tri_opt(*t, origin, dir, is)) {
 								if (is.t < state.intersection.t)
 									state.intersection = is;
@@ -533,7 +533,7 @@ namespace rta {
 						int offset = node->tris();
 						for (int i = 0; i < elems; ++i) {
 							tri_t *t = &sbvh->triangles[offset+i];
-							triangle_intersection<tri_t> is(t);
+							triangle_intersection<tri_t> is(offset+i);
 							if (intersect_tri_opt(*t, origin, dir, is)) {
 								if (is.t < state.intersection.t)
 									state.intersection = is;

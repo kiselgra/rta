@@ -28,9 +28,9 @@ namespace rta {
 	template<typename _tri_t> struct triangle_intersection {
 		typedef _tri_t tri_t;
 		float_t t, beta, gamma;
-		tri_t *ref;
+		uint ref;
 		triangle_intersection() : t(FLT_MAX), ref(0) {}
-		triangle_intersection(tri_t *t) : t(FLT_MAX), ref(t) {}
+		triangle_intersection(uint t) : t(FLT_MAX), ref(t) {}
 		bool valid() const { return t != FLT_MAX; }
 		void reset() { t = FLT_MAX; ref = 0; }
 		void barycentric_coord(vec3_t *to) {

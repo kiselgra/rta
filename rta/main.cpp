@@ -1,6 +1,7 @@
 #include "librta/librta.h"
 #include "cmdline.h"
 #include "librta/wall-timer.h"
+#include "librta/ocl.h"
 
 #include <libobjloader/default.h>
 #include <libplyloader/plyloader.h>
@@ -96,7 +97,7 @@ template<box_t__and__tri_t> class directional_analysis_pass {
 		float *timings;
 		rta::cam_ray_generator_shirley *crgs;
 // 		rta::basic_raytracer<box_t, tri_t> *rt;
-		rta::binary_png_tester<box_t, tri_t> coll;
+		lighting_collector<forward_traits> *shader;
 		rt_set<box_t, tri_t> the_set;
 		vec3f obj_center;
 		box_t bb;
@@ -106,16 +107,14 @@ template<box_t__and__tri_t> class directional_analysis_pass {
 
 	public:
 		directional_analysis_pass(const std::string &sphere_file, int res_x, int res_y) 
-		: vertex(0), vertices(0), timings(0), coll(res_x, res_y), dist_scale(1.5), res_x(res_x), res_y(res_y), crgs(0) {
+		: vertex(0), vertices(0), timings(0), dist_scale(1.5), res_x(res_x), res_y(res_y), crgs(0), shader(0) {
 			setup_sample_positions(sphere_file);
 			crgs = new cam_ray_generator_shirley(res_x, res_y);
-			coll.reset(cmdline.back_col);
 		}
 		directional_analysis_pass(vec3_t &axis, vec3_t &anchor, int samples, int res_x, int res_y)
-		: vertex(0), vertices(0), timings(0), coll(res_x, res_y), dist_scale(1.5), res_x(res_x), res_y(res_y), crgs(0) {
+		: vertex(0), vertices(0), timings(0), dist_scale(1.5), res_x(res_x), res_y(res_y), crgs(0) {
 			setup_rotation_positions(axis, anchor, samples);
 			crgs = new cam_ray_generator_shirley(res_x, res_y);
-			coll.reset(cmdline.back_col);
 		}
 		~directional_analysis_pass() {
 			delete [] vertex;
@@ -193,6 +192,9 @@ template<box_t__and__tri_t> class directional_analysis_pass {
 		void set(rt_set<forward_traits> set) {
 			the_set = set;
 			tracer(set.rt);
+			std::cout << "------------- settting shader " << set.bouncer << " " << dynamic_cast<lighting_collector<forward_traits>*>(set.bouncer) << std::endl;
+			shader = dynamic_cast<lighting_collector<forward_traits>*>(set.bouncer);
+			shader->triangle_ptr(the_set.as->triangle_ptr());
 		}
 		//! supposes that the tracer's accelstruct has been set up, already
 		void tracer(rta::basic_raytracer<box_t, tri_t> *tracer) { 
@@ -206,7 +208,7 @@ template<box_t__and__tri_t> class directional_analysis_pass {
 			add_components_vec3f(&obj_center, &min(bb), &diff);
 		}
 		rta::bouncer* bouncer() { 
-			return &coll; 
+			return the_set->bounder; 
 		}
 		void run() {
 			vec3f null = make_vec3f(0,0,0);
@@ -255,7 +257,7 @@ template<box_t__and__tri_t> class directional_analysis_pass {
 				mul_vec3f_by_scalar(&diff, &diff, 0.5);
 				add_components_vec3f(&center, &min(light_box), &diff);
 
-				coll.lights.clear();
+				shader->lights.clear();
 				float_t I = 0.3;
 				float_t l_r = I * cmdline.light_col.x,
 						l_g = I * cmdline.light_col.y,
@@ -264,19 +266,19 @@ template<box_t__and__tri_t> class directional_analysis_pass {
 				vec3_t mi = min(light_box);
 				vec3_t ma = max(light_box);
 
-				coll.add_pointlight({x_comp(min(light_box)), y_comp(min(light_box)), z_comp(min(light_box))}, {l_r, l_g, l_b});
-				coll.add_pointlight({x_comp(min(light_box)), y_comp(min(light_box)), z_comp(max(light_box))}, {l_r, l_g, l_b});
-				coll.add_pointlight({x_comp(min(light_box)), y_comp(max(light_box)), z_comp(min(light_box))}, {l_r, l_g, l_b});
-				coll.add_pointlight({x_comp(min(light_box)), y_comp(max(light_box)), z_comp(max(light_box))}, {l_r, l_g, l_b});
-				coll.add_pointlight({x_comp(max(light_box)), y_comp(min(light_box)), z_comp(min(light_box))}, {l_r, l_g, l_b});
-				coll.add_pointlight({x_comp(max(light_box)), y_comp(min(light_box)), z_comp(max(light_box))}, {l_r, l_g, l_b});
-				coll.add_pointlight({x_comp(max(light_box)), y_comp(max(light_box)), z_comp(min(light_box))}, {l_r, l_g, l_b});
-				coll.add_pointlight({x_comp(max(light_box)), y_comp(max(light_box)), z_comp(max(light_box))}, {l_r, l_g, l_b});
+				shader->add_pointlight({x_comp(min(light_box)), y_comp(min(light_box)), z_comp(min(light_box))}, {l_r, l_g, l_b});
+				shader->add_pointlight({x_comp(min(light_box)), y_comp(min(light_box)), z_comp(max(light_box))}, {l_r, l_g, l_b});
+				shader->add_pointlight({x_comp(min(light_box)), y_comp(max(light_box)), z_comp(min(light_box))}, {l_r, l_g, l_b});
+				shader->add_pointlight({x_comp(min(light_box)), y_comp(max(light_box)), z_comp(max(light_box))}, {l_r, l_g, l_b});
+				shader->add_pointlight({x_comp(max(light_box)), y_comp(min(light_box)), z_comp(min(light_box))}, {l_r, l_g, l_b});
+				shader->add_pointlight({x_comp(max(light_box)), y_comp(min(light_box)), z_comp(max(light_box))}, {l_r, l_g, l_b});
+				shader->add_pointlight({x_comp(max(light_box)), y_comp(max(light_box)), z_comp(min(light_box))}, {l_r, l_g, l_b});
+				shader->add_pointlight({x_comp(max(light_box)), y_comp(max(light_box)), z_comp(max(light_box))}, {l_r, l_g, l_b});
 
-				coll.reset(cmdline.back_col);
+				shader->reset(cmdline.back_col);
 
-				coll.shade();
-				coll.save(oss.str());
+				shader->shade();
+				shader->save(oss.str());
 
 				cout << "." << flush;
 			}
@@ -392,7 +394,11 @@ int main(int argc, char **argv) {
 
 		*/
 
-		set.bouncer = dap->bouncer();
+		if (!set.rt->gpu)
+			set.bouncer = new direct_diffuse_illumination<box_t, tri_t>(res_x, res_y);
+		else
+			set.bouncer = new ocl::direct_diffuse_illumination<box_t, tri_t>(res_x, res_y);
+
 		set.rt->ray_bouncer(set.bouncer);
 		if (set.rgen) {
 			set.rt->ray_generator(set.rgen);
@@ -433,7 +439,7 @@ int main(int argc, char **argv) {
 		*/
 		
 
-		binary_png_tester<box_t, tri_t> coll(res_x, res_y);
+		direct_diffuse_illumination<box_t, tri_t> coll(res_x, res_y);
 		set.rt->ray_bouncer(&coll);
 		if (set.rgen)
 			crgs = dynamic_cast<cam_ray_generator_shirley*>(set.rgen);

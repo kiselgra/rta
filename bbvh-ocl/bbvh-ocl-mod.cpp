@@ -152,7 +152,6 @@ extern "C" {
 		set.rgen = new ocl::cam_ray_buffer_generator_shirley(w, h, *ctx);
 
 		cout << "OK" << endl;
-		exit(0);
 
 		return set;
 

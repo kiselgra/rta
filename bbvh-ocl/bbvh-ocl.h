@@ -3,17 +3,11 @@
 
 #include "bbvh/bbvh.h"
 
-#include <liblumocl/lumocl.h>
+#include "librta/ocl.h"
 
 namespace rta {
 	namespace ocl {
 		
-		class ocl_support {
-		protected:
-			cl::context &opencl;
-			ocl_support(cl::context &ocl) : opencl(ocl) {}
-		};
-
 		class cam_ray_buffer_generator_shirley : public cam_ray_generator_shirley, public ocl_support {
 				cl::buffer ray_buffer;
 			public:
@@ -87,6 +81,7 @@ namespace rta {
 				cl::context &ctx;
 				cl::program *test_prog;
 				cl::kernel *test_kernel;
+				cl::kernel *test_kernel2;
 				cl::buffer *test_buf;
 		
 				/* remove me!!  TODO
@@ -106,8 +101,10 @@ namespace rta {
 
 				bbvh_direct_is_tracer(ray_generator *gen, bbvh_t *bvh, class bouncer *b, cl::context &c) 
 				: basic_raytracer<forward_traits>(gen, b, bvh), ctx(c) {
+					this->gpu = true;
 					test_prog = new cl::program(read_file("test.ocl"), c, "-cl-nv-verbose");
 					test_kernel = new cl::kernel(test_prog->kernel("test"));
+					test_kernel = new cl::kernel(test_prog->kernel("test2"));
 					test_buf = new cl::buffer(c, CL_MEM_WRITE_ONLY, 512*sizeof(float));
 
 					test_kernel->start_params();
@@ -127,6 +124,10 @@ namespace rta {
 				virtual float trace_rays() {
 					clFinish(ctx.command_queue);
 					wall_time_timer wtt; wtt.start();
+
+					
+
+					clFinish(ctx.command_queue);
 					float ms = wtt.look();
 					return ms;
 				}

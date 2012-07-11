@@ -208,7 +208,7 @@ class bbvh_constructor_using_median : public acceleration_structure_constructor<
 					mid = begin + (end-begin)/2;
 				bias_t::apply(begin, mid, end);
 
-				link_t left  = build_om(tris, begin, mid);
+				link_t left  = build_om(tris, begin, mid); //!!!!!!
 				link_t right = build_om(tris, mid, end);
 				n = &nodes[id]; // refresh pointer!
 				n->left(left);
@@ -327,7 +327,7 @@ template<box_t__and__tri_t, typename bvh_t_> class bbvh_direct_is_tracer : publi
 					int offset = curr->tris();
 					for (int i = 0; i < elems; ++i) {
 						tri_t *t = &bbvh_tracer<forward_traits, bbvh_t>::bvh->triangles[offset+i];
-						triangle_intersection<tri_t> is(t);
+						triangle_intersection<tri_t> is(offset+i);
 						if (intersect_tri_opt(*t, origin, dir, is)) {
 							if (is.t < state.intersection.t)
 								state.intersection = is;
@@ -401,7 +401,7 @@ template<box_t__and__tri_t, typename bvh_t_> class bbvh_child_is_tracer : public
 					int offset = curr->tris();
 					for (int i = 0; i < elems; ++i) {
 						tri_t *t = &bbvh_tracer<forward_traits, bbvh_t>::bvh->triangles[offset+i];
-						triangle_intersection<tri_t> is(t);
+						triangle_intersection<tri_t> is(offset+i);
 						if (intersect_tri_opt(*t, origin, dir, is)) {
 							if (is.t < state.intersection.t)
 								state.intersection = is;
