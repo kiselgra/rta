@@ -59,7 +59,7 @@ namespace rta {
 				}
 		};
 
-		template<box_t__and__tri_t, typename bvh_t_> class bbvh_direct_is_tracer : public basic_raytracer<forward_traits> {
+		template<box_t__and__tri_t, typename bvh_t_> class bbvh_gpu_tracer : public basic_raytracer<forward_traits> {
 			public:
 				typedef bvh_t_ bbvh_t;
 				typedef typename bbvh_t::node_t node_t;
@@ -68,10 +68,8 @@ namespace rta {
 				using basic_raytracer<forward_traits>::raygen;
 				using basic_raytracer<forward_traits>::cpu_bouncer;
 				cl::context &ctx;
-				cl::program *test_prog;
-				cl::kernel *test_kernel;
-				cl::kernel *test_kernel2;
-				cl::buffer *test_buf;
+				cl::program *prog;
+				cl::kernel *kernel;
 				cl::buffer *is_buf;
 				bouncer_buffer_addon_t *bba;
 				raygen_buffer_addon_t *rba;
@@ -93,25 +91,11 @@ namespace rta {
 					return str;
 				}
 
-				bbvh_direct_is_tracer(rta::ray_generator *gen, bbvh_t *bvh, class bouncer *b, cl::context &c) 
+				bbvh_gpu_tracer(rta::ray_generator *gen, bbvh_t *bvh, class bouncer *b, cl::context &c, 
+				                const std::string &sourcefile, const std::string &kernelname)
 				: basic_raytracer<forward_traits>(gen, b, bvh), bbvh(bvh), ctx(c), stack(0) {
-					test_prog = new cl::program(read_file("test.ocl"), c, "-cl-nv-verbose");
-					test_kernel = new cl::kernel(test_prog->kernel("test"));
-					test_kernel2 = new cl::kernel(test_prog->kernel("test2"));
-					test_buf = new cl::buffer(c, CL_MEM_WRITE_ONLY, 512*sizeof(float));
-
-// 					test_kernel->start_params();
-// 					test_kernel->add_param(test_buf, "bla");
-// 					test_kernel->run(cl::work_size(512), cl::work_size(64));
-// 					clFinish(c.command_queue);
-// 					float bu[512];
-// 					test_buf->copy_from_buffer_blocking(bu, 0, 512*sizeof(float));
-// 					for (int i = 0; i < 32; ++i) {
-// 						for (int j = 0; j < 16; ++j) {
-// 							std::cout << "\t" << bu[16*i + j];
-// 						}
-// 						std::cout << std::endl;
-// 					}
+					prog = new cl::program(read_file(sourcefile), c, "-cl-nv-verbose");
+					kernel = new cl::kernel(prog->kernel(kernelname));
 
 					if (b) ray_bouncer(b);
 					if (gen) ray_generator(gen);
@@ -138,14 +122,14 @@ namespace rta {
 					clFinish(ctx.command_queue);
 					wall_time_timer wtt; wtt.start();
 
-					test_kernel2->start_params();
-					test_kernel2->add_param(rba->buffer(), "the ray buffer");
-					test_kernel2->add_param(bbvh->node_buffer, "the bvh nodes");
-					test_kernel2->add_param(bbvh->tri_buffer, "the triangle array");
-					test_kernel2->add_param(stack->buffer(), "the stack");
-					test_kernel2->add_param(bba->buffer(), "the intersection output buffer");
-					test_kernel2->run(cl::work_size(raygen->res_y(), raygen->res_x()), 
-					                  cl::work_size(16, 16));
+					kernel->start_params();
+					kernel->add_param(rba->buffer(), "the ray buffer");
+					kernel->add_param(bbvh->node_buffer, "the bvh nodes");
+					kernel->add_param(bbvh->tri_buffer, "the triangle array");
+					kernel->add_param(stack->buffer(), "the stack");
+					kernel->add_param(bba->buffer(), "the intersection output buffer");
+					kernel->run(cl::work_size(raygen->res_x(), raygen->res_y()), 
+					            cl::work_size(16, 16));
 
 					int err = clFinish(ctx.command_queue);
 					check_for_cl_error(err, "after kernel");

@@ -44,7 +44,11 @@ typedef struct {
 bool intersect_aabb(const aabb *box, const vec3f *ray_origin, const vec3f *ray_dir, float *is);
 bool intersect_tri_opt(const triangle *t, const vec3f *ray_origin, const vec3f *ray_dir, triangle_intersection *info);
 
-__kernel void test2(__global ray *rays, __global bbvh *bvh, __global triangle *tris, __global uint *stack, __global triangle_intersection *is) {
+__kernel void bbvh_direct_is(__global ray *rays, 
+                             __global bbvh *bvh, 
+                             __global triangle *tris, 
+                             __global uint *stack, 
+                             __global triangle_intersection *is) {
 	uint gid, stack_offset;
 	{
 		uint x = get_global_id(0);
@@ -87,6 +91,78 @@ __kernel void test2(__global ray *rays, __global bbvh *bvh, __global triangle *t
 	}
 }
 
+__kernel void bbvh_child_is(__global ray *rays, 
+                             __global bbvh *bvh, 
+                             __global triangle *tris, 
+                             __global uint *stack, 
+                             __global triangle_intersection *is) {
+	uint gid, stack_offset;
+	{
+		uint x = get_global_id(0);
+		uint y = get_global_id(1);
+		uint w = get_global_size(0);
+		uint h = get_global_size(1);
+		gid = y*w + x;
+		stack_offset = w*h;
+	}
+	
+	is[gid].t = FLT_MAX;
+
+	stack[gid] = 0;
+	int sp = 0;
+	ray r = rays[gid];
+
+	while (sp >= 0) {
+		uint node_id = stack[sp--*stack_offset + gid];
+		bbvh node = bvh[node_id];
+		if (bbvh_inner(&node)) {
+
+			float dist_l, dist_r;
+			bool do_left, do_right;
+			uint n_left, n_right;
+
+			{	n_left         = bbvh_left(&node);
+				aabb left_box  = bvh[n_left].box;
+				do_left        = intersect_aabb(&left_box, &r.origin, &r.dir, &dist_l);	}
+			
+			{	n_right        = bbvh_right(&node);
+				aabb right_box = bvh[n_right].box;
+				do_right       = intersect_aabb(&right_box, &r.origin, &r.dir, &dist_r); }
+
+			float ist = is[gid].t;
+			do_left  = do_left  && dist_l < ist;
+			do_right = do_right && dist_r < ist;
+			if (do_left && do_right)
+				if (dist_l <= dist_r) {
+					stack[++sp*stack_offset + gid] = n_right;
+					stack[++sp*stack_offset + gid] = n_left;
+				}
+				else {
+					stack[++sp*stack_offset + gid] = n_left;
+					stack[++sp*stack_offset + gid] = n_right;
+				}
+			else if (do_left)
+				stack[++sp*stack_offset + gid] = n_left;
+			else if (do_right)
+				stack[++sp*stack_offset + gid] = n_right;
+		}
+		else {
+			int n = bbvh_elems(&node);
+			int o = bbvh_tris(&node);
+			for (int i = 0; i < n; ++i) {
+				triangle t = tris[o+i];
+				triangle_intersection tmp_is;
+				if (intersect_tri_opt(&t, &r.origin, &r.dir, &tmp_is))
+					if (tmp_is.t < is[gid].t) {
+						tmp_is.ref = o+i;
+						is[gid] = tmp_is;
+					}
+			}
+		}
+	}
+}
+
+	
 typedef float float_t;
 
 	bool intersect_aabb(const aabb *box, const vec3f *ray_origin, const vec3f *ray_dir, float *is)

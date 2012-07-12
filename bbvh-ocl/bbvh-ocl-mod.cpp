@@ -138,17 +138,17 @@ extern "C" {
 
 		cout << "create rt" << endl;
 		basic_raytracer<box_t, tri_t> *rt = 0;
-// 		switch (cmdline.bvh_trav) {
-// 			case Cmdline::bbvh_cis:
-// 				rt = new bbvh_child_is_tracer<box_t, tri_t, bvh_t>(0, dynamic_cast<bvh_t*>(bvh), 0);
-// 				break;
-// 			case Cmdline::bbvh_dis:
-				rt = new ocl::bbvh_direct_is_tracer<box_t, tri_t, obvh_t>(0, dynamic_cast<obvh_t*>(bvh), 0, *ctx);
-// 				break;
-// 			default:
-// 				cerr << "unhandled case in bbvh-ocl trav switch! (" << cmdline.bvh_trav << ")" << endl;
-// 				exit(EXIT_FAILURE);
-// 		}
+		switch (cmdline.bvh_trav) {
+			case Cmdline::bbvh_cis:
+				rt = new ocl::bbvh_gpu_tracer<box_t, tri_t, obvh_t>(0, dynamic_cast<obvh_t*>(bvh), 0, *ctx, "test.ocl", "bbvh_child_is");
+				break;
+			case Cmdline::bbvh_dis:
+				rt = new ocl::bbvh_gpu_tracer<box_t, tri_t, obvh_t>(0, dynamic_cast<obvh_t*>(bvh), 0, *ctx, "test.ocl", "bbvh_direct_is");
+				break;
+			default:
+				cerr << "unhandled case in bbvh-ocl trav switch! (" << cmdline.bvh_trav << ")" << endl;
+				exit(EXIT_FAILURE);
+		}
 
 		rt_set<box_t, tri_t> set;
 		set.as = bvh;
