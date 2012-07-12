@@ -21,7 +21,6 @@ namespace rta {
 				
 				virtual std::string identification() { return "bbvh using ocl buffers (based on " + parent_t::identification() + ")"; }
 				void fill_buffers(cl::context &c) {
-					std::cout << "XXXXXXXXXXXXXXXXXXXXXXXXXXX Uploading node data" << std::endl;
 					const size_t node_size = sizeof(typename parent_t::node);
 					if (!tri_buffer)  tri_buffer = new cl::buffer(c, CL_MEM_READ_ONLY, sizeof(tri_t) * this->triangles.size());
 					if (!node_buffer) node_buffer = new cl::buffer(c,CL_MEM_READ_ONLY, node_size * this->nodes.size());
@@ -77,6 +76,7 @@ namespace rta {
 				bouncer_buffer_addon_t *bba;
 				raygen_buffer_addon_t *rba;
 				bbvh_t *bbvh;
+				ocl::stackspace *stack;
 		
 				/* remove me!!  TODO
 				 */
@@ -94,7 +94,7 @@ namespace rta {
 				}
 
 				bbvh_direct_is_tracer(rta::ray_generator *gen, bbvh_t *bvh, class bouncer *b, cl::context &c) 
-				: basic_raytracer<forward_traits>(gen, b, bvh), bbvh(bvh), ctx(c) {
+				: basic_raytracer<forward_traits>(gen, b, bvh), bbvh(bvh), ctx(c), stack(0) {
 					test_prog = new cl::program(read_file("test.ocl"), c, "-cl-nv-verbose");
 					test_kernel = new cl::kernel(test_prog->kernel("test"));
 					test_kernel2 = new cl::kernel(test_prog->kernel("test2"));
@@ -131,6 +131,7 @@ namespace rta {
 					if (rba == 0)
 						throw std::logic_error("while creating ray tracer \"" + identification() + "\": ray generator \"" + 
 						                       rg->identification() + "\" does not have an opencl buffer attachment.");
+					stack = new ocl::stackspace(rg->res_x(), rg->res_y(), 64, ctx);
 				}
 				
 				virtual float trace_rays() {
@@ -141,6 +142,7 @@ namespace rta {
 					test_kernel2->add_param(rba->buffer(), "the ray buffer");
 					test_kernel2->add_param(bbvh->node_buffer, "the bvh nodes");
 					test_kernel2->add_param(bbvh->tri_buffer, "the triangle array");
+					test_kernel2->add_param(stack->buffer(), "the stack");
 					test_kernel2->add_param(bba->buffer(), "the intersection output buffer");
 					test_kernel2->run(cl::work_size(raygen->res_y(), raygen->res_x()), 
 					                  cl::work_size(16, 16));

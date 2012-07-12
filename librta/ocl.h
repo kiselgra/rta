@@ -96,6 +96,16 @@ namespace rta {
 
 		typedef raygen_with_buffer<cam_ray_generator_shirley> cam_ray_buffer_generator_shirley  ;
 
+		class stackspace {
+				cl::buffer *stack;
+				int n;
+			public:
+				stackspace(uint w, uint h, uint n, cl::context &c) : stack(0), n(n) {
+					stack = new cl::buffer(c, CL_MEM_READ_WRITE, sizeof(cl_uint) * w*h*n, 0);
+				}
+				cl::buffer* buffer() { return stack; }
+				int depth() { return n; }
+		};
 
 		bool using_ocl();
 		extern cl::context *context;
