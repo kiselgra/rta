@@ -8,19 +8,6 @@
 namespace rta {
 	namespace ocl {
 		
-		class cam_ray_buffer_generator_shirley : public cam_ray_generator_shirley, public ocl_support {
-				cl::buffer ray_buffer;
-			public:
-				cam_ray_buffer_generator_shirley(uint res_x, uint res_y, cl::context &c) 
-				: cam_ray_generator_shirley(res_x, res_y), ocl_support(c), ray_buffer(c, CL_MEM_READ_WRITE, sizeof(float)*3*2, 0) {
-				}
-
-				void generate_rays() {
-					cam_ray_generator_shirley::generate_rays();
-					ray_buffer.copy_to_buffer_blocking(raydata.data, 0, sizeof(float)*3*2);
-				}
-		};
-
 		template<box_t__and__tri_t> class binary_bvh : public rta::binary_bvh<forward_traits> {
 			public:
 				declare_traits_types;
@@ -34,6 +21,7 @@ namespace rta {
 				
 				virtual std::string identification() { return "bbvh using ocl buffers (based on " + parent_t::identification() + ")"; }
 				void fill_buffers(cl::context &c) {
+					std::cout << "XXXXXXXXXXXXXXXXXXXXXXXXXXX Uploading node data" << std::endl;
 					const size_t node_size = sizeof(typename parent_t::node);
 					if (!tri_buffer)  tri_buffer = new cl::buffer(c, CL_MEM_READ_ONLY, sizeof(tri_t) * this->triangles.size());
 					if (!node_buffer) node_buffer = new cl::buffer(c,CL_MEM_READ_ONLY, node_size * this->nodes.size());
@@ -76,7 +64,8 @@ namespace rta {
 			public:
 				typedef bvh_t_ bbvh_t;
 				typedef typename bbvh_t::node_t node_t;
-				typedef typename ocl::bouncer_buffer_addon<forward_traits> buffer_addon_t;
+				typedef typename ocl::bouncer_buffer_addon<forward_traits> bouncer_buffer_addon_t;
+				typedef typename ocl::raygen_buffer_addon raygen_buffer_addon_t;
 				using basic_raytracer<forward_traits>::raygen;
 				using basic_raytracer<forward_traits>::cpu_bouncer;
 				cl::context &ctx;
@@ -85,7 +74,9 @@ namespace rta {
 				cl::kernel *test_kernel2;
 				cl::buffer *test_buf;
 				cl::buffer *is_buf;
-				buffer_addon_t *bba;
+				bouncer_buffer_addon_t *bba;
+				raygen_buffer_addon_t *rba;
+				bbvh_t *bbvh;
 		
 				/* remove me!!  TODO
 				 */
@@ -102,8 +93,8 @@ namespace rta {
 					return str;
 				}
 
-				bbvh_direct_is_tracer(ray_generator *gen, bbvh_t *bvh, class bouncer *b, cl::context &c) 
-				: basic_raytracer<forward_traits>(gen, b, bvh), ctx(c) {
+				bbvh_direct_is_tracer(rta::ray_generator *gen, bbvh_t *bvh, class bouncer *b, cl::context &c) 
+				: basic_raytracer<forward_traits>(gen, b, bvh), bbvh(bvh), ctx(c) {
 					test_prog = new cl::program(read_file("test.ocl"), c, "-cl-nv-verbose");
 					test_kernel = new cl::kernel(test_prog->kernel("test"));
 					test_kernel2 = new cl::kernel(test_prog->kernel("test2"));
@@ -123,14 +114,23 @@ namespace rta {
 // 					}
 
 					if (b) ray_bouncer(b);
+					if (gen) ray_generator(gen);
 				}
 
 				virtual void ray_bouncer(bouncer *rb) {
 					basic_raytracer<forward_traits>::ray_bouncer(rb);
-					bba = dynamic_cast<buffer_addon_t*>(rb);
+					bba = dynamic_cast<bouncer_buffer_addon_t*>(rb);
 					if (bba == 0)
 						throw std::logic_error("while creating ray tracer \"" + identification() + "\": bouncer \"" + 
 						                       rb->identification() + "\" does not have an opencl buffer attachment.");
+				}
+
+				virtual void ray_generator(rta::ray_generator *rg) { 
+					basic_raytracer<forward_traits>::ray_generator(rg);
+					rba = dynamic_cast<raygen_buffer_addon_t*>(rg);
+					if (rba == 0)
+						throw std::logic_error("while creating ray tracer \"" + identification() + "\": ray generator \"" + 
+						                       rg->identification() + "\" does not have an opencl buffer attachment.");
 				}
 				
 				virtual float trace_rays() {
@@ -138,11 +138,15 @@ namespace rta {
 					wall_time_timer wtt; wtt.start();
 
 					test_kernel2->start_params();
+					test_kernel2->add_param(rba->buffer(), "the ray buffer");
+					test_kernel2->add_param(bbvh->node_buffer, "the bvh nodes");
+					test_kernel2->add_param(bbvh->tri_buffer, "the triangle array");
 					test_kernel2->add_param(bba->buffer(), "the intersection output buffer");
 					test_kernel2->run(cl::work_size(raygen->res_y(), raygen->res_x()), 
 					                  cl::work_size(16, 16));
 
-					clFinish(ctx.command_queue);
+					int err = clFinish(ctx.command_queue);
+					check_for_cl_error(err, "after kernel");
 					float ms = wtt.look();
 					return ms;
 				}

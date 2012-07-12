@@ -27,7 +27,9 @@ namespace rta {
 				cl::buffer* buffer() { return gpu_intersections; }
 			protected:
 				void download_intersection_info(void *to) {
+					std::cout << "downloading intersection data " << w << " " << h << std::endl;
 					gpu_intersections->copy_from_buffer_blocking(to, 0, sizeof(triangle_intersection<tri_t>) * w * h);
+					std::cout << "done" << std::endl;
 					clFinish(opencl.command_queue);
 				}
 		};
@@ -59,6 +61,41 @@ namespace rta {
 				}
 				virtual std::string identification() { return "ocl ray bouncer producing a png with diffuse shading."; }
 		};
+		
+		class raygen_buffer_addon  : public ocl_support {
+				cl::buffer *ray_buffer;
+				uint w, h;
+			public:
+				raygen_buffer_addon(uint w, uint h, cl::context &c)
+				:  ocl_support(c), ray_buffer(0), w(w), h(h) {
+					ray_buffer = new cl::buffer(c, CL_MEM_READ_WRITE, sizeof(float)*3*2 * w * h, 0);
+				}
+
+				cl::buffer* buffer() { return ray_buffer; }
+					
+				void upload_buffer(void *from) {
+					std::cout << "uploading ray buffer " << w << " " << h << std::endl;
+					ray_buffer->copy_to_buffer_blocking(from, 0, sizeof(float)*3*2 * w * h);
+					std::cout << "done" << std::endl;
+				}
+		};
+
+		template<typename raygen_t> class raygen_with_buffer : public raygen_t, public raygen_buffer_addon {
+			public:
+				raygen_with_buffer(uint res_x, uint res_y, cl::context &c) 
+				:  raygen_t(res_x, res_y), raygen_buffer_addon(res_x, res_y, c) {
+				}
+
+				virtual void generate_rays() {
+					raygen_t::generate_rays();
+					upload_buffer(this->raydata.data);
+				}
+
+				virtual std::string identification() { return "ray generator with opencl buffer (based on " + raygen_t::identification() + ")"; }
+		};
+
+		typedef raygen_with_buffer<cam_ray_generator_shirley> cam_ray_buffer_generator_shirley  ;
+
 
 		bool using_ocl();
 		extern cl::context *context;

@@ -124,16 +124,17 @@ extern "C" {
 		typedef simple_triangle tri_t;
 		typedef simple_aabb box_t;
 		typedef ocl::binary_bvh<box_t, tri_t> obvh_t;
-		typedef bbvh_constructor_using_median<obvh_t> bbvh_ctor_t;
-
+		typedef bbvh_constructor_using_median<obvh_t> std_bbvh_ctor_t;
+		typedef ocl::bbvh_constructor<std_bbvh_ctor_t> obvh_ctor_t;
 		cout << "building bvh" << endl;
 		acceleration_structure_constructor<box_t, tri_t> *ctor = 0;
 		acceleration_structure<box_t, tri_t> *bvh = 0;
 
-		ctor = new bbvh_ctor_t(bbvh_ctor_t::spatial_median);
-		bvh = ctor->build(&triangle_lists.front());
+// 		ctor = new bbvh_ctor_t(bbvh_ctor_t::spatial_median);
+// 		bvh = ctor->build(&triangle_lists.front());
 
-		ocl::bbvh_constructor<bbvh_constructor_using_median<obvh_t>> ocl_ctor(*ctx, bbvh_ctor_t::spatial_median);
+		obvh_ctor_t *ocl_ctor = new obvh_ctor_t(*ctx, std_bbvh_ctor_t::spatial_median);
+		bvh = ocl_ctor->build(&triangle_lists.front());
 
 		cout << "create rt" << endl;
 		basic_raytracer<box_t, tri_t> *rt = 0;
@@ -151,7 +152,7 @@ extern "C" {
 
 		rt_set<box_t, tri_t> set;
 		set.as = bvh;
-		set.ctor = ctor;
+		set.ctor = ocl_ctor;
 		set.rt = rt;
 		set.rgen = new ocl::cam_ray_buffer_generator_shirley(w, h, *ctx);
 

@@ -182,6 +182,7 @@ class ray_generator {
 		inline const vec3f* origin(uint x, uint y) const    { return &raydata.pixel(x, y, 0); }
 		inline vec3f* direction(uint x, uint y)             { return &raydata.pixel(x, y, 1); }
 		inline const vec3f* direction(uint x, uint y) const { return &raydata.pixel(x, y, 1); }
+		virtual std::string identification() = 0;
 };
 
 class cam_ray_generator_shirley : public ray_generator {
@@ -234,6 +235,7 @@ class cam_ray_generator_shirley : public ray_generator {
 					generate_ray_dir_from_cam_parameters(direction(x, y), fovy, aspect, x, y, res_x(), res_y(), &dir, &up);
 				}
 		}
+		virtual std::string identification() { return "ray generator according to shirley."; }
 };
 
 ////////////////////
@@ -276,7 +278,7 @@ template<box_t__and__tri_t> class basic_raytracer : public raytracer {
 			} while (bouncer->trace_further_bounces());
 		}
 		std::vector<float> timings;
-		void ray_generator(rta::ray_generator *rg) { raygen = rg; }
+		virtual void ray_generator(rta::ray_generator *rg) { raygen = rg; }
 		virtual void ray_bouncer(rta::bouncer *rb) { bouncer = rb; cpu_bouncer = dynamic_cast<cpu_ray_bouncer<forward_traits>*>(rb); }
 };
 

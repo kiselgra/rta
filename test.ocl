@@ -1,0 +1,177 @@
+__kernel void test(__global float *buf) {
+	uint gid = get_global_id(0);
+	if (gid % 2)
+		buf[gid] = 1;
+	else
+		buf[gid] = 0;
+}
+
+typedef struct {
+	float t, beta, gamma;
+	unsigned int ref;
+} triangle_intersection;
+
+typedef struct {
+	float x,y,z;
+} vec3f;
+
+typedef struct {
+	vec3f min, max;
+} aabb;
+
+typedef struct {
+	uint type_left_elems;
+	uint right_tris;
+	aabb box;
+} bbvh;
+
+typedef struct {
+	vec3f a, b, c;
+	vec3f na, nb, nc;
+} triangle;
+
+typedef struct {
+	vec3f origin, dir;
+} ray;
+
+bool intersect_aabb(const aabb *box, const vec3f *ray_origin, const vec3f *ray_dir, float *is);
+
+__kernel void test2(__global ray *rays, __global bbvh *bvh, __global triangle *tris, __global triangle_intersection *is) {
+	uint x = get_global_id(0);
+	uint y = get_global_id(1);
+	uint w = get_global_size(0);
+	uint gid = y*w + x;
+
+
+
+//	if (gid % 2)
+//		is[gid].t = 1;
+//	else
+//		is[gid].t = FLT_MAX;
+//	is[gid].ref = 0;
+//	is[gid].beta = is[gid].gamma = 0.3;
+
+	is[gid].t = FLT_MAX;
+	is[gid].beta = 2;
+	is[gid].gamma = 3;
+	is[gid].ref = 0;
+
+	ray r = rays[gid];
+	bbvh node = bvh[0];
+	float t;
+	if (intersect_aabb(&node.box, &r.origin, &r.dir, &t)) 
+	{
+		is[gid].t = t;
+	}
+
+//	is[gid].beta = is[gid].gamma = 0.3;
+
+//	if (gid % 2)
+//		is[gid].t = 1;
+//	else
+//		is[gid].t = FLT_MAX;
+//	is[gid].ref = 0;
+//	is[gid].beta = is[gid].gamma = 0.3;
+
+
+}
+
+typedef float float_t;
+
+	bool intersect_aabb(const aabb *box, const vec3f *ray_origin, const vec3f *ray_dir, float *is)
+	{
+		float_t t_near = -FLT_MAX;
+		float_t t_far  =  FLT_MAX;
+
+		{
+		const float_t d_x = ray_dir->x;
+		const float_t e_x = ray_origin->x;
+		const float_t x_max = box->max.x;
+		const float_t x_min = box->min.x;
+		
+		if (d_x == 0)
+		{
+			if (e_x < x_min || e_x > x_max)
+				return false;
+		}
+		else
+		{
+			float_t t1 = (x_min - e_x) / d_x;
+			float_t t2 = (x_max - e_x) / d_x;
+
+			if (t1 > t2)	{	float_t tmp = t1;	t1 = t2; t2 = tmp; 	}
+
+			if (t1 > t_near)	t_near = t1;
+			if (t2 < t_far)		t_far = t2;
+
+			if (t_near > t_far)	// box missed
+				return false;
+
+			if (t_far < 0)		// box behind ray
+				return false;
+		}
+		}
+		{
+		
+		const float_t d_y = ray_dir->y;
+		const float_t e_y = ray_origin->y;
+		const float_t y_max = box->max.y;
+		const float_t y_min = box->min.y;
+
+		if (d_y == 0)
+		{
+			if (e_y < y_min || e_y > y_max)
+				return false;
+		}
+		else
+		{
+			float_t t1 = (y_min - e_y) / d_y;
+			float_t t2 = (y_max - e_y) / d_y;
+
+			if (t1 > t2)	{	float_t tmp = t1;	t1 = t2; t2 = tmp; 	}
+
+			if (t1 > t_near)	t_near = t1;
+			if (t2 < t_far)		t_far = t2;
+
+			if (t_near > t_far)	// box missed
+				return false;
+
+			if (t_far < 0)		// box behind ray
+				return false;
+		}
+		}
+		{
+
+		const float_t d_z = ray_dir->z;
+		const float_t e_z = ray_origin->z;
+		const float_t z_max = box->max.z;
+		const float_t z_min = box->min.z;
+
+		if (d_z == 0)
+		{
+			if (e_z < z_min || e_z > z_max)
+				return false;
+		}
+		else
+		{
+			float_t t1 = (z_min - e_z) / d_z;
+			float_t t2 = (z_max - e_z) / d_z;
+
+			if (t1 > t2)	{	float_t tmp = t1;	t1 = t2; t2 = tmp; }
+
+			if (t1 > t_near)	t_near = t1;
+			if (t2 < t_far)		t_far = t2;
+
+			if (t_near > t_far)	// box missed
+				return false;
+
+			if (t_far < 0)		// box behind ray
+				return false;
+		}
+		}
+
+		*is = t_near;
+		return true;
+	}
+
+
