@@ -25,7 +25,9 @@ struct Cmdline
 	vec3f back_col, light_col;
 	std::string model;
 
-	Cmdline() : verbose(false), positional_series(false), axial_series(false), sphere_series(false)
+	bool produce_images;
+
+	Cmdline() : verbose(false), positional_series(false), axial_series(false), sphere_series(false), produce_images(true)
 	{
 		pos = { 0,0,0 };
 		dir = { 0,0,-1 };

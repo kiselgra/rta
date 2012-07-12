@@ -250,6 +250,7 @@ __kernel void sbvh_oi_is_debug3(__global ray *rays,
 	}
 	
 	is[gid].t = FLT_MAX;
+	float ist = FLT_MAX;
 	ray r = rays[gid];
 	code_t code = compute_ray_code(&r.dir);
 	int node_id = 0;
@@ -258,7 +259,8 @@ __kernel void sbvh_oi_is_debug3(__global ray *rays,
 		sbvh_oi node = bvh[node_id];
 		if (sbvh_oi_inner(&node)) {
 			float dist;
-			if (intersect_aabb(&node.box, &r.origin, &r.dir, &dist))
+			bool hit = intersect_aabb(&node.box, &r.origin, &r.dir, &dist);
+			if (hit && dist < ist)
 				node_id = next2(&node, code);
 			else
 				node_id = skip2(&node, node_id, code, bvh);
@@ -270,7 +272,8 @@ __kernel void sbvh_oi_is_debug3(__global ray *rays,
 				triangle t = tris[o+i];
 				triangle_intersection tmp_is;
 				if (intersect_tri_opt(&t, &r.origin, &r.dir, &tmp_is))
-					if (tmp_is.t < is[gid].t) {
+					if (tmp_is.t < ist) {
+						ist = tmp_is.t;
 						tmp_is.ref = o+i;
 						is[gid] = tmp_is;
 					}

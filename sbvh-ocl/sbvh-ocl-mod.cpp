@@ -142,13 +142,13 @@ extern "C" {
 		acceleration_structure<box_t, tri_t> *sbvh = 0;
 		basic_raytracer<box_t, tri_t> *rt = 0;
 
-		///
+// 		///
 // 		ctor = new ocl::sbvh_constructor<sbvh_po_ctor_t, std_bbvh_ctor_t>(*ctx, std_bbvh_ctor_t::spatial_median);
 // 		sbvh = ctor->build(&triangle_lists.front());
 // 	
 // 		rt = new ocl::sbvh_po_gpu_tracer<box_t, tri_t, ocl_sbvh_po_t>(0, dynamic_cast<ocl_sbvh_po_t*>(sbvh), 0, *ctx, "sbvh.ocl", "sbvh_po_is");
-		
-		///
+// 		
+// 		///
 		ctor = new ocl::sbvh_constructor<sbvh_oi_ctor_t, std_bbvh_ctor_with_sa_t>(*ctx, std_bbvh_ctor_with_sa_t::spatial_median);
 		sbvh = ctor->build(&triangle_lists.front());
 		

@@ -33,10 +33,10 @@ namespace rta {
 					tri_buffer->copy_to_buffer_blocking(&this->triangles[0], 0, sizeof(tri_t) * this->triangles.size());
 					node_buffer->copy_to_buffer_blocking(&this->nodes[0], 0, node_size * this->nodes.size());
 					std::cout << "---> " << typeid(this->nodes[0]).name() << std::endl;
-					typename order_independent_sbvh<forward_traits>::node n = this->nodes[0];
-					std::cout << "inner? " << n.inner() << std::endl;
-					std::cout << "children? " << n.children() << std::endl;
-					std::cout << "code? " << n.raycodes() << std::endl;
+// 					typename order_independent_sbvh<forward_traits>::node n = this->nodes[0];
+// 					std::cout << "inner? " << n.inner() << std::endl;
+// 					std::cout << "children? " << n.children() << std::endl;
+// 					std::cout << "code? " << n.raycodes() << std::endl;
 				}
 		};
 		

@@ -25,7 +25,6 @@ bool intersect_tri_opt(const triangle *t, const vec3f *ray_origin, const vec3f *
 
 typedef uint link_t;
 
-/*
 typedef struct {
 	uint type_elems;
 	uint skip_tris;
@@ -59,11 +58,14 @@ __kernel void sbvh_po_is(__global ray *rays,
 	int curr = 0;
 	ray r = rays[gid];
 
+	float ist = FLT_MAX;
+
 	while (curr < end) {
 		sbvh_po node = bvh[curr];
 		if (sbvh_po_inner(&node)) {
 			float dist;
-			if (intersect_aabb(&node.box, &r.origin, &r.dir, &dist))
+			bool hit = intersect_aabb(&node.box, &r.origin, &r.dir, &dist);
+			if (hit && dist < ist)
 				curr++;
 			else
 				curr = sbvh_po_skip(&node);
@@ -76,6 +78,7 @@ __kernel void sbvh_po_is(__global ray *rays,
 				triangle_intersection tmp_is;
 				if (intersect_tri_opt(&t, &r.origin, &r.dir, &tmp_is))
 					if (tmp_is.t < is[gid].t) {
+						ist = tmp_is.t;
 						tmp_is.ref = o+i;
 						is[gid] = tmp_is;
 					}
@@ -84,7 +87,6 @@ __kernel void sbvh_po_is(__global ray *rays,
 		}
 	}
 }
-*/
 
 /////////////////////////////////
 			
