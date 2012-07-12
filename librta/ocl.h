@@ -107,6 +107,56 @@ namespace rta {
 				int depth() { return n; }
 		};
 
+		template<box_t__and__tri_t> class raytracer_ocl_addon : public ocl_support {
+				typedef typename ocl::bouncer_buffer_addon<forward_traits> bouncer_buffer_addon_t;
+				typedef typename ocl::raygen_buffer_addon raygen_buffer_addon_t;
+			protected:
+				cl::program *prog;
+				cl::kernel *kernel;
+				cl::buffer *is_buf;
+				bouncer_buffer_addon_t *bba;
+				raygen_buffer_addon_t *rba;
+				ocl::stackspace *stack;
+
+				/* remove me!!  TODO
+				 */
+				std::string read_file(const std::string &filename)
+				{
+					std::ifstream in(filename.c_str());
+					std::string str;
+					while (in) 
+					{
+						std::string line;
+						std::getline(in, line);
+						str += line + "\n";
+					}
+					return str;
+				}
+
+			public:
+				raytracer_ocl_addon(cl::context &c, const std::string &sourcefile, const std::string &kernelname) 
+				: ocl_support(c), prog(0), kernel(0), is_buf(0), bba(0), rba(0), stack(0) {
+					prog = new cl::program(read_file(sourcefile), c, "-cl-nv-verbose");
+					kernel = new cl::kernel(prog->kernel(kernelname));
+				}
+
+				void ray_bouncer(rta::bouncer  *rb) {
+					bba = dynamic_cast<bouncer_buffer_addon_t*>(rb);
+					if (bba == 0)
+						throw std::logic_error("while setting ray bouncer to cl rt addon: bouncer \"" + 
+						                       rb->identification() + "\" does not have an opencl buffer attachment.");
+				}
+
+				void ray_generator(rta::ray_generator *rg) {
+					rba = dynamic_cast<raygen_buffer_addon_t*>(rg);
+					if (rba == 0)
+						throw std::logic_error("while setting ray generator to cl rt addon: ray generator \"" + 
+						                       rg->identification() + "\" does not have an opencl buffer attachment.");
+					if (!stack) stack = new ocl::stackspace(rg->res_x(), rg->res_y(), 64, opencl);
+				}
+	
+		};
+
 		bool using_ocl();
 		extern cl::context *context;
 	

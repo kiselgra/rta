@@ -59,67 +59,41 @@ namespace rta {
 				}
 		};
 
-		template<box_t__and__tri_t, typename bvh_t_> class bbvh_gpu_tracer : public basic_raytracer<forward_traits> {
+		template<box_t__and__tri_t, typename bvh_t_> 
+		class bbvh_gpu_tracer : public basic_raytracer<forward_traits>, public ocl::raytracer_ocl_addon<forward_traits> {
 			public:
 				typedef bvh_t_ bbvh_t;
 				typedef typename bbvh_t::node_t node_t;
-				typedef typename ocl::bouncer_buffer_addon<forward_traits> bouncer_buffer_addon_t;
-				typedef typename ocl::raygen_buffer_addon raygen_buffer_addon_t;
 				using basic_raytracer<forward_traits>::raygen;
 				using basic_raytracer<forward_traits>::cpu_bouncer;
-				cl::context &ctx;
-				cl::program *prog;
-				cl::kernel *kernel;
-				cl::buffer *is_buf;
-				bouncer_buffer_addon_t *bba;
-				raygen_buffer_addon_t *rba;
+				// required because of template base:
+				using ocl::raytracer_ocl_addon<forward_traits>::kernel;
+				using ocl::raytracer_ocl_addon<forward_traits>::opencl;
+				using ocl::raytracer_ocl_addon<forward_traits>::rba;
+				using ocl::raytracer_ocl_addon<forward_traits>::bba;
+				using ocl::raytracer_ocl_addon<forward_traits>::stack;
 				bbvh_t *bbvh;
-				ocl::stackspace *stack;
 		
-				/* remove me!!  TODO
-				 */
-				std::string read_file(const std::string &filename)
-				{
-					std::ifstream in(filename.c_str());
-					std::string str;
-					while (in) 
-					{
-						std::string line;
-						std::getline(in, line);
-						str += line + "\n";
-					}
-					return str;
-				}
-
 				bbvh_gpu_tracer(rta::ray_generator *gen, bbvh_t *bvh, class bouncer *b, cl::context &c, 
 				                const std::string &sourcefile, const std::string &kernelname)
-				: basic_raytracer<forward_traits>(gen, b, bvh), bbvh(bvh), ctx(c), stack(0) {
-					prog = new cl::program(read_file(sourcefile), c, "-cl-nv-verbose");
-					kernel = new cl::kernel(prog->kernel(kernelname));
-
+				: basic_raytracer<forward_traits>(gen, b, bvh), 
+				  ocl::raytracer_ocl_addon<forward_traits>(c, sourcefile, kernelname),
+				  bbvh(bvh) {
 					if (b) ray_bouncer(b);
 					if (gen) ray_generator(gen);
 				}
 
 				virtual void ray_bouncer(bouncer *rb) {
 					basic_raytracer<forward_traits>::ray_bouncer(rb);
-					bba = dynamic_cast<bouncer_buffer_addon_t*>(rb);
-					if (bba == 0)
-						throw std::logic_error("while creating ray tracer \"" + identification() + "\": bouncer \"" + 
-						                       rb->identification() + "\" does not have an opencl buffer attachment.");
+					raytracer_ocl_addon<forward_traits>::ray_bouncer(rb);
 				}
-
 				virtual void ray_generator(rta::ray_generator *rg) { 
 					basic_raytracer<forward_traits>::ray_generator(rg);
-					rba = dynamic_cast<raygen_buffer_addon_t*>(rg);
-					if (rba == 0)
-						throw std::logic_error("while creating ray tracer \"" + identification() + "\": ray generator \"" + 
-						                       rg->identification() + "\" does not have an opencl buffer attachment.");
-					stack = new ocl::stackspace(rg->res_x(), rg->res_y(), 64, ctx);
+					raytracer_ocl_addon<forward_traits>::ray_generator(rg);
 				}
-				
+			
 				virtual float trace_rays() {
-					clFinish(ctx.command_queue);
+					clFinish(opencl.command_queue);
 					wall_time_timer wtt; wtt.start();
 
 					kernel->start_params();
@@ -131,7 +105,7 @@ namespace rta {
 					kernel->run(cl::work_size(raygen->res_x(), raygen->res_y()), 
 					            cl::work_size(16, 16));
 
-					int err = clFinish(ctx.command_queue);
+					int err = clFinish(opencl.command_queue);
 					check_for_cl_error(err, "after kernel");
 					float ms = wtt.look();
 					return ms;
