@@ -487,22 +487,23 @@ namespace rta {
 				c = (node->raycodes() & c) >> code;
 				return node->children() + c;
 			}
-			// TODO: check for performance bug? unnecessary stuff...
+			// TODO: check for performance bug? unnecessary stuff... {{{
 			uint skip_(node_t *node, int node_id, const uint8_t code) {
+				std::cout << "NOT this one" << std::endl;
 				uint parent_id = node->parent();
 				node_t *parent = &sbvh->nodes[parent_id];
 				if (parent_id == node_id)
 					return 0;
 				
 				uint8_t c = 1<<code;
-				c = (node->raycodes() & c) >> code;
+				c = (node->raycodes() & c) >> code; // bug: parent->rc...
 
 				uint parent_right = parent->children() + 1 - c;
 				if (parent_right == node_id)
 					return skip_(parent, parent_id, code);
 				else
 					return parent_right;
-			}
+			} // }}}
 			uint skip(node_t *node, int node_id, const uint8_t code) {
 				if (node_id == 0) return 0;
 				uint parent_id = node->parent();
@@ -556,4 +557,6 @@ namespace rta {
 }
 
 #endif
+
+/* vim: set foldmethod=marker: */
 

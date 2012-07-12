@@ -30,6 +30,11 @@ namespace rta {
 					std::cout << "downloading intersection data " << w << " " << h << std::endl;
 					gpu_intersections->copy_from_buffer_blocking(to, 0, sizeof(triangle_intersection<tri_t>) * w * h);
 					std::cout << "done" << std::endl;
+					triangle_intersection<tri_t> x = ((triangle_intersection<tri_t>*)to)[0];
+					std::cout << "t: " << x.t << "\tb: " << x.beta << "\tg: " << x.gamma << "\tr: " << x.ref << std::endl;
+					triangle_intersection<tri_t> y = ((triangle_intersection<tri_t>*)to)[1];
+					std::cout << "t: " << y.t << "\tb: " << y.beta << "\tg: " << y.gamma << "\tr: " << y.ref << std::endl;
+// 					exit(0);
 					clFinish(opencl.command_queue);
 				}
 		};

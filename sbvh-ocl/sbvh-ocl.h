@@ -6,6 +6,8 @@
 
 #include "librta/ocl.h"
 
+#include <typeinfo>
+
 namespace rta {
 	namespace ocl {
 
@@ -30,6 +32,11 @@ namespace rta {
 					              "The node size is not as expected here. Should this be so, how is it transferred to CL?");
 					tri_buffer->copy_to_buffer_blocking(&this->triangles[0], 0, sizeof(tri_t) * this->triangles.size());
 					node_buffer->copy_to_buffer_blocking(&this->nodes[0], 0, node_size * this->nodes.size());
+					std::cout << "---> " << typeid(this->nodes[0]).name() << std::endl;
+					typename order_independent_sbvh<forward_traits>::node n = this->nodes[0];
+					std::cout << "inner? " << n.inner() << std::endl;
+					std::cout << "children? " << n.children() << std::endl;
+					std::cout << "code? " << n.raycodes() << std::endl;
 				}
 		};
 		
@@ -65,10 +72,21 @@ namespace rta {
 				}
 		};
 
-		template<box_t__and__tri_t, typename sbvh_t> class sbvh_gpu_tracer : public bbvh_gpu_tracer<forward_traits, sbvh_t> {
+		template<box_t__and__tri_t, typename sbvh_t> class sbvh_oi_gpu_tracer : public bbvh_gpu_tracer<forward_traits, sbvh_t> {
 				sbvh_t *sbvh;
 			public:
-				sbvh_gpu_tracer(rta::ray_generator *gen, sbvh_t *bvh, class bouncer *b, cl::context &c, 
+				sbvh_oi_gpu_tracer(rta::ray_generator *gen, sbvh_t *bvh, class bouncer *b, cl::context &c, 
+				                const std::string &sourcefile, const std::string &kernelname)
+				: bbvh_gpu_tracer<forward_traits, sbvh_t>(gen, bvh, b, c, sourcefile, kernelname), sbvh(bvh) {
+				}
+				virtual std::string identification() { return "sbvh_tracer using ocl (based on " + bbvh_gpu_tracer<forward_traits, sbvh_t>::identification() + ")"; }
+		};
+
+
+		template<box_t__and__tri_t, typename sbvh_t> class sbvh_po_gpu_tracer : public bbvh_gpu_tracer<forward_traits, sbvh_t> {
+				sbvh_t *sbvh;
+			public:
+				sbvh_po_gpu_tracer(rta::ray_generator *gen, sbvh_t *bvh, class bouncer *b, cl::context &c, 
 				                const std::string &sourcefile, const std::string &kernelname)
 				: bbvh_gpu_tracer<forward_traits, sbvh_t>(gen, bvh, b, c, sourcefile, kernelname), sbvh(bvh) {
 				}

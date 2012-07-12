@@ -124,21 +124,38 @@ extern "C" {
 		typedef simple_triangle tri_t;
 		typedef simple_aabb box_t;
 		typedef binary_bvh<box_t, tri_t> bbvh_t;
-		typedef preorder_stackless_bvh<box_t, tri_t> std_sbvh_po_t;
-		typedef ocl::sbvh<box_t, tri_t, std_sbvh_po_t> ocl_sbvh_po_t;
-		typedef bbvh_constructor_using_median<bbvh_t> std_bbvh_ctor_t;
-		typedef sbvh_preorder_constructor<ocl_sbvh_po_t, std_bbvh_ctor_t> sbvh_po_ctor_t;
+		typedef binary_bvh_with_split_axis<box_t, tri_t> bbvh_with_sa_t;
 
+		typedef preorder_stackless_bvh<box_t, tri_t> std_sbvh_po_t;
+		typedef order_independent_sbvh<box_t, tri_t> std_sbvh_oi_t;
+
+		typedef ocl::sbvh<box_t, tri_t, std_sbvh_po_t> ocl_sbvh_po_t;
+		typedef ocl::sbvh<box_t, tri_t, std_sbvh_oi_t> ocl_sbvh_oi_t;
+
+		typedef bbvh_constructor_using_median<bbvh_t> std_bbvh_ctor_t;
+		typedef bbvh_constructor_using_median<bbvh_with_sa_t> std_bbvh_ctor_with_sa_t;
+
+		typedef sbvh_preorder_constructor<ocl_sbvh_po_t, std_bbvh_ctor_t> sbvh_po_ctor_t;
+		typedef sbvh_constructor<ocl_sbvh_oi_t, std_bbvh_ctor_with_sa_t> sbvh_oi_ctor_t;
 
 		acceleration_structure_constructor<box_t, tri_t> *ctor = 0;
 		acceleration_structure<box_t, tri_t> *sbvh = 0;
-
-		ctor = new ocl::sbvh_constructor<sbvh_po_ctor_t, std_bbvh_ctor_t>(*ctx, std_bbvh_ctor_t::spatial_median);
-		sbvh = ctor->build(&triangle_lists.front());
-	
 		basic_raytracer<box_t, tri_t> *rt = 0;
 
-		rt = new ocl::sbvh_gpu_tracer<box_t, tri_t, ocl_sbvh_po_t>(0, dynamic_cast<ocl_sbvh_po_t*>(sbvh), 0, *ctx, "sbvh.ocl", "sbvh_po_is");
+		///
+// 		ctor = new ocl::sbvh_constructor<sbvh_po_ctor_t, std_bbvh_ctor_t>(*ctx, std_bbvh_ctor_t::spatial_median);
+// 		sbvh = ctor->build(&triangle_lists.front());
+// 	
+// 		rt = new ocl::sbvh_po_gpu_tracer<box_t, tri_t, ocl_sbvh_po_t>(0, dynamic_cast<ocl_sbvh_po_t*>(sbvh), 0, *ctx, "sbvh.ocl", "sbvh_po_is");
+		
+		///
+		ctor = new ocl::sbvh_constructor<sbvh_oi_ctor_t, std_bbvh_ctor_with_sa_t>(*ctx, std_bbvh_ctor_with_sa_t::spatial_median);
+		sbvh = ctor->build(&triangle_lists.front());
+		
+// 		rt = new ocl::sbvh_oi_gpu_tracer<box_t, tri_t, ocl_sbvh_oi_t>(0, dynamic_cast<ocl_sbvh_oi_t*>(sbvh), 0, *ctx, "sbvh.ocl", "sbvh_oi_is");
+// 		rt = new ocl::sbvh_oi_gpu_tracer<box_t, tri_t, ocl_sbvh_oi_t>(0, dynamic_cast<ocl_sbvh_oi_t*>(sbvh), 0, *ctx, "sbvh-debug.ocl", "sbvh_oi_is_debug");
+// 		rt = new ocl::sbvh_oi_gpu_tracer<box_t, tri_t, ocl_sbvh_oi_t>(0, dynamic_cast<ocl_sbvh_oi_t*>(sbvh), 0, *ctx, "sbvh-debug.ocl", "sbvh_oi_is_debug2");
+		rt = new ocl::sbvh_oi_gpu_tracer<box_t, tri_t, ocl_sbvh_oi_t>(0, dynamic_cast<ocl_sbvh_oi_t*>(sbvh), 0, *ctx, "sbvh-debug.ocl", "sbvh_oi_is_debug3");
 
 		/*
 		typedef ocl::binary_bvh<box_t, tri_t> obvh_t;

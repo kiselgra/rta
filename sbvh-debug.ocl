@@ -25,66 +25,6 @@ bool intersect_tri_opt(const triangle *t, const vec3f *ray_origin, const vec3f *
 
 typedef uint link_t;
 
-/*
-typedef struct {
-	uint type_elems;
-	uint skip_tris;
-	aabb box;
-} sbvh_po;
-
-bool sbvh_po_inner(sbvh_po *n)   { return (n->type_elems&0x01)==1; }
-uint sbvh_po_elems(sbvh_po *n)   { return n->type_elems>>1; }
-link_t sbvh_po_skip(sbvh_po *n)  { return n->skip_tris; }
-uint sbvh_po_tris(sbvh_po *n)    { return n->skip_tris; }
-
-__kernel void sbvh_po_is(__global ray *rays, 
-                         __global sbvh_po *bvh, 
-                         __global triangle *tris, 
-                         __global uint *stack, 
-                         __global triangle_intersection *is,
-						 int end) {
-	uint gid, stack_offset;
-	{
-		uint x = get_global_id(0);
-		uint y = get_global_id(1);
-		uint w = get_global_size(0);
-		uint h = get_global_size(1);
-		gid = y*w + x;
-		stack_offset = w*h;
-	}
-	
-	is[gid].t = FLT_MAX;
-		
-	stack[gid] = 0;
-	int curr = 0;
-	ray r = rays[gid];
-
-	while (curr < end) {
-		sbvh_po node = bvh[curr];
-		if (sbvh_po_inner(&node)) {
-			float dist;
-			if (intersect_aabb(&node.box, &r.origin, &r.dir, &dist))
-				curr++;
-			else
-				curr = sbvh_po_skip(&node);
-		}
-		else {
-			int n = sbvh_po_elems(&node);
-			int o = sbvh_po_tris(&node);
-			for (int i = 0; i < n; ++i) {
-				triangle t = tris[o+i];
-				triangle_intersection tmp_is;
-				if (intersect_tri_opt(&t, &r.origin, &r.dir, &tmp_is))
-					if (tmp_is.t < is[gid].t) {
-						tmp_is.ref = o+i;
-						is[gid] = tmp_is;
-					}
-			}
-			curr++;
-		}
-	}
-}
-*/
 
 /////////////////////////////////
 			
@@ -103,41 +43,14 @@ link_t sbvh_oi_tris(sbvh_oi *n)              { return n->children_tris>>8; }
 link_t sbvh_oi_elems(sbvh_oi *n)             { return n->children_tris&255; }
 uchar sbvh_oi_raycodes(sbvh_oi *n) { return (uchar)(n->children_tris&255); }
 
+link_t x_parent(uint x)            { return x>>1; }
+uchar x_raycodes(uint x) 			 { return (uchar)(x&255); }
 
-uint sbvh_oi_skip(sbvh_oi *node, int node_id, const uint code, __global sbvh_oi *bvh) {//, __global triangle_intersection *is) {
-	uchar c = 1<<code;
-	while (node_id != 0) {
-		uint parent_id = sbvh_oi_parent(node);
-		sbvh_oi parent = bvh[parent_id];
-
-		c = (sbvh_oi_raycodes(&parent) & c) >> code;
-
-		uint parent_right = sbvh_oi_children(&parent) + 1 - c;
-
-		if (parent_right != node_id)
-			return parent_right;
-
-		// emulate recursive call
-		node_id = parent_id;
-		*node = parent;
-	}
-	return 0;
-}
-
-uint sbvh_oi_next(sbvh_oi *node, const uint code) {
-// 	uint8_t c = 1<<code;
-// 	c = (node->raycodes() & c) >> code;
-// 	return node->children() + c;
-	uint c = 1<<code;
-	c = (sbvh_oi_raycodes(node) & c) >> code;
-	return sbvh_oi_children(node) + c;
-}
-
-__kernel void sbvh_oi_is(__global ray *rays, 
-                         __global sbvh_oi *bvh, 
-                         __global triangle *tris, 
-                         __global uint *stack, 
-                         __global triangle_intersection *is) {
+__kernel void sbvh_oi_is_debug(__global ray *rays, 
+                               __global sbvh_oi *bvh, 
+                               __global triangle *tris, 
+                               __global uint *stack, 
+                               __global triangle_intersection *is) {
 	uint gid, stack_offset;
 	{
 		uint x = get_global_id(0);
@@ -149,44 +62,22 @@ __kernel void sbvh_oi_is(__global ray *rays,
 	}
 	
 	is[gid].t = FLT_MAX;
-	is[gid].ref = 0;	//debug
-	is[gid].beta = is[gid].gamma = 0;
-		
-	stack[gid] = 0;
-	int curr = 0;
-	ray r = rays[gid];
-	
-	uint ray_code = 0;
-	if (r.dir.x < 0) ray_code += 1;
-	if (r.dir.y < 0) ray_code += 2;
-	if (r.dir.z < 0) ray_code += 4;
-				
-// 	int i = 0;
-	do {
-// 		++i;
-// 		if (i == 10000) { is[gid].beta = 99; break; }
 
-		sbvh_oi node = bvh[curr];
+	stack[gid] = 0;
+	int sp = 0;
+	ray r = rays[gid];
+
+	while (sp >= 0) {
+		uint node_id = stack[sp--*stack_offset + gid];
+		sbvh_oi node = bvh[node_id];
 		if (sbvh_oi_inner(&node)) {
 			float dist;
 			if (intersect_aabb(&node.box, &r.origin, &r.dir, &dist)) {
-				curr = sbvh_oi_next(&node, ray_code);
+				stack[++sp*stack_offset + gid] = sbvh_oi_right(&node);
+				stack[++sp*stack_offset + gid] = sbvh_oi_left(&node);
 			}
-			else {
-				curr = sbvh_oi_skip(&node, curr, ray_code, bvh);
-			}
-		/*
-			float dist;
-			if (intersect_aabb(&node.box, &r.origin, &r.dir, &dist))
-				curr = sbvh_oi_next(&node, ray_code);
-			else
-				curr = sbvh_oi_skip(&node, curr, ray_code, bvh);
-		*/
 		}
-		else { 
-			is[gid].gamma = 11; 
-		
-			/*
+		else {
 			int n = sbvh_oi_elems(&node);
 			int o = sbvh_oi_tris(&node);
 			for (int i = 0; i < n; ++i) {
@@ -198,19 +89,197 @@ __kernel void sbvh_oi_is(__global ray *rays,
 						is[gid] = tmp_is;
 					}
 			}
-			*/
-			is[gid].t = 1;
-			is[gid].ref = 0;
-
-			curr = sbvh_oi_skip(&node, curr, ray_code, bvh); 
 		}
+	}
 
-// 		if (curr == 0) { is[gid].ref = 22; break; }
-	} while (curr != 0);
-
-// 	is[gid].ref = i;
-// 	is[gid].t = 123;
 }
+
+///////////////////////////
+
+uint next(sbvh_oi *node) {
+	return sbvh_oi_left(node);
+}
+
+uint skip(sbvh_oi *node_, uint node_id_, __global sbvh_oi *bvh) {
+	uint parent_id, parent_right;
+	sbvh_oi node = *node_;
+	uint node_id = node_id_;
+
+	while (node_id != 0) {
+		parent_id      = sbvh_oi_parent(&node);
+		sbvh_oi parent = bvh[parent_id];
+		parent_right   = sbvh_oi_right(&parent);
+		if (parent_right == node_id) {
+			node = parent;
+			node_id = parent_id;
+		}
+		else	
+			return parent_right;
+	}
+	return 0;
+
+}
+
+__kernel void sbvh_oi_is_debug2(__global ray *rays, 
+                               __global sbvh_oi *bvh, 
+                               __global triangle *tris, 
+                               __global uint *stack, 
+                               __global triangle_intersection *is) {
+	uint gid, stack_offset;
+	{
+		uint x = get_global_id(0);
+		uint y = get_global_id(1);
+		uint w = get_global_size(0);
+		uint h = get_global_size(1);
+		gid = y*w + x;
+		stack_offset = w*h;
+	}
+	
+	is[gid].t = FLT_MAX;
+	ray r = rays[gid];
+	int node_id = 0;
+	
+	do {
+		sbvh_oi node = bvh[node_id];
+		if (sbvh_oi_inner(&node)) {
+			float dist;
+			if (intersect_aabb(&node.box, &r.origin, &r.dir, &dist))
+				node_id = next(&node);
+			else
+				node_id = skip(&node, node_id, bvh);
+		}
+		else {
+			int n = sbvh_oi_elems(&node);
+			int o = sbvh_oi_tris(&node);
+			for (int i = 0; i < n; ++i) {
+				triangle t = tris[o+i];
+				triangle_intersection tmp_is;
+				if (intersect_tri_opt(&t, &r.origin, &r.dir, &tmp_is))
+					if (tmp_is.t < is[gid].t) {
+						tmp_is.ref = o+i;
+						is[gid] = tmp_is;
+					}
+			}
+			node_id = skip(&node, node_id, bvh);
+		}
+	} while (node_id != 0);
+}
+
+///////////////////////
+
+typedef uint code_t;
+
+code_t compute_ray_code(const vec3f *dir) {
+	code_t code = 0;
+	if (dir->x < 0) code += 1;
+	if (dir->y < 0) code += 2;
+	if (dir->z < 0) code += 4;
+	return code;
+}
+
+uint next2(sbvh_oi *node, code_t code) {
+	uchar c = (1<<code);
+	c = ((sbvh_oi_raycodes(node) & c) >> code);
+	uint left = sbvh_oi_children(node) + c;	// plus1 if we switch.
+	return left;
+}
+
+uint skip2(sbvh_oi *node_, uint node_id_, code_t code, __global sbvh_oi *bvh) {
+	uint parent_id, parent_right;
+	sbvh_oi node = *node_;
+	uint node_id = node_id_;
+
+	while (node_id != 0) {
+		parent_id      = sbvh_oi_parent(&node);
+		sbvh_oi parent = bvh[parent_id];
+
+		uchar c = (1<<code);
+		c = ((sbvh_oi_raycodes(&parent) & c) >> code);
+		uint parent_right = sbvh_oi_children(&parent) + 1 - c;
+
+// 		parent_right   = sbvh_oi_right(&parent);
+		if (parent_right == node_id) {
+			node = parent;
+			node_id = parent_id;
+		}
+		else	
+			return parent_right;
+	}
+	return 0;
+
+}
+
+/*
+uint skip3(sbvh_oi *node, uint node_id_, code_t code, __global sbvh_oi *bvh) {
+	uint parent_id, parent_right;
+	uint node_id = node_id_;
+
+	while (node_id != 0) {
+		parent_id      = sbvh_oi_parent(node);
+
+		uchar c = (1<<code);
+		c = ((sbvh_oi_raycodes(&parent) & c) >> code);
+		uint parent_right = sbvh_oi_children(&parent) + 1 - c;
+
+		if (parent_right == node_id) {
+			*node = parent;
+			node_id = parent_id;
+		}
+		else	
+			return parent_right;
+	}
+	return 0;
+
+}
+*/
+
+
+__kernel void sbvh_oi_is_debug3(__global ray *rays, 
+                               __global sbvh_oi *bvh, 
+                               __global triangle *tris, 
+                               __global uint *stack, 
+                               __global triangle_intersection *is) {
+	uint gid, stack_offset;
+	{
+		uint x = get_global_id(0);
+		uint y = get_global_id(1);
+		uint w = get_global_size(0);
+		uint h = get_global_size(1);
+		gid = y*w + x;
+		stack_offset = w*h;
+	}
+	
+	is[gid].t = FLT_MAX;
+	ray r = rays[gid];
+	code_t code = compute_ray_code(&r.dir);
+	int node_id = 0;
+
+	do {
+		sbvh_oi node = bvh[node_id];
+		if (sbvh_oi_inner(&node)) {
+			float dist;
+			if (intersect_aabb(&node.box, &r.origin, &r.dir, &dist))
+				node_id = next2(&node, code);
+			else
+				node_id = skip2(&node, node_id, code, bvh);
+		}
+		else {
+			int n = sbvh_oi_elems(&node);
+			int o = sbvh_oi_tris(&node);
+			for (int i = 0; i < n; ++i) {
+				triangle t = tris[o+i];
+				triangle_intersection tmp_is;
+				if (intersect_tri_opt(&t, &r.origin, &r.dir, &tmp_is))
+					if (tmp_is.t < is[gid].t) {
+						tmp_is.ref = o+i;
+						is[gid] = tmp_is;
+					}
+			}
+			node_id = skip2(&node, node_id, code, bvh);
+		}
+	} while (node_id != 0);
+}
+
 
 /////////////////////////////////
 
