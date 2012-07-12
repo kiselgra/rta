@@ -92,6 +92,8 @@ namespace rta {
 					raytracer_ocl_addon<forward_traits>::ray_generator(rg);
 				}
 			
+				virtual void kernel_args() {}
+
 				virtual float trace_rays() {
 					clFinish(opencl.command_queue);
 					wall_time_timer wtt; wtt.start();
@@ -102,6 +104,7 @@ namespace rta {
 					kernel->add_param(bbvh->tri_buffer, "the triangle array");
 					kernel->add_param(stack->buffer(), "the stack");
 					kernel->add_param(bba->buffer(), "the intersection output buffer");
+					kernel_args();
 					kernel->run(cl::work_size(raygen->res_x(), raygen->res_y()), 
 					            cl::work_size(16, 16));
 
@@ -110,7 +113,7 @@ namespace rta {
 					float ms = wtt.look();
 					return ms;
 				}
-				virtual std::string identification() { return "bbvh_direct_is_tracer using ocl"; }
+				virtual std::string identification() { return "bbvh_tracer using ocl (kernel: " + kernel->name + ")"; }
 
 		};
 

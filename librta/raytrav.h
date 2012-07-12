@@ -133,6 +133,7 @@ template<box_t__and__tri_t> class lighting_collector {
 						mul_vec3f_by_scalar(&c, &l.col, dot);
 						add_components_vec3f(&col, &col, &c);
 					}
+// 					col.x = col.y = col.z = 1;
 					res.pixel(x,y,0) = std::min(int(col.x*255), 255);
 					res.pixel(x,y,1) = std::min(int(col.y*255), 255);
 					res.pixel(x,y,2) = std::min(int(col.z*255), 255);

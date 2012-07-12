@@ -4,5 +4,6 @@
 SUBDIRS = librta rta bbvh sphs #wrapper-for-librctest 
 SUBDIRS += sbvh 
 SUBDIRS += bbvh-ocl 
+SUBDIRS += sbvh-ocl 
 
 ACLOCAL_AMFLAGS = -I m4

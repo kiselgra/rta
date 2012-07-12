@@ -75,12 +75,14 @@ namespace rta {
 	/*! ctor for the general sbvh version. see stackless_bvh. */
 	template<typename sbvh_t, typename bvh_ctor_t, typename bias_t = bbvh_no_bias> 
 	class sbvh_constructor : public acceleration_structure_constructor<typename sbvh_t::box_t, typename sbvh_t::tri_t> {
-		protected:
+		public:
 			typedef typename bvh_ctor_t::bvh_t bbvh_t;
+			typedef sbvh_t bvh_t;
 			typedef typename sbvh_t::box_t box_t;
 			typedef typename sbvh_t::tri_t tri_t;
 			typedef typename sbvh_t::link_t link_t;
 
+		protected:
 			bvh_ctor_t bbvh_ctor;
 
 			int next_free_node;
@@ -191,9 +193,10 @@ namespace rta {
 	
 	template<typename sbvh_t, typename bvh_ctor_t, typename bias_t = bbvh_no_bias> 
 	class sbvh_preorder_constructor : public acceleration_structure_constructor<typename sbvh_t::box_t, typename sbvh_t::tri_t> {
-		protected:
+		public:
 			typedef typename sbvh_t::box_t box_t;
 			typedef typename sbvh_t::tri_t tri_t;
+			typedef sbvh_t bvh_t;
 		private:
 			/*! we use this fat implementation of the template interface defined in stackless_bvh<>
 			 *  to construct a sbvh (via the generic sbvh ctor) which we can extend to insert a preoder
@@ -237,12 +240,13 @@ namespace rta {
 			};
 
 
-		protected:
+		public:
 			typedef typename bvh_ctor_t::bvh_t bbvh_t;
 			typedef typename sbvh_t::link_t link_t;
 			typedef stackless_bvh<typename sbvh_t::box_t, typename sbvh_t::tri_t> gen_sbvh_t;
 			typedef sbvh_constructor<fat_sbvh, bvh_ctor_t, bias_t> fat_sbvh_ctor_t;
 
+		protected:
 			fat_sbvh_ctor_t fat_sbvh_ctor;
 
 			int next_id;

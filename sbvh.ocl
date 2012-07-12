@@ -1,0 +1,232 @@
+typedef struct {
+	float t, beta, gamma;
+	unsigned int ref;
+} triangle_intersection;
+
+typedef struct {
+	float x,y,z;
+} vec3f;
+
+typedef struct {
+	vec3f min, max;
+} aabb;
+
+typedef struct {
+	uint type_elems;
+	uint skip_tris;
+	aabb box;
+} sbvh_po;
+				
+typedef uint link_t;
+bool sbvh_po_inner(sbvh_po *n)   { return (n->type_elems&0x01)==1; }
+uint sbvh_po_elems(sbvh_po *n)   { return n->type_elems>>1; }
+link_t sbvh_po_skip(sbvh_po *n)  { return n->skip_tris; }
+uint sbvh_po_tris(sbvh_po *n)    { return n->skip_tris; }
+
+typedef struct {
+	vec3f a, b, c;
+	vec3f na, nb, nc;
+} triangle;
+
+typedef struct {
+	vec3f origin, dir;
+} ray;
+
+bool intersect_aabb(const aabb *box, const vec3f *ray_origin, const vec3f *ray_dir, float *is);
+bool intersect_tri_opt(const triangle *t, const vec3f *ray_origin, const vec3f *ray_dir, triangle_intersection *info);
+
+__kernel void sbvh_po_is(__global ray *rays, 
+                         __global sbvh_po *bvh, 
+                         __global triangle *tris, 
+                         __global uint *stack, 
+                         __global triangle_intersection *is,
+						 int end) {
+	uint gid, stack_offset;
+	{
+		uint x = get_global_id(0);
+		uint y = get_global_id(1);
+		uint w = get_global_size(0);
+		uint h = get_global_size(1);
+		gid = y*w + x;
+		stack_offset = w*h;
+	}
+	
+	is[gid].t = FLT_MAX;
+		
+	stack[gid] = 0;
+	int curr = 0;
+	ray r = rays[gid];
+
+	while (curr < end) {
+		sbvh_po node = bvh[curr];
+		if (sbvh_po_inner(&node)) {
+			float dist;
+			if (intersect_aabb(&node.box, &r.origin, &r.dir, &dist))
+				curr++;
+			else
+				curr = sbvh_po_skip(&node);
+		}
+		else {
+			int n = sbvh_po_elems(&node);
+			int o = sbvh_po_tris(&node);
+			for (int i = 0; i < n; ++i) {
+				triangle t = tris[o+i];
+				triangle_intersection tmp_is;
+				if (intersect_tri_opt(&t, &r.origin, &r.dir, &tmp_is))
+					if (tmp_is.t < is[gid].t) {
+						tmp_is.ref = o+i;
+						is[gid] = tmp_is;
+					}
+			}
+			curr++;
+		}
+	}
+}
+
+typedef float float_t;
+
+	bool intersect_aabb(const aabb *box, const vec3f *ray_origin, const vec3f *ray_dir, float *is)
+	{
+		float_t t_near = -FLT_MAX;
+		float_t t_far  =  FLT_MAX;
+
+		{
+		const float_t d_x = ray_dir->x;
+		const float_t e_x = ray_origin->x;
+		const float_t x_max = box->max.x;
+		const float_t x_min = box->min.x;
+		
+		if (d_x == 0)
+		{
+			if (e_x < x_min || e_x > x_max)
+				return false;
+		}
+		else
+		{
+			float_t t1 = (x_min - e_x) / d_x;
+			float_t t2 = (x_max - e_x) / d_x;
+
+			if (t1 > t2)	{	float_t tmp = t1;	t1 = t2; t2 = tmp; 	}
+
+			if (t1 > t_near)	t_near = t1;
+			if (t2 < t_far)		t_far = t2;
+
+			if (t_near > t_far)	// box missed
+				return false;
+
+			if (t_far < 0)		// box behind ray
+				return false;
+		}
+		}
+		{
+		
+		const float_t d_y = ray_dir->y;
+		const float_t e_y = ray_origin->y;
+		const float_t y_max = box->max.y;
+		const float_t y_min = box->min.y;
+
+		if (d_y == 0)
+		{
+			if (e_y < y_min || e_y > y_max)
+				return false;
+		}
+		else
+		{
+			float_t t1 = (y_min - e_y) / d_y;
+			float_t t2 = (y_max - e_y) / d_y;
+
+			if (t1 > t2)	{	float_t tmp = t1;	t1 = t2; t2 = tmp; 	}
+
+			if (t1 > t_near)	t_near = t1;
+			if (t2 < t_far)		t_far = t2;
+
+			if (t_near > t_far)	// box missed
+				return false;
+
+			if (t_far < 0)		// box behind ray
+				return false;
+		}
+		}
+		{
+
+		const float_t d_z = ray_dir->z;
+		const float_t e_z = ray_origin->z;
+		const float_t z_max = box->max.z;
+		const float_t z_min = box->min.z;
+
+		if (d_z == 0)
+		{
+			if (e_z < z_min || e_z > z_max)
+				return false;
+		}
+		else
+		{
+			float_t t1 = (z_min - e_z) / d_z;
+			float_t t2 = (z_max - e_z) / d_z;
+
+			if (t1 > t2)	{	float_t tmp = t1;	t1 = t2; t2 = tmp; }
+
+			if (t1 > t_near)	t_near = t1;
+			if (t2 < t_far)		t_far = t2;
+
+			if (t_near > t_far)	// box missed
+				return false;
+
+			if (t_far < 0)		// box behind ray
+				return false;
+		}
+		}
+
+		*is = t_near;
+		return true;
+	}
+
+	bool intersect_tri_opt(const triangle *t, const vec3f *ray_origin, const vec3f *ray_dir, triangle_intersection *info)
+	{
+		float_t a_x = t->a.x;
+		float_t a_y = t->a.y;
+		float_t a_z = t->a.z;
+		
+		const float_t a = a_x - t->b.x;
+		const float_t b = a_y - t->b.y;
+		const float_t c = a_z - t->b.z;
+		const float_t d = a_x - t->c.x;
+		const float_t e = a_y - t->c.y;
+		const float_t f = a_z - t->c.z;
+		const float_t g = ray_dir->x;
+		const float_t h = ray_dir->y;
+		const float_t i = ray_dir->z;
+		const float_t j = a_x - ray_origin->x;
+		const float_t k = a_y - ray_origin->y;
+		const float_t l = a_z - ray_origin->z;
+
+		float_t common1 = e*i - h*f;
+		float_t common2 = g*f - d*i;
+		float_t common3 = d*h - e*g;
+		float_t M 	= a * common1  +  b * common2  +  c * common3;
+		float_t beta 	= j * common1  +  k * common2  +  l * common3;
+
+		common1 = a*k - j*b;
+		common2 = j*c - a*l;
+		common3 = b*l - k*c;
+		float_t gamma = i * common1  +  h * common2  +  g * common3;
+		float_t tt	= -(f * common1  +  e * common2  +  d * common3);
+			
+		beta /= M;
+		gamma /= M;
+		tt /= M;
+		
+		if (tt > 0)
+			if (beta > 0 && gamma > 0 && beta + gamma <= 1)
+			{
+				info->t = tt;
+				info->beta = beta;
+				info->gamma = gamma;
+				return true;
+			}
+		
+		return false;
+	}	
+
+
+
