@@ -111,7 +111,7 @@ namespace rta {
 					int err = clFinish(opencl.command_queue);
 					check_for_cl_error(err, "after kernel");
 					float ms = wtt.look();
-					std::cout << "< " << ms << " ms >" << std::endl;
+// 					std::cout << "< " << ms << " ms >" << std::endl;
 					return ms;
 				}
 				virtual std::string identification() { return "bbvh_tracer using ocl (kernel: " + kernel->name + ")"; }

@@ -208,8 +208,8 @@ class bbvh_constructor_using_median : public acceleration_structure_constructor<
 					mid = begin + (end-begin)/2;
 				bias_t::apply(begin, mid, end);
 
-				link_t left  = build_om(tris, begin, mid); //!!!!!!
-				link_t right = build_om(tris, mid, end);
+				link_t left  = build_sm(tris, begin, mid); //!!!!!!
+				link_t right = build_sm(tris, mid, end);
 				n = &nodes[id]; // refresh pointer!
 				n->left(left);
 				n->right(right);

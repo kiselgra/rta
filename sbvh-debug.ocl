@@ -209,20 +209,20 @@ uint skip2(sbvh_oi *node_, uint node_id_, code_t code, __global sbvh_oi *bvh) {
 
 }
 
-/*
-uint skip3(sbvh_oi *node, uint node_id_, code_t code, __global sbvh_oi *bvh) {
+uint skip3(sbvh_oi *node, uint node_id, code_t code, __global sbvh_oi *bvh) {
 	uint parent_id, parent_right;
-	uint node_id = node_id_;
 
 	while (node_id != 0) {
-		parent_id      = sbvh_oi_parent(node);
+		parent_id = sbvh_oi_parent(node);
+		node->type_parent    = (bvh+parent_id)->type_parent;
+		node->children_tris  = (bvh+parent_id)->children_tris;
 
 		uchar c = (1<<code);
-		c = ((sbvh_oi_raycodes(&parent) & c) >> code);
-		uint parent_right = sbvh_oi_children(&parent) + 1 - c;
+		c = ((sbvh_oi_raycodes(node) & c) >> code);
+		uint parent_right = sbvh_oi_children(node) + 1 - c;
 
+// 		parent_right   = sbvh_oi_right(&parent);
 		if (parent_right == node_id) {
-			*node = parent;
 			node_id = parent_id;
 		}
 		else	
@@ -231,7 +231,7 @@ uint skip3(sbvh_oi *node, uint node_id_, code_t code, __global sbvh_oi *bvh) {
 	return 0;
 
 }
-*/
+
 
 
 __kernel void sbvh_oi_is_debug3(__global ray *rays, 
@@ -263,7 +263,7 @@ __kernel void sbvh_oi_is_debug3(__global ray *rays,
 			if (hit && dist < ist)
 				node_id = next2(&node, code);
 			else
-				node_id = skip2(&node, node_id, code, bvh);
+				node_id = skip3(&node, node_id, code, bvh);
 		}
 		else {
 			int n = sbvh_oi_elems(&node);
@@ -278,7 +278,7 @@ __kernel void sbvh_oi_is_debug3(__global ray *rays,
 						is[gid] = tmp_is;
 					}
 			}
-			node_id = skip2(&node, node_id, code, bvh);
+			node_id = skip3(&node, node_id, code, bvh);
 		}
 	} while (node_id != 0);
 }
