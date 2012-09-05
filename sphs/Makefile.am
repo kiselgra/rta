@@ -20,3 +20,5 @@ sphs_SOURCES = 	main.cpp \
 # setting c preprocessor flags for main project
 sphs_CPPFLAGS = -D PACKAGE=\"$(PACKAGE)\" -D VERSION=\"$(VERSION)\"
 #objtool_LDADD = @VEC_LIBS@
+
+EXTRA_DIST = sphere0.ply sphere1.ply sphere2.ply
