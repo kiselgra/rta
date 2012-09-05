@@ -402,8 +402,10 @@ int main(int argc, char **argv) {
 
 		if (!ocl::using_ocl())
 			set.bouncer = new direct_diffuse_illumination<box_t, tri_t>(res_x, res_y);
+#if RTA_HAVE_LIBLUMOCL == 1
 		else
 			set.bouncer = new ocl::direct_diffuse_illumination<box_t, tri_t>(res_x, res_y, *ocl::context);
+#endif
 
 		set.rt->ray_bouncer(set.bouncer);
 		if (set.rgen) {

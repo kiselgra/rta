@@ -1,5 +1,7 @@
 #include "librta/ocl.h"
 
+#if RTA_HAVE_LIBLUMOCL == 1
+
 using namespace std;
 
 namespace rta {
@@ -12,6 +14,18 @@ namespace rta {
 
 	}
 }
+
+#else
+
+namespace rta {
+	namespace ocl {
+		bool using_ocl() {
+			return false;
+		}
+	}
+}
+
+#endif
 
 /* vim: set foldmethod=marker: */
 

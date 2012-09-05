@@ -10,6 +10,7 @@ AC_CONFIG_SRCDIR([rta/main.cpp])
 AC_CONFIG_HEADER([config.h])
 AC_CONFIG_FILES(Makefile librta/Makefile rta/Makefile bbvh/Makefile wrapper-for-librctest/Makefile sbvh/Makefile sphs/Makefile bbvh-ocl/Makefile sbvh-ocl/Makefile)
 
+AX_PREFIX_CONFIG_H(librta/rta-config.h)
 
 # Checks for programs.
 AC_PROG_CC
@@ -46,6 +47,10 @@ AC_CHECK_LIB([dl], [main])
 AC_CHECK_LIB([lumocl], [main])
 AC_CHECK_LIB([OpenCL], [main])
 AC_CHECK_LIB([GL], [main])
+AC_CHECK_LIB([GLblub], [main])
+
+AM_CONDITIONAL([opencl], [test "x$ac_cv_lib_lumocl_main" == "xyes"])
+AM_CONDITIONAL([use_librctest], [test "x" == "y"])
 
 # Checks for header files.
 AC_HEADER_STDC

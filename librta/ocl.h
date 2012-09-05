@@ -1,6 +1,33 @@
 #ifndef __OCL_H__ 
 #define __OCL_H__ 
 
+#include "rta-config.h"
+#include <stdint.h>
+
+namespace rta {
+	namespace ocl {
+		bool using_ocl();
+
+		/*! Round up to next higher power of 2 (return x if it's already a power of 2). 
+		 * [http://stackoverflow.com/questions/364985/algorithm-for-finding-the-smallest-power-of-two-thats-greater-or-equal-to-a-giv]
+		 */
+		inline uint32_t pow2roundup(uint32_t x)
+		{
+			if (x <= 0)
+				return 0;
+			--x;
+			x |= x >> 1;
+			x |= x >> 2;
+			x |= x >> 4;
+			x |= x >> 8;
+			x |= x >> 16;
+			return x+1;
+		}
+	}
+}
+
+#if RTA_HAVE_LIBLUMOCL == 1
+
 #include "librta.h"
 
 #include <liblumocl/lumocl.h>
@@ -162,28 +189,13 @@ namespace rta {
 	
 		};
 
-		bool using_ocl();
 		extern cl::context *context;
 	
-		/*! Round up to next higher power of 2 (return x if it's already a power of 2). 
-		 * [http://stackoverflow.com/questions/364985/algorithm-for-finding-the-smallest-power-of-two-thats-greater-or-equal-to-a-giv]
-		 */
-		inline uint32_t pow2roundup(uint32_t x)
-		{
-			if (x <= 0)
-				return 0;
-			--x;
-			x |= x >> 1;
-			x |= x >> 2;
-			x |= x >> 4;
-			x |= x >> 8;
-			x |= x >> 16;
-			return x+1;
-		}
 
 	}
 }
 
+#endif
 
 #endif
 
