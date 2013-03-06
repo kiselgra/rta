@@ -1,0 +1,34 @@
+/*! \mainpage @PACKAGE@ Description 
+ *  \author Kai
+ * 	\version @VERSION@
+ *
+ *  \section main About
+ *
+ 
+ *
+ *
+ * 	\subsection phil Intention
+ *
+ * 	\subsection startup Starting cgl
+ *
+ *
+ *  \section license License & Terms of use.
+ *
+ *  (c) Kai.
+ *
+ *  May be used under the Terms of the GNU GPL v3 or later.
+ *
+ *  It would be nice if you would stall any redistribution until this project has established a fixed website :)
+ *
+ * 	\section deps Dependencies and build instructions
+ *
+ * 	Libraries cgl depends upon
+ * 	\li libmcm
+ * 	\li libplyloader
+ * 	\li libobjloader
+ * 	\li libpng++
+ *
+ *  (I suppose the list is not complete, yet).
+ *
+ */
+

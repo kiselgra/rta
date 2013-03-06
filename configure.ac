@@ -8,7 +8,11 @@ AC_CONFIG_MACRO_DIR([m4])
 # name one of your source files here
 AC_CONFIG_SRCDIR([rta/main.cpp])
 AC_CONFIG_HEADER([config.h])
-AC_CONFIG_FILES(Makefile librta/Makefile rta/Makefile bbvh/Makefile wrapper-for-librctest/Makefile sbvh/Makefile sphs/Makefile bbvh-ocl/Makefile sbvh-ocl/Makefile)
+AC_CONFIG_FILES(Makefile librta/Makefile rta/Makefile 
+				bbvh/Makefile wrapper-for-librctest/Makefile sbvh/Makefile 
+				bbvh-ocl/Makefile sbvh-ocl/Makefile 
+				sphs/Makefile 
+				doc/Makefile doc/doxyfile doc/doxygen_mainpage.h)
 
 AX_PREFIX_CONFIG_H(librta/rta-config.h)
 

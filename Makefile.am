@@ -11,7 +11,15 @@ if use_librctest
 SUBDIRS += wrapper-for-librctest 
 endif
 
+SUBDIRS += doc
+
 ACLOCAL_AMFLAGS = -I m4
 
 EXTRA_DIST = configure-for-secondary-gcc built-plugins 
 EXTRA_DIST += dragon-param dragon-param-rttest
+
+
+
+.PHONY: doc
+doc:
+	cd doc; make doc
