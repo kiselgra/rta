@@ -43,6 +43,24 @@
  *
  *  \note It would be nice if you would stall any redistribution until this project has established a fixed website :)
  *
+ *  \section howto_plugin How to make your own plugin
+ *  \subsection howto_plugin_a Inside the source tree
+ *  \code
+ *  export p='myplugin'
+ *  $ cd rta
+ *  $ mkdir $p
+ *  $ cp brute-force/bruteforce.cpp $p/$p.cpp
+ *  $ cp bruteforce/Makefile.am $p/
+ *  $ vim ...
+ *  -> substitute plugin name in $p/Makefile.am
+ *  -> add plugin directory to ./Makefile.am
+ *  -> add plugin makefile to ./configure.ac
+ *  \endcode
+ *
+ *  \subsection howto_plugin_b Outside the source tree
+ *  todo.
+ *
+ *  For now, just make a symlink from rta/$p to your repository's source directory and adapt the library copying. Not very professional this way, I know ;)
  *
  *  \section deps Dependencies and build instructions
  *
