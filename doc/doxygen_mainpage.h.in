@@ -1,0 +1,52 @@
+/*! \mainpage @PACKAGE@ Description 
+ *  \author Kai
+ * 	\version @VERSION@
+ *
+ *
+ * 	\section main About
+ *
+ * 	<b>rta -- ray tracing, again.</b>
+ *
+ * 	This is yet another ray tracing system, this time with a stronger focus on the actual ray travsersal core.
+ * 	Based on previous approaches we try to find a compromise between code duplication and template crazyness.
+ * 	This is described greater detail under \ref basic_types, where we explain some design decisions 
+ * 		and provide a few guidelines on how you should write your plugins.
+ *
+ *  The purpose of rta is to provide a testing platform to evaluate different approaches to acceleration structures and ray traversal schemes.
+ *  Therefore we provide a common and very slim interface which newly written rta-plugins have to follow.
+ *  Beside of making it possible to call such ray tracing components from our framework to allow for easy benchmarking this should
+ *  	also make it straightforward to integrate these components into applications requiring such a ray tracing component.
+ *
+ *  \section license License & Terms of use.
+ *
+ *  (c) Kai.
+ *
+ *  May be used under the Terms of the GNU GPL v3 or later.
+ *
+ *  \attention I do not hold exclusive copyright on all plugins held in this repository.
+ *  The student projects are not necessarily distributed under the terms of the GPL.
+ *
+ *  To be more clear, the basic framework as found in the directories
+ *  \li librta,
+ *  \li rta, and
+ *  \li sphs
+ *
+ *  are distributed under the mentioned terms, as well as the following plugins:
+ *  \li bbvh
+ *  \li sbvh
+ *  \li bbvh-olc
+ *  \li sbvh-olc
+ *  \li wrapper-for-librctest
+ *
+ *  The student projects are
+ *  \li siallier
+ *
+ *  \note It would be nice if you would stall any redistribution until this project has established a fixed website :)
+ *
+ *
+ *  \section deps Dependencies and build instructions
+ *
+ * 	We require gcc >= 4.6 because of some C++11 extensions.
+ *
+ */
+

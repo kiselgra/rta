@@ -8,19 +8,43 @@
 
 #include "template-magic.h"
 
+/*! \defgroup basic_types Basic Types
+ * 	
+ * 	Here we define our basic types as well as how to integrate different types into our system.
+ * 	
+ * 	\note 
+ * 	\li All data access throughout the code is done by the accessor functions defined in the following.
+ * 	By this changes to the underlying data types are transparent to the code using them.
+ * 	Just add accessor functions for your own types and you should be fine.
+ *
+ * 	\li We also do not support implicit type conversions to avoid the very subtle bugs when converting between different
+ * 		representations in an inner loop (e.g. plain floating point vectors versus packed sse vectors).
+ *
+ * 	See the respective accessor functions:
+ * 	\li <tt>x_comp</tt> et al. in \ref vector_accessors
+ * 	\li <tt>triangle_a</tt> et al. in \ref triangle_accessors
+ * 	\li <tt>min</tt> et al. in \ref bounding_box_accessors
+ */
+
 namespace rta {
+
+/*! \addtogroup basic_types
+ * 	@{
+ */
+
 
 	typedef unsigned int uint;
 	typedef float float_t;
 	typedef vec3f vec3_t;
 	typedef vec4f vec4_t;
 
-	
+	//! our most primitive triangle type
 	struct simple_triangle {
 		vec3_t a, b, c;
 		vec3_t na, nb, nc;
 	};
 
+	//! simple aabb
 	struct simple_aabb {
 		vec3_t min, max;
 	};
@@ -49,10 +73,15 @@ namespace rta {
 	};
 
 
-	// be aware that these are defined everywhere!
+	// !!! be aware that these are defined everywhere!
+
+	//! really just a shortcut...
 	#define box_t__and__tri_t typename _box_t, typename _tri_t
+	//! really just a shortcut...
 	#define forward_traits _box_t, _tri_t
+	//! really just a shortcut to redeclare the typenames passed in via template parameters inside the class.
 	#define declare_traits_types typedef _box_t box_t; typedef _tri_t tri_t;
+	//! just another shortcut
 	#define traits_of(X) typename X::box_t, typename X::tri_t
 
 
@@ -65,6 +94,29 @@ namespace rta {
 	// accessors
 
 	
+	/*! \defgroup vector_accessors Vector Accessors
+	 *  \ingroup basic_types
+	 *  \addtogroup vector_access 
+	 *  @{
+	 */
+	//! access vector components by number
+	template<typename T, unsigned int N> struct comp_impl { invalid_instantiation(T); };
+	template<typename T> struct comp_impl<T, 0> { 
+		static inline float_t& ref(T &t) { return x_comp(t); } 
+		static inline const float_t &ref(const T &t) { return x_comp(t); }
+	};
+	template<typename T> struct comp_impl<T, 1> { 
+		static inline float_t& ref(T &t) { return y_comp(t); } 
+		static inline const float_t &ref(const T &t) { return y_comp(t); }
+	};
+	template<typename T> struct comp_impl<T, 2> { 
+		static inline float_t& ref(T &t) { return z_comp(t); } 
+		static inline const float_t &ref(const T &t) { return z_comp(t); }
+	};
+	//! access vector components by number
+	template<unsigned int N, typename T> inline       float_t& comp(T &t)       { return comp_impl<T, N>::ref(t); }
+	template<unsigned int N, typename T> inline const float_t& comp(const T &t) { return comp_impl<T, N>::ref(t); }
+
 	//! acess vector components by name
 	template<typename T> inline       float_t& x_comp(T &t)            { invalid_instantiation(T); return 0; }
 	template<>           inline       float_t& x_comp(vec3_t &t)       { return t.x; }
@@ -94,27 +146,13 @@ namespace rta {
 	template<>           inline       float_t& w_comp(vec4_t &t)       { return t.w; }
 	template<typename T> inline const float_t& w_comp(const T &t)      { invalid_instantiation(T); return 0; }
 	template<>           inline const float_t& w_comp(const vec4_t &t) { return t.w; }
+	//! @}
 	
-	
-	//! access vector components by number
-	template<typename T, unsigned int N> struct comp_impl { invalid_instantiation(T); };
-	template<typename T> struct comp_impl<T, 0> { 
-		static inline float_t& ref(T &t) { return x_comp(t); } 
-		static inline const float_t &ref(const T &t) { return x_comp(t); }
-	};
-	template<typename T> struct comp_impl<T, 1> { 
-		static inline float_t& ref(T &t) { return y_comp(t); } 
-		static inline const float_t &ref(const T &t) { return y_comp(t); }
-	};
-	template<typename T> struct comp_impl<T, 2> { 
-		static inline float_t& ref(T &t) { return z_comp(t); } 
-		static inline const float_t &ref(const T &t) { return z_comp(t); }
-	};
-	//! access vector components by number
-	template<unsigned int N, typename T> inline       float_t& comp(T &t)       { return comp_impl<T, N>::ref(t); }
-	template<unsigned int N, typename T> inline const float_t& comp(const T &t) { return comp_impl<T, N>::ref(t); }
-
-
+	/*! \defgroup triangle_accessors Triangle Accessors
+	 *  \ingroup basic_types
+	 *  \addtogroup triangle_accessors
+	 *  @{
+	 */
 	//! access a triangle's vertices by name - a
 	template<typename T> inline       vec3_t& vertex_a(T &t)                     { invalid_instantiation(T); return vec3_t(); }
 	template<>           inline       vec3_t& vertex_a(simple_triangle &t)       { return t.a; }
@@ -150,7 +188,13 @@ namespace rta {
 	template<>           inline       vec3_t& normal_c(simple_triangle &t)       { return t.nc; }
 	template<typename T> inline const vec3_t& normal_c(const T &t)               { invalid_instantiation(T); return vec3_t(); }
 	template<>           inline const vec3_t& normal_c(const simple_triangle &t) { return t.nc; }
+	//! @}
 
+	/*! \defgroup bounding_box_accessors Bounding Box Accessors
+	 *  \ingroup basic_types
+	 *  \addtogroup bounding_box_accessors
+	 *  @{
+	 */
 	//! access an aabb's vertices by name - min
 	template<typename T> inline       vec3_t& min(T &bb)                 { invalid_instantiation(T); return vec3_t(); }
 	template<>           inline       vec3_t& min(simple_aabb &bb)       { return bb.min; }
@@ -162,6 +206,7 @@ namespace rta {
 	template<>           inline       vec3_t& max(simple_aabb &bb)       { return bb.max; }
 	template<typename T> inline const vec3_t& max(const T &bb)           { invalid_instantiation(T); return vec3_t(); }
 	template<>           inline const vec3_t& max(const simple_aabb &bb) { return bb.max; }
+	//! @}
 
 
 
@@ -175,7 +220,10 @@ namespace rta {
 
 	#undef invalid_instantiation
 	#undef invalid_instantiation_message
+
+	//! @}
 }
+
 
 #include "tri.h"
 #include "aabb.h"

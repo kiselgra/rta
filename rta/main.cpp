@@ -16,6 +16,20 @@
 
 #include <dlfcn.h>
 
+/*! \defgroup main Main Evaluation Program
+ *
+ * 	The main evaluation program is (rather crudely) designed to simply load a scene (and atm this is somewhat restricted, too)
+ * 		and ray trace a few images of it.
+ *	We support three basic types of measurements:
+ *	\li Positional, i.e. you specify a lookat position at the cmdline and the program generates a single result image.
+ *	\li Axial series, i.e. you specify a rotation axis and a number of samples to be taken. This results in as images as specified, all rotated around this axis.
+ *	\li Sphere series, i.e. you specify a model in <em>standford's ply format</em> and the system traces an image from each vertex (scaled to be outside the scene) towards the origin. We provide a few uniformly tesselated sphere models for this purpose.
+ *	
+ *	Note that, on the cmdline, you can specify all parameters and choose which set to use by the --force switch. See --help.
+ *	
+ *	By default, the resulting images are stored in <tt>/tmp</tt>.
+ */
+
 /*
 todo:
 	- got to work for flat-tri-list and ifs
@@ -89,6 +103,12 @@ vec3f make_vec3f(float x, float y, float z) {
 
 using namespace rta;
 
+/*! \brief Runs the actual measurements.
+ * 	\ingroup main
+ *
+ * 	This runs the actual measurements as described above (\ref main).
+ * 	After the intersection points for all rays have been found we shade the scene by pointlights placed at the corners of its bounding box.
+ */
 template<box_t__and__tri_t> class directional_analysis_pass {
 		declare_traits_types;
 		ply sphere;
@@ -456,6 +476,10 @@ int main(int argc, char **argv) {
 		crgs->generate_rays();
 
 		set.rt->trace();
+		coll.triangle_ptr(set.as->triangle_ptr());
+		coll.add_pointlight(cmdline.pos, {1,1,1});
+		coll.reset(cmdline.back_col);
+		coll.shade();
 		coll.save("/tmp/blub.png");
 		cout << "stored result to /tmp/blub.png" << endl;
 	}
