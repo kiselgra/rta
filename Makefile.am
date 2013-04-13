@@ -22,3 +22,7 @@ ACLOCAL_AMFLAGS = -I m4
 
 EXTRA_DIST = configure-for-secondary-gcc built-plugins 
 EXTRA_DIST += dragon-param dragon-param-rttest
+
+pkgconfigdir = $(libdir)/pkgconfig
+pkgconfig_DATA = rta.pc
+

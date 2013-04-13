@@ -1,17 +1,22 @@
-lib_LTLIBRARIES = librta-bruteforce.la
-
-librta_bruteforce_la_SOURCES = bruteforce.cpp
-
-librta_bruteforce_la_CPPFLAGS = -D PACKAGE=\"$(PACKAGE)\" -D VERSION=\"$(VERSION)\" -I$(top_builddir)
-librta_bruteforce_la_CXXFLAGS = -Wreturn-type
-
-librta_bruteforce_la_LDFLAGS = -module -avoid-version # do i want "avoid-version"?
-
-
-plugin_dir = $(top_builddir)/built-plugins
+pkglib_LTLIBRARIES = bruteforce.la
 plugin_name = bruteforce.so
-plugin = $(plugin_dir)/$(plugin_name)
-all-local: $(top_builddir)/built-plugins/bruteforce.so
 
-$(plugin): librta-bruteforce.la
-	cp .libs/librta-bruteforce.so $@
+bruteforce_la_SOURCES = bruteforce.cpp
+
+bruteforce_la_CPPFLAGS = -D PACKAGE=\"$(PACKAGE)\" -D VERSION=\"$(VERSION)\" -I$(top_builddir)
+bruteforce_la_CXXFLAGS = -Wreturn-type
+
+bruteforce_la_LDFLAGS = -module -avoid-version # do i want "avoid-version"?
+
+local_plugin_dir = $(top_builddir)/built-plugins
+plugin = $(local_plugin_dir)/$(plugin_name)
+all-local: $(plugin)
+
+$(plugin): $(pkglib_LTLIBRARIES)
+	cp .libs/$(plugin_name) $@
+
+#$(plugin_name):
+#	cp .libs/$(plugin_name) $(plugin_name)
+#
+#plugindir = $(libdir)/$(PACKAGE)-$(VERSION)
+#plugin_DATA = $(plugin)

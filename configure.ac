@@ -12,7 +12,8 @@ AC_CONFIG_FILES(Makefile librta/Makefile rta/Makefile bbvh/Makefile
 				doc/Makefile doc/doxyfile doc/doxygen_mainpage.h 
 				wrapper-for-librctest/Makefile 
 				sbvh/Makefile sphs/Makefile bbvh-ocl/Makefile sbvh-ocl/Makefile 
-				brute-force/Makefile)
+				brute-force/Makefile
+				rta.pc)
 
 AX_PREFIX_CONFIG_H(librta/rta-config.h)
 

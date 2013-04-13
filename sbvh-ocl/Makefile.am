@@ -1,17 +1,23 @@
-lib_LTLIBRARIES = librta-sbvh-ocl.la
+pkglib_LTLIBRARIES = sbvh-ocl.la
+plugin_name = sbvh-ocl.so
 
-librta_sbvh_ocl_la_SOURCES = sbvh-ocl-mod.cpp \
+sbvh_ocl_la_SOURCES = sbvh-ocl-mod.cpp \
 					     sbvh-ocl.h
 
-librta_sbvh_ocl_la_CPPFLAGS = -D PACKAGE=\"$(PACKAGE)\" -D VERSION=\"$(VERSION)\" -I$(top_builddir)
-librta_sbvh_ocl_la_CXXFLAGS = -Wreturn-type
+sbvh_ocl_la_CPPFLAGS = -D PACKAGE=\"$(PACKAGE)\" -D VERSION=\"$(VERSION)\" -I$(top_builddir)
+sbvh_ocl_la_CXXFLAGS = -Wreturn-type
 
-librta_sbvh_ocl_la_LDFLAGS = -module -avoid-version # do i want "avoid-version"?
+sbvh_ocl_la_LDFLAGS = -module -avoid-version # do i want "avoid-version"?
 
-plugin_dir = $(top_builddir)/built-plugins
-plugin_name = sbvh-ocl.so
-plugin = $(plugin_dir)/$(plugin_name)
-all-local: $(top_builddir)/built-plugins/sbvh-ocl.so
+local_plugin_dir = $(top_builddir)/built-plugins
+plugin = $(local_plugin_dir)/$(plugin_name)
+all-local: $(plugin)
 
-$(plugin): librta-sbvh-ocl.la
-	cp .libs/librta-sbvh-ocl.so $@
+$(plugin): $(pkglib_LTLIBRARIES)
+	cp .libs/$(plugin_name) $@
+
+#$(plugin_name):
+#	cp .libs/$(plugin_name) $(plugin_name)
+#
+#plugindir = $(libdir)/$(PACKAGE)-$(VERSION)
+#plugin_DATA = $(plugin)

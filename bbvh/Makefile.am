@@ -1,18 +1,26 @@
-lib_LTLIBRARIES = librta-bbvh.la
+pkglib_LTLIBRARIES = bbvh.la
+plugin_name = bbvh.so
 
-librta_bbvh_la_SOURCES = main.cpp \
+bbvh_la_SOURCES = main.cpp \
 					  bbvh.h
 
-librta_bbvh_la_CPPFLAGS = -D PACKAGE=\"$(PACKAGE)\" -D VERSION=\"$(VERSION)\" -I$(top_builddir)
-librta_bbvh_la_CXXFLAGS = -Wreturn-type
+bbvh_la_CPPFLAGS = -D PACKAGE=\"$(PACKAGE)\" -D VERSION=\"$(VERSION)\" -I$(top_builddir)
+bbvh_la_CXXFLAGS = -Wreturn-type
 
-librta_bbvh_la_LDFLAGS = -module -avoid-version # do i want "avoid-version"?
+bbvh_la_LDFLAGS = -shared -module -avoid-version # do i want "avoid-version"?
 
+library_includedir = $(includedir)/$(PACKAGE)-$(VERSION)/bbvh
+library_include_HEADERS = bbvh.h
 
-plugin_dir = $(top_builddir)/built-plugins
-plugin_name = bbvh.so
-plugin = $(plugin_dir)/$(plugin_name)
-all-local: $(top_builddir)/built-plugins/bbvh.so
+local_plugin_dir = $(top_builddir)/built-plugins
+plugin = $(local_plugin_dir)/$(plugin_name)
+all-local: $(plugin)
 
-$(plugin): librta-bbvh.la
-	cp .libs/librta-bbvh.so $@
+$(plugin): $(pkglib_LTLIBRARIES)
+	cp .libs/$(plugin_name) $@
+
+#$(plugin_name):
+#	cp .libs/$(plugin_name) $(plugin_name)
+#
+#plugindir = $(libdir)/$(PACKAGE)-$(VERSION)
+#plugin_DATA = $(plugin)

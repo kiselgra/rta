@@ -2,6 +2,8 @@
 *.lo
 *~
 *.o
+*.so
+*\.libs
 
 aclocal.m4
 autom4te.cache/

@@ -1,0 +1,13 @@
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+libdir=@libdir@
+includedir=@includedir@
+datadir=@datadir@/@PACKAGE@
+plugindir=@libdir@/@PACKAGE@
+
+Name: librta
+Description: ray tracing, again...
+Version: @VERSION@
+Libs: -L${libdir} -lrta
+Cflags: -I${includedir}/rta-@VERSION@
+

@@ -1,0 +1,7 @@
+noinst_PROGRAMS = rta
+
+rta_SOURCES = main.cpp \
+			  cmdline.cpp cmdline.h
+
+rta_CPPFLAGS = -D PACKAGE=\"$(PACKAGE)\" -D VERSION=\"$(VERSION)\" -I$(topbuild_dir)
+
