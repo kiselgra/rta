@@ -58,7 +58,13 @@
  *  \endcode
  *
  *  \subsection howto_plugin_b Outside the source tree
- *  todo.
+ *  See the exampleplugin in the root directory.
+ *  When run like
+ *  \code
+ *  $ rta myplugin
+ *  \endcode
+ *  the directory <tt>$libdir/rta/</tt> is searched for <tt>myplugin.so</tt>, if it is not found the given filename itself it tried for library opening (in this case, you'll need the .so extension).
+ *  
  *
  *  For now, just make a symlink from rta/$p to your repository's source directory and adapt the library copying. Not very professional this way, I know ;)
  *
