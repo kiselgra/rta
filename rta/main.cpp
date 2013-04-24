@@ -188,7 +188,8 @@ template<box_t__and__tri_t> class directional_analysis_pass {
 			sphere.add_comment("meta accel-struct: " + the_set.as->identification());
 			sphere.add_comment("meta accel-struct-ctor: " + the_set.ctor->identification());
 			sphere.add_comment("meta ray-tracer: " + the_set.rt->identification());
-			sphere.add_comment("meta bouncer: " + the_set.bouncer->identification());
+// 			sphere.add_comment("meta bouncer: " + the_set.bouncer->identification());
+			sphere.add_comment("meta bouncer: " + bouncer()->identification());
 
 			save_ply_file(out, &sphere);
 		}
@@ -227,9 +228,10 @@ template<box_t__and__tri_t> class directional_analysis_pass {
 			add_components_vec3f(&obj_center, &min(bb), &diff);
 		}
 		rta::bouncer* bouncer() { 
-			return the_set->bounder; 
+			return the_set.bouncer; 
 		}
 		void run() {
+			
 			vec3f null = make_vec3f(0,0,0);
 			float sum = 0;
 			for (int i = 0; i < vertices; ++i) {
@@ -296,7 +298,7 @@ template<box_t__and__tri_t> class directional_analysis_pass {
 
 				shader->reset(cmdline.back_col);
 
-				shader->shade();
+				shader->shade(cmdline.binary_intersection_debug);
 				shader->save(oss.str());
 
 				cout << "." << flush;

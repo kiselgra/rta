@@ -34,6 +34,7 @@ static struct argp_option options[] =
 	{ "outfile", 'o', "filename", 0, "Write pass specific output to this file, e.g. a modified ply file containing timings." },
 	{ "model", 'm', "filename",  0, "Use this model." },
 	{ "background", 'b', "r,g,b",  0, "Background color for the generated images. Default 0,0,0." },
+	{ "binary-intersection-debug", 'B', 0,  0, "Don't shade the output image, just store a color value (see -l) to indicate if for each pixel an intersection is found at all."},
 	{ "light-color", 'l', "r,g,b",  0, "Color of the lights placed around the rendered object. Default 1,1,1" },
 	{ "help", '?', 0,             0, "Give this help list (or show help of a previously specified module, see -m)." },
 	{ 0 }
@@ -83,6 +84,7 @@ static error_t parse_options(int key, char *arg, argp_state *state)
 	case 'm':     cmdline.model = sarg; break;
 	case 'b':     cmdline.back_col  = read_vec3f(sarg); break;
 	case 'l':     cmdline.light_col = read_vec3f(sarg); break;
+	case 'B':     cmdline.binary_intersection_debug = true; break;
 
 	case ARGP_KEY_ARG:		// process arguments. 
 							// state->arg_num gives number of current arg

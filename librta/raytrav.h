@@ -133,37 +133,41 @@ template<box_t__and__tri_t> class lighting_collector {
 					res.pixel(x,y,1) = std::min(int(c.y*255), 255),
 					res.pixel(x,y,2) = std::min(int(c.z*255), 255);
 		}
-		virtual void shade() {
+		virtual void shade(bool binary_result_only = false) {
 			if (lights.size() == 0) return;
 			for (int y = 0; y < res.h; ++y)
 				for (int x = 0; x < res.w; ++x) {
 					triangle_intersection<tri_t> &is = this->last_intersection->pixel(x,y);
 					if (!is.valid()) continue;
 					vec3f col = {0,0,0};
-					tri_t ref = triangles[is.ref];
-					for (light &l : lights) {
-						// get normal
-						vec3_t bc; 
-						is.barycentric_coord(&bc);
-						const vec3_t &na = normal_a(ref);
-						const vec3_t &nb = normal_b(ref);
-						const vec3_t &nc = normal_c(ref);
-						vec3_t N, p;
-					   	barycentric_interpolation(&N, &bc, &na, &nb, &nc);
-						// get vertex pos
-						const vec3_t &va = vertex_a(ref);
-						const vec3_t &vb = vertex_b(ref);
-						const vec3_t &vc = vertex_c(ref);
-					   	barycentric_interpolation(&p, &bc, &va, &vb, &vc);
-						// compute lambert
-						vec3_t L = l.pos;
-						sub_components_vec3f(&L, &L, &p);
-						normalize_vec3f(&L);
-						normalize_vec3f(&N);
-						float_t dot = std::max(dot_vec3f(&N, &L), (float_t)0);
-						vec3_t c;
-						mul_vec3f_by_scalar(&c, &l.col, dot);
-						add_components_vec3f(&col, &col, &c);
+					if (binary_result_only)
+						col = lights.front().col;
+					else {
+						tri_t ref = triangles[is.ref];
+						for (light &l : lights) {
+							// get normal
+							vec3_t bc; 
+							is.barycentric_coord(&bc);
+							const vec3_t &na = normal_a(ref);
+							const vec3_t &nb = normal_b(ref);
+							const vec3_t &nc = normal_c(ref);
+							vec3_t N, p;
+							barycentric_interpolation(&N, &bc, &na, &nb, &nc);
+							// get vertex pos
+							const vec3_t &va = vertex_a(ref);
+							const vec3_t &vb = vertex_b(ref);
+							const vec3_t &vc = vertex_c(ref);
+							barycentric_interpolation(&p, &bc, &va, &vb, &vc);
+							// compute lambert
+							vec3_t L = l.pos;
+							sub_components_vec3f(&L, &L, &p);
+							normalize_vec3f(&L);
+							normalize_vec3f(&N);
+							float_t dot = std::max(dot_vec3f(&N, &L), (float_t)0);
+							vec3_t c;
+							mul_vec3f_by_scalar(&c, &l.col, dot);
+							add_components_vec3f(&col, &col, &c);
+						}
 					}
 					res.pixel(x,y,0) = std::min(int(col.x*255), 255);
 					res.pixel(x,y,1) = std::min(int(col.y*255), 255);
