@@ -42,7 +42,7 @@ using namespace std;
 
 namespace rta {
 
-	int res_x = 800, res_y = 800;
+	int res_x, res_y; // gets parsed from command line
 
 ////////////////////
 ////////////////////
@@ -382,6 +382,9 @@ void load_plugin_functions() {
 
 int main(int argc, char **argv) {
 	parse_cmdline(argc, argv);
+
+	res_x = cmdline.res_x;
+	res_y = cmdline.res_y;
 
 	using namespace rta;
 	using namespace std;
