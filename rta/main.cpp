@@ -359,8 +359,11 @@ void load_plugin_functions() {
 		lib_handle = dlopen(("built-plugins/librta-" + cmdline.module + ".so").c_str(),RTLD_LAZY);
 		if (lib_handle == 0) {
 			lib_handle = dlopen((PKG_LIB_DIR "/" + cmdline.module + ".so").c_str(),RTLD_LAZY);
-			if (lib_handle == 0)
+			if (lib_handle == 0) {
 				lib_handle = dlopen(cmdline.module.c_str(),RTLD_LAZY);
+				if (!lib_handle)
+					cout << "error: " << dlerror() << endl;
+			}
 		}
 	}
 	if (lib_handle == 0) {
