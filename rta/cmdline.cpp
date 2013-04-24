@@ -37,8 +37,7 @@ static struct argp_option options[] =
 	{ "binary-intersection-debug", 'B', 0,  0, "Don't shade the output image, just store a color value (see -l) to indicate if for each pixel an intersection is found at all."},
 	{ "light-color", 'l', "r,g,b",  0, "Color of the lights placed around the rendered object. Default 1,1,1" },
 	{ "help", '?', 0,             0, "Give this help list (or show help of a previously specified module, see -m)." },
-	{ "resx", 'x', "NUM",             0, "Set the x resolution to NUM." },
-	{ "resy", 'y', "NUM",             0, "Set the y resolution to NUM." },
+	{ "resolution", 'r', "WxH",             0, "Set the resolution (default: 800x800)." },
 	{ 0 }
 };	
 
@@ -58,6 +57,14 @@ vec3f read_vec3f(const std::string &s) {
 	return v;
 }
 
+vec2f read_vec2f(const std::string &s) {
+	istringstream iss(s);
+	vec2f v;
+	char sep;
+	iss >> v.x >> sep >> v.y;
+	return v;
+}
+
 char *uncaught_arg[256];
 int uncaught_args = 0;
 
@@ -68,6 +75,7 @@ static error_t parse_options(int key, char *arg, argp_state *state)
 	if (arg)
 		sarg = arg;
 	sarg = replace_nl(sarg);
+	vec2f res;
 
 	switch (key)
 	{
@@ -87,8 +95,10 @@ static error_t parse_options(int key, char *arg, argp_state *state)
 	case 'b':     cmdline.back_col  = read_vec3f(sarg); break;
 	case 'l':     cmdline.light_col = read_vec3f(sarg); break;
 	case 'B':     cmdline.binary_intersection_debug = true; break;
-	case 'x':     cmdline.res_x = atoi(sarg.c_str()); break;
-	case 'y':     cmdline.res_y = atoi(sarg.c_str()); break;
+	case 'r':     res = read_vec2f(sarg);
+	              cmdline.res_x = res.x;
+	              cmdline.res_y = res.y;
+	              break;
 
 	case ARGP_KEY_ARG:		// process arguments. 
 							// state->arg_num gives number of current arg
