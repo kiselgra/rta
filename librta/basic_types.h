@@ -99,24 +99,6 @@ namespace rta {
 	 *  \addtogroup vector_access 
 	 *  @{
 	 */
-	//! access vector components by number
-	template<typename T, unsigned int N> struct comp_impl { invalid_instantiation(T); };
-	template<typename T> struct comp_impl<T, 0> { 
-		static inline float_t& ref(T &t) { return x_comp(t); } 
-		static inline const float_t &ref(const T &t) { return x_comp(t); }
-	};
-	template<typename T> struct comp_impl<T, 1> { 
-		static inline float_t& ref(T &t) { return y_comp(t); } 
-		static inline const float_t &ref(const T &t) { return y_comp(t); }
-	};
-	template<typename T> struct comp_impl<T, 2> { 
-		static inline float_t& ref(T &t) { return z_comp(t); } 
-		static inline const float_t &ref(const T &t) { return z_comp(t); }
-	};
-	//! access vector components by number
-	template<unsigned int N, typename T> inline       float_t& comp(T &t)       { return comp_impl<T, N>::ref(t); }
-	template<unsigned int N, typename T> inline const float_t& comp(const T &t) { return comp_impl<T, N>::ref(t); }
-
 	//! acess vector components by name
 	template<typename T> inline       float_t& x_comp(T &t)            { invalid_instantiation(T); return 0; }
 	template<>           inline       float_t& x_comp(vec3_t &t)       { return t.x; }
@@ -146,6 +128,25 @@ namespace rta {
 	template<>           inline       float_t& w_comp(vec4_t &t)       { return t.w; }
 	template<typename T> inline const float_t& w_comp(const T &t)      { invalid_instantiation(T); return 0; }
 	template<>           inline const float_t& w_comp(const vec4_t &t) { return t.w; }
+	
+	//! access vector components by number
+	template<typename T, unsigned int N> struct comp_impl { invalid_instantiation(T); };
+	template<typename T> struct comp_impl<T, 0> {
+		static inline float_t& ref(T &t) { return x_comp(t); } 
+		static inline const float_t &ref(const T &t) { return x_comp(t); }
+	};
+	template<typename T> struct comp_impl<T, 1> {
+		static inline float_t& ref(T &t) { return y_comp(t); } 
+		static inline const float_t &ref(const T &t) { return y_comp(t); }
+	};
+	template<typename T> struct comp_impl<T, 2> {
+		static inline float_t& ref(T &t) { return z_comp(t); } 
+		static inline const float_t &ref(const T &t) { return z_comp(t); }
+	};
+	//! access vector components by number
+	template<unsigned int N, typename T> inline       float_t& comp(T &t)       { return comp_impl<T, N>::ref(t); }
+	template<unsigned int N, typename T> inline const float_t& comp(const T &t) { return comp_impl<T, N>::ref(t); }
+
 	//! @}
 	
 	/*! \defgroup triangle_accessors Triangle Accessors
