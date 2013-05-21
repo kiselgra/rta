@@ -109,13 +109,13 @@ extern "C" {
 		return ret;
 	}
 
-	rt_set<simple_aabb, simple_triangle> create_rt_set(std::list<flat_triangle_list> &triangle_lists, int w, int h) {
+	rt_set<simple_aabb, simple_triangle> create_rt_set(flat_triangle_list &triangle_lists, int w, int h) {
 		typedef simple_triangle tri_t;
 		typedef simple_aabb box_t;
 		typedef binary_bvh<box_t, tri_t> bvh_t;
 
 		bbvh_constructor_using_median<bvh_t> *ctor = new bbvh_constructor_using_median<bvh_t>(bbvh_constructor_using_median<bvh_t>::spatial_median);
-		bvh_t *bvh = ctor->build(&triangle_lists.front());
+		bvh_t *bvh = ctor->build(&triangle_lists);
 
 		basic_raytracer<box_t, tri_t> *rt = 0;
 		if (cmdline.bvh_trav == Cmdline::cis)

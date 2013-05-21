@@ -47,28 +47,33 @@ namespace rta {
 ////////////////////
 ////////////////////
 
-std::list<flat_triangle_list> load_objfile_to_flat_tri_list(const std::string &filename) {
+flat_triangle_list load_objfile_to_flat_tri_list(const std::string &filename) {
 	obj_default::ObjFileLoader loader(filename, "1 0 0 0  0 1 0 0  0 0 1 0  0 0 0 1");
 
-	std::list<flat_triangle_list> lists;
+	int triangles = 0;
+	for (auto &group : loader.groups)
+		triangles += group.load_idxs_v.size();
 
+	flat_triangle_list ftl(triangles);
+
+	int run = 0;
 	for (auto &group : loader.groups) {
-		flat_triangle_list ftl(group.load_idxs_v.size());
 		// building those is expensive!
 		auto vertex = [=](int id, int i) { auto v = loader.load_verts[((int*)&group.load_idxs_v[i])[id]]; vec3_t r = {v.x,v.y,v.z}; return r; };
 		auto normal = [=](int id, int i) { auto v = loader.load_norms[((int*)&group.load_idxs_n[i])[id]]; vec3_t r = {v.x,v.y,v.z}; return r; };
-		for (int i = 0; i < ftl.triangles; ++i)	{
-			ftl.triangle[i].a = vertex(0, i);
-			ftl.triangle[i].b = vertex(1, i);
-			ftl.triangle[i].c = vertex(2, i);
-			ftl.triangle[i].na = normal(0, i);
-			ftl.triangle[i].nb = normal(1, i);
-			ftl.triangle[i].nc = normal(2, i);
+		int t = group.load_idxs_v.size();
+		for (int i = 0; i < t; ++i)	{
+			ftl.triangle[run + i].a = vertex(0, i);
+			ftl.triangle[run + i].b = vertex(1, i);
+			ftl.triangle[run + i].c = vertex(2, i);
+			ftl.triangle[run + i].na = normal(0, i);
+			ftl.triangle[run + i].nb = normal(1, i);
+			ftl.triangle[run + i].nc = normal(2, i);
 		}
-		lists.push_back(ftl);
+		run += t;
 	}
 
-	return lists;
+	return ftl;
 }
 
 ////////////////////
@@ -127,12 +132,12 @@ template<box_t__and__tri_t> class directional_analysis_pass {
 
 	public:
 		directional_analysis_pass(const std::string &sphere_file, int res_x, int res_y) 
-		: vertex(0), vertices(0), timings(0), dist_scale(1.5), res_x(res_x), res_y(res_y), crgs(0), shader(0) {
+		: vertex(0), vertices(0), timings(0), dist_scale(cmdline.distance_factor), res_x(res_x), res_y(res_y), crgs(0), shader(0) {
 			setup_sample_positions(sphere_file);
 			crgs = new cam_ray_generator_shirley(res_x, res_y);
 		}
 		directional_analysis_pass(vec3_t &axis, vec3_t &anchor, int samples, int res_x, int res_y)
-		: vertex(0), vertices(0), timings(0), dist_scale(1.5), res_x(res_x), res_y(res_y), crgs(0) {
+		: vertex(0), vertices(0), timings(0), dist_scale(cmdline.distance_factor), res_x(res_x), res_y(res_y), crgs(0) {
 			setup_rotation_positions(axis, anchor, samples);
 			crgs = new cam_ray_generator_shirley(res_x, res_y);
 		}
@@ -337,7 +342,7 @@ void *lib_handle = 0;
 char* (*plugin_description)() = 0;
 int (*plugin_parse_cmdline)(int argc, char **argv) = 0;
 void (*plugin_initialize)() = 0;
-rt_set<simple_aabb, simple_triangle> (*plugin_create_rt_set)(std::list<flat_triangle_list>&,int,int) = 0;
+rt_set<simple_aabb, simple_triangle> (*plugin_create_rt_set)(flat_triangle_list&,int,int) = 0;
 
 template<typename T> void load_plugin_function(const std::string &name, T &to) {
 	to = (T)dlsym(lib_handle, name.c_str());
@@ -401,8 +406,6 @@ int main(int argc, char **argv) {
 
 	cout << "loading object " << cmdline.model << endl;
 	auto triangle_lists = load_objfile_to_flat_tri_list(cmdline.model.c_str());
-	if (triangle_lists.size() > 1)
-		cerr << "Models with more than one submesh are not supported, yet." << endl;
 	
 	if (ocl::using_ocl()) {
 		res_x = ocl::pow2roundup(res_x);

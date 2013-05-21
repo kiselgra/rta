@@ -115,7 +115,7 @@ extern "C" {
 		return ret;
 	}
 
-	rt_set<simple_aabb, simple_triangle> create_rt_set(std::list<flat_triangle_list> &triangle_lists, int w, int h) {
+	rt_set<simple_aabb, simple_triangle> create_rt_set(flat_triangle_list &triangle_lists, int w, int h) {
 		cout << "setting up open cl" << endl;
 		cl::verbose = true;
 		ctx = rta::ocl::context;
@@ -134,7 +134,7 @@ extern "C" {
 // 		bvh = ctor->build(&triangle_lists.front());
 
 		obvh_ctor_t *ocl_ctor = new obvh_ctor_t(*ctx, std_bbvh_ctor_t::spatial_median);
-		bvh = ocl_ctor->build(&triangle_lists.front());
+		bvh = ocl_ctor->build(&triangle_lists);
 
 		cout << "create rt" << endl;
 		basic_raytracer<box_t, tri_t> *rt = 0;

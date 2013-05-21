@@ -225,8 +225,8 @@ extern "C" {
 		return ret;
 	}
 
-	rta::rt_set<rta::simple_aabb, rta::simple_triangle> create_rt_set(std::list<rta::flat_triangle_list> &triangle_lists, int w, int h) {
-		ifs_preperator<vec3f> *ifsp = flat_tris_to_ifs_prep(triangle_lists.front());
+	rta::rt_set<rta::simple_aabb, rta::simple_triangle> create_rt_set(rta::flat_triangle_list &triangle_lists, int w, int h) {
+		ifs_preperator<vec3f> *ifsp = flat_tris_to_ifs_prep(triangle_lists);
 
 		rctest_component *cmp = 0;
 		width = w, height = h;

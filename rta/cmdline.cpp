@@ -17,7 +17,7 @@ static char doc[]       = PACKAGE ": ray tracing test suite\n\n"
 static char args_doc[]  = "module -- [OPTIONS for module...]";
 
 // long option without corresponding short option have to define a symbolic constant >= 300
-enum { FIRST = 300, AXIS, ANCHOR, SF, BT, OPTS };
+enum { FIRST = 300, AXIS, ANCHOR, SF, BT, DIST, OPTS };
 
 static struct argp_option options[] = 
 {
@@ -30,6 +30,7 @@ static struct argp_option options[] =
 	{ "anchor",  ANCHOR, "x,y,z", 0, "Starting position of the axial rotation measure series. Preferably on the unit circle around --axis. Default: 1,0,0." },
 	{ "samples", 's', "n",       0, "How many samples to take. Used by --axis, only." },
 	{ "sphere-file", SF, "filename.ply", 0, "Start spherical measure series using the points on the sphere specified in the given .ply file. Peferred sphere radius: 1."},
+	{ "distance-factor", DIST, "[float]", 0, "Distance to use for spherical measurements."},
 	{ "force-mode", 'f', "[pas]", 0, "When otherwise invalid combinations of --pos, --asix and --sphere_file are given, instead of erroring out, choose the one selected by this flag." },
 	{ "outfile", 'o', "filename", 0, "Write pass specific output to this file, e.g. a modified ply file containing timings." },
 	{ "model", 'm', "filename",  0, "Use this model." },
@@ -89,6 +90,7 @@ static error_t parse_options(int key, char *arg, argp_state *state)
 	case ANCHOR:  cmdline.anchor = read_vec3f(sarg); break;
 	case 's':     cmdline.samples = atoi(arg); break;
 	case SF:      cmdline.sphere_file = sarg; cmdline.sphere_series = true; break;
+	case DIST:    cmdline.distance_factor = atof(arg); break;
 	case 'f':     cmdline.force = sarg; break;
 	case 'o':     cmdline.outfile = sarg; break;
 	case 'm':     cmdline.model = sarg; break;

@@ -27,10 +27,11 @@ struct Cmdline
 
 	bool produce_images;
 	bool binary_intersection_debug;
+	float distance_factor;
 
 	int res_x, res_y;
 
-	Cmdline() : verbose(false), positional_series(false), axial_series(false), sphere_series(false), produce_images(true), binary_intersection_debug(false), res_x(800), res_y(800)
+	Cmdline() : verbose(false), positional_series(false), axial_series(false), sphere_series(false), produce_images(true), binary_intersection_debug(false), res_x(800), res_y(800), distance_factor(1.5)
 	{
 		pos = { 0,0,0 };
 		dir = { 0,0,-1 };
