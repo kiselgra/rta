@@ -1,18 +1,23 @@
-lib_LTLIBRARIES = librta-librctest.la
-
-librta_librctest_la_SOURCES = librctest.cpp rct-cmdline.cpp rct-cmdline.h
-
-librta_librctest_la_CPPFLAGS = -D PACKAGE=\"$(PACKAGE)\" -D VERSION=\"$(VERSION)\" -I$(top_builddir)
-librta_librctest_la_CXXFLAGS = -msse3 -Wreturn-type
-
-librta_librctest_la_LDFLAGS = -module -avoid-version # do i want "avoid-version"?
-librta_librctest_la_LIBADD = -ltbb -lrc-test -lpthread
-
-
-plugin_dir = $(top_builddir)/built-plugins
+pkglib_LTLIBRARIES = librctest.la
 plugin_name = librctest.so
-plugin = $(plugin_dir)/$(plugin_name)
+
+librctest_la_SOURCES = librctest.cpp rct-cmdline.cpp rct-cmdline.h
+
+librctest_la_CPPFLAGS = -D PACKAGE=\"$(PACKAGE)\" -D VERSION=\"$(VERSION)\" -I$(top_builddir)
+librctest_la_CXXFLAGS = -msse3 -Wreturn-type
+
+librctest_la_LDFLAGS = -module -avoid-version # do i want "avoid-version"?
+librctest_la_LIBADD = -ltbb -lrc-test -lpthread
+
+local_plugin_dir = $(top_builddir)/built-plugins
+plugin = $(local_plugin_dir)/$(plugin_name)
 all-local: $(plugin)
 
-$(plugin): librta-librctest.la
-	cp .libs/librta-librctest.so $@
+$(plugin): $(pkglib_LTLIBRARIES)
+	cp .libs/$(plugin_name) $@
+
+#$(plugin_name):
+#	cp .libs/$(plugin_name) $(plugin_name)
+#
+#plugindir = $(libdir)/$(PACKAGE)-$(VERSION)
+#plugin_DATA = $(plugin)

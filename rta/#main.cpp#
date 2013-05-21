@@ -16,20 +16,6 @@
 
 #include <dlfcn.h>
 
-/*! \defgroup main Main Evaluation Program
- *
- * 	The main evaluation program is (rather crudely) designed to simply load a scene (and atm this is somewhat restricted, too)
- * 		and ray trace a few images of it.
- *	We support three basic types of measurements:
- *	\li Positional, i.e. you specify a lookat position at the cmdline and the program generates a single result image.
- *	\li Axial series, i.e. you specify a rotation axis and a number of samples to be taken. This results in as images as specified, all rotated around this axis.
- *	\li Sphere series, i.e. you specify a model in <em>standford's ply format</em> and the system traces an image from each vertex (scaled to be outside the scene) towards the origin. We provide a few uniformly tesselated sphere models for this purpose.
- *	
- *	Note that, on the cmdline, you can specify all parameters and choose which set to use by the --force switch. See --help.
- *	
- *	By default, the resulting images are stored in <tt>/tmp</tt>.
- */
-
 /*
 todo:
 	- got to work for flat-tri-list and ifs
@@ -42,15 +28,32 @@ using namespace std;
 
 namespace rta {
 
-	int res_x, res_y; // gets parsed from command line
+	int res_x = 800, res_y = 800;
 
 ////////////////////
 ////////////////////
+  struct x {
+    int iblub;
+  };
+
+
+  struct y {
+    int ibla;
+  };
 
 std::list<flat_triangle_list> load_objfile_to_flat_tri_list(const std::string &filename) {
 	obj_default::ObjFileLoader loader(filename, "1 0 0 0  0 1 0 0  0 0 1 0  0 0 0 1");
 
 	std::list<flat_triangle_list> lists;
+	x X;
+	X.iblub;
+	y Y;
+	Y.ibla;
+	lists.end();
+	//	for (std::list<flat_triangle_list>::iterator it = lists.begin(); it != lists
+	cl::context c;
+	c.command_queue;
+	
 
 	for (auto &group : loader.groups) {
 		flat_triangle_list ftl(group.load_idxs_v.size());
@@ -103,12 +106,6 @@ vec3f make_vec3f(float x, float y, float z) {
 
 using namespace rta;
 
-/*! \brief Runs the actual measurements.
- * 	\ingroup main
- *
- * 	This runs the actual measurements as described above (\ref main).
- * 	After the intersection points for all rays have been found we shade the scene by pointlights placed at the corners of its bounding box.
- */
 template<box_t__and__tri_t> class directional_analysis_pass {
 		declare_traits_types;
 		ply sphere;
@@ -188,8 +185,7 @@ template<box_t__and__tri_t> class directional_analysis_pass {
 			sphere.add_comment("meta accel-struct: " + the_set.as->identification());
 			sphere.add_comment("meta accel-struct-ctor: " + the_set.ctor->identification());
 			sphere.add_comment("meta ray-tracer: " + the_set.rt->identification());
-// 			sphere.add_comment("meta bouncer: " + the_set.bouncer->identification());
-			sphere.add_comment("meta bouncer: " + bouncer()->identification());
+			sphere.add_comment("meta bouncer: " + the_set.bouncer->identification());
 
 			save_ply_file(out, &sphere);
 		}
@@ -228,10 +224,9 @@ template<box_t__and__tri_t> class directional_analysis_pass {
 			add_components_vec3f(&obj_center, &min(bb), &diff);
 		}
 		rta::bouncer* bouncer() { 
-			return the_set.bouncer; 
+			return the_set->bounder; 
 		}
 		void run() {
-			
 			vec3f null = make_vec3f(0,0,0);
 			float sum = 0;
 			for (int i = 0; i < vertices; ++i) {
@@ -298,7 +293,7 @@ template<box_t__and__tri_t> class directional_analysis_pass {
 
 				shader->reset(cmdline.back_col);
 
-				shader->shade(cmdline.binary_intersection_debug);
+				shader->shade();
 				shader->save(oss.str());
 
 				cout << "." << flush;
@@ -355,21 +350,11 @@ void load_plugin_functions() {
 		exit(EXIT_FAILURE);
 	}
 	lib_handle = dlopen(("built-plugins/" + cmdline.module + ".so").c_str(),RTLD_LAZY);
-	if (lib_handle == 0) {
+	printf("dlopen error=%s\n",dlerror());
+	if (lib_handle == 0)
 		lib_handle = dlopen(("built-plugins/librta-" + cmdline.module + ".so").c_str(),RTLD_LAZY);
-		if (lib_handle == 0) {
-			lib_handle = dlopen((PKG_LIB_DIR "/" + cmdline.module + ".so").c_str(),RTLD_LAZY);
-			if (lib_handle == 0) {
-				lib_handle = dlopen(cmdline.module.c_str(),RTLD_LAZY);
-				if (!lib_handle)
-					cout << "error: " << dlerror() << endl;
-			}
-		}
-	}
-	if (lib_handle == 0) {
-		cerr << "Cannot load plugin " << cmdline.module << "." << endl;
-		exit(-1);
-	}
+	printf("dlopen error=%s\n",dlerror());
+	printf("lib_handle=%p\n",lib_handle);
 
 	load_plugin_function("description", plugin_description);
 	cout << "PD: " << plugin_description() << endl;
@@ -382,9 +367,6 @@ void load_plugin_functions() {
 
 int main(int argc, char **argv) {
 	parse_cmdline(argc, argv);
-
-	res_x = cmdline.res_x;
-	res_y = cmdline.res_y;
 
 	using namespace rta;
 	using namespace std;
@@ -437,10 +419,8 @@ int main(int argc, char **argv) {
 
 		if (!ocl::using_ocl())
 			set.bouncer = new direct_diffuse_illumination<box_t, tri_t>(res_x, res_y);
-#if RTA_HAVE_LIBLUMOCL == 1
 		else
 			set.bouncer = new ocl::direct_diffuse_illumination<box_t, tri_t>(res_x, res_y, *ocl::context);
-#endif
 
 		set.rt->ray_bouncer(set.bouncer);
 		if (set.rgen) {
@@ -491,10 +471,6 @@ int main(int argc, char **argv) {
 		crgs->generate_rays();
 
 		set.rt->trace();
-		coll.triangle_ptr(set.as->triangle_ptr());
-		coll.add_pointlight(cmdline.pos, {1,1,1});
-		coll.reset(cmdline.back_col);
-		coll.shade();
 		coll.save("/tmp/blub.png");
 		cout << "stored result to /tmp/blub.png" << endl;
 	}
