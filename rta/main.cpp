@@ -118,6 +118,7 @@ template<box_t__and__tri_t> class directional_analysis_pass {
 		declare_traits_types;
 		ply sphere;
 		vec3f *vertex;
+		vec3f *direction, *up_vec;
 		int vertices;
 		float *timings;
 		rta::cam_ray_generator_shirley *crgs;
@@ -132,13 +133,18 @@ template<box_t__and__tri_t> class directional_analysis_pass {
 
 	public:
 		directional_analysis_pass(const std::string &sphere_file, int res_x, int res_y) 
-		: vertex(0), vertices(0), timings(0), dist_scale(cmdline.distance_factor), res_x(res_x), res_y(res_y), crgs(0), shader(0) {
+		: vertex(0), direction(0), up_vec(0), vertices(0), timings(0), dist_scale(cmdline.distance_factor), res_x(res_x), res_y(res_y), crgs(0), shader(0) {
 			setup_sample_positions(sphere_file);
 			crgs = new cam_ray_generator_shirley(res_x, res_y);
 		}
 		directional_analysis_pass(vec3_t &axis, vec3_t &anchor, int samples, int res_x, int res_y)
-		: vertex(0), vertices(0), timings(0), dist_scale(cmdline.distance_factor), res_x(res_x), res_y(res_y), crgs(0) {
+		: vertex(0), direction(0), up_vec(0), vertices(0), timings(0), dist_scale(cmdline.distance_factor), res_x(res_x), res_y(res_y), crgs(0) {
 			setup_rotation_positions(axis, anchor, samples);
+			crgs = new cam_ray_generator_shirley(res_x, res_y);
+		}
+		directional_analysis_pass(vec3_t &pos, vec3_t &dir, vec3_t &up, int res_x, int res_y)
+		: vertex(0), direction(0), up_vec(0), vertices(0), timings(0), dist_scale(cmdline.distance_factor), res_x(res_x), res_y(res_y), crgs(0) {
+			setup_single_position(pos, dir, up);
 			crgs = new cam_ray_generator_shirley(res_x, res_y);
 		}
 		~directional_analysis_pass() {
@@ -212,6 +218,16 @@ template<box_t__and__tri_t> class directional_analysis_pass {
 				z_comp(vertex[i]) = z_comp(b);
 			}
 		}
+		void setup_single_position(const vec3_t &pos, const vec3_t &dir, const vec3_t &up) {
+			vertices = 1;
+			vertex = new vec3_t[1];
+			direction = new vec3_t[1];
+			up_vec = new vec3_t[1];
+			timings = new float[1];
+			vertex[0] = pos;
+			direction[0] = dir;
+			up_vec[0] = up;
+		}
 		rta::cam_ray_generator_shirley*& ray_gen() { 
 			return crgs; 
 		}
@@ -249,14 +265,22 @@ template<box_t__and__tri_t> class directional_analysis_pass {
 				add_components_vec3f(&pos, &obj_center, &from_origin);
 
 				// correct lookat system
-				vec3f dir; sub_components_vec3f(&dir, &null, &vertex[i]);
-				normalize_vec3f(&dir);
+				vec3f dir; 
 				vec3f up = make_vec3f(0,0,1);
-				if (fabs(dot_vec3f(&dir, &up)) > 0.8)
-					up = make_vec3f(0,1,0);
-				vec3f right;
-				cross_vec3f(&right, &dir, &up);
-				cross_vec3f(&up, &dir, &right);
+				if (!direction) {	// spherical and axial series compute the direction from the vertex position.
+					sub_components_vec3f(&dir, &null, &vertex[i]);
+					normalize_vec3f(&dir);
+					if (fabs(dot_vec3f(&dir, &up)) > 0.8)
+						up = make_vec3f(0,1,0);
+					vec3f right;
+					cross_vec3f(&right, &dir, &up);
+					cross_vec3f(&up, &dir, &right);
+				}
+				else {
+					pos = vertex[i];
+					dir = direction[i];
+					up = up_vec[i];
+				}
 				crgs->setup(&pos, &dir, &up, 45);
 				crgs->generate_rays();
 
@@ -414,16 +438,20 @@ int main(int argc, char **argv) {
 
 	rt_set<simple_aabb, simple_triangle> set = plugin_create_rt_set(triangle_lists, res_x, res_y);
 
-	if (cmdline.axial_series || cmdline.sphere_series)
+	if (cmdline.axial_series || cmdline.sphere_series || cmdline.positional_series)
 	{
 		directional_analysis_pass<box_t, tri_t> *dap = 0;
 		if (cmdline.axial_series) {
 			cout << "running axial series..." << endl;
 			dap = new directional_analysis_pass<box_t, tri_t>(cmdline.axis, cmdline.anchor, cmdline.samples, res_x, res_y);
 		}
-		else {
+		else if (cmdline.sphere_series) {
 			cout << "running spherical series..." << endl;
 			dap = new directional_analysis_pass<box_t, tri_t>(cmdline.sphere_file, res_x, res_y);
+		}
+		else {
+			cout << "running pos series..." << endl;
+			dap = new directional_analysis_pass<box_t, tri_t>(cmdline.pos, cmdline.dir, cmdline.up, res_x, res_y);
 		}
 	
 		/*
@@ -461,45 +489,6 @@ int main(int argc, char **argv) {
 		dap->run();
 		if (cmdline.outfile != "" && cmdline.sphere_series)
 			dap->mod_and_save_ply(cmdline.outfile);
-	}
-	else if (cmdline.positional_series) {
-		uint res_x = rta::res_x, res_y = rta::res_y;
-		cam_ray_generator_shirley *crgs = new cam_ray_generator_shirley(res_x, res_y);
-		cout << "cmdline.pos: " << cmdline.pos << endl;
-		cout << "cmdline.dir: " << cmdline.dir << endl;
-		cout << "cmdline.up:  " << cmdline.up << endl;
-		
-		/*
-
-		// 	bbvh_constructor_using_median<bvh_t> ctor(bbvh_constructor_using_median<bvh_t>::object_median);
-		bbvh_constructor_using_median<bvh_t> ctor(bbvh_constructor_using_median<bvh_t>::spatial_median);
-		bvh_t *bvh = ctor.build(&triangle_lists.front());
-		
-		binary_png_tester<box_t, tri_t> coll(res_x, res_y);
-		// 	bbvh_direct_is_tracer<box_t, tri_t> rt(&crgs, bvh, &coll);
-		bbvh_child_is_tracer<box_t, tri_t> rt(&crgs, bvh, &coll);
-		rt.trace();
-		coll.save("/tmp/blub.png");
-		cout << "stored result to /tmp/blub.png" << endl;
-
-		*/
-		
-
-		direct_diffuse_illumination<box_t, tri_t> coll(res_x, res_y);
-		set.rt->ray_bouncer(&coll);
-		if (set.rgen)
-			crgs = dynamic_cast<cam_ray_generator_shirley*>(set.rgen);
-		set.rt->ray_generator(crgs);
-		crgs->setup(&cmdline.pos, &cmdline.dir, &cmdline.up, 45);
-		crgs->generate_rays();
-
-		set.rt->trace();
-		coll.triangle_ptr(set.as->triangle_ptr());
-		coll.add_pointlight(cmdline.pos, {1,1,1});
-		coll.reset(cmdline.back_col);
-		coll.shade();
-		coll.save("/tmp/blub.png");
-		cout << "stored result to /tmp/blub.png" << endl;
 	}
 	else {
 		cerr << "Don't know what to do. Try --help." << endl;
