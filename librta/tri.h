@@ -13,6 +13,7 @@ namespace rta {
 		return v;
 	}
 
+	/*
 	template<typename tri> vec3_t center_of_gravity_d(const tri &t) {
 		vec3_t v;
 		std::cout << "        " << x_comp(vertex_a(t)) << " + " << x_comp(vertex_b(t)) << " + " << x_comp(vertex_c(t)) << " * 1/3  \t = " << (x_comp(vertex_a(t))+x_comp(vertex_b(t))+x_comp(vertex_c(t))) << " * 1/3 \t = " << (x_comp(vertex_a(t))+x_comp(vertex_b(t))+x_comp(vertex_c(t)))*0.33333<< std::endl;
@@ -26,6 +27,7 @@ namespace rta {
 		std::cout << "        --> " << v << std::endl;
 		return v;
 	}
+	*/
 
 	//! to and dir may point to the same location \attention modifies \c dir
 	inline void reflect(vec3_t *to, vec3_t *normal, vec3_t *dir) {

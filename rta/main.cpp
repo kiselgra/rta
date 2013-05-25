@@ -2,6 +2,7 @@
 #include "cmdline.h"
 #include "librta/wall-timer.h"
 #include "librta/ocl.h"
+#include "librta/plugins.h"
 
 #include <libobjloader/default.h>
 #include <libplyloader/plyloader.h>
@@ -336,79 +337,6 @@ template<box_t__and__tri_t> class directional_analysis_pass {
 		}
 };
 
-/*
-rt_set<simple_aabb, simple_triangle> make_bvh_stuff(bouncer *b, ray_generator *raygen, std::list<flat_triangle_list> triangle_lists) {
-	typedef simple_triangle tri_t;
-	typedef simple_aabb box_t;
-	typedef binary_bvh<box_t, tri_t> bvh_t;
-
-	bbvh_constructor_using_median<bvh_t> *ctor = new bbvh_constructor_using_median<bvh_t>(bbvh_constructor_using_median<bvh_t>::spatial_median);
-	bvh_t *bvh = ctor->build(&triangle_lists.front());
-
-	basic_raytracer<box_t, tri_t> *rt = 0;
-	if (cmdline.bvh_trav == Cmdline::cis)
-		rt = new bbvh_child_is_tracer<box_t, tri_t>(raygen, bvh, b);
-	else
-		rt = new bbvh_direct_is_tracer<box_t, tri_t>(raygen, bvh, b);
-
-	rt_set<box_t, tri_t> set;
-	set.as = bvh;
-	set.ctor = ctor;
-	set.bcr = b;
-	set.rt = rt;
-	set.rgen = raygen;
-
-	return set;
-}
-*/
-
-void *lib_handle = 0;
-char* (*plugin_description)() = 0;
-int (*plugin_parse_cmdline)(int argc, char **argv) = 0;
-void (*plugin_initialize)() = 0;
-rt_set<simple_aabb, simple_triangle> (*plugin_create_rt_set)(flat_triangle_list&,int,int) = 0;
-
-template<typename T> void load_plugin_function(const std::string &name, T &to) {
-	to = (T)dlsym(lib_handle, name.c_str());
-	char *error;
-	if ((error = dlerror()) != NULL)  
-	{
-		fprintf(stderr, "%s\n", error);
-		exit(1);
-	}
-}
-
-void load_plugin_functions() {
-	if (cmdline.module == "") {
-		cerr << "No module specified!" << endl;
-		exit(EXIT_FAILURE);
-	}
-	lib_handle = dlopen(("built-plugins/" + cmdline.module + ".so").c_str(),RTLD_LAZY);
-	if (lib_handle == 0) {
-		lib_handle = dlopen(("built-plugins/librta-" + cmdline.module + ".so").c_str(),RTLD_LAZY);
-		if (lib_handle == 0) {
-			lib_handle = dlopen((PKG_LIB_DIR "/" + cmdline.module + ".so").c_str(),RTLD_LAZY);
-			if (lib_handle == 0) {
-				lib_handle = dlopen(cmdline.module.c_str(),RTLD_LAZY);
-				if (!lib_handle)
-					cout << "error: " << dlerror() << endl;
-			}
-		}
-	}
-	if (lib_handle == 0) {
-		cerr << "Cannot load plugin " << cmdline.module << "." << endl;
-		exit(-1);
-	}
-
-	load_plugin_function("description", plugin_description);
-	cout << "PD: " << plugin_description() << endl;
-	
-	load_plugin_function("initialize", plugin_initialize);
-	load_plugin_function("create_rt_set", plugin_create_rt_set);
-	load_plugin_function("parse_cmdline", plugin_parse_cmdline);
-	plugin_initialize();
-}
-
 int main(int argc, char **argv) {
 	parse_cmdline(argc, argv);
 
@@ -422,7 +350,10 @@ int main(int argc, char **argv) {
 	typedef simple_aabb box_t;
 // 	typedef binary_bvh<box_t, tri_t> bvh_t;
 // 	typedef multi_bvh_sse<box_t, tri_t> mbvh_t;
-	load_plugin_functions();
+	register_plugin_search_path("built-plugins");
+	register_plugin_search_path(PKG_LIB_DIR);
+	if (!load_plugin_functions(cmdline.module))
+		exit(-1);
 	int plugin_argc = 0;
 	char **plugin_argv = plugin_args(&plugin_argc);
 	plugin_parse_cmdline(plugin_argc, plugin_argv);
