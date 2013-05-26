@@ -14,7 +14,7 @@ namespace rta {
 
 	list<string> lib_search_paths;
 	void register_plugin_search_path(const std::string &path) {
-		lib_search_paths.push_back(path);
+		lib_search_paths.push_front(path);
 	}
 
 	template<typename T> bool load_plugin_function(const std::string &name, T &to, void *lib_handle) {
@@ -87,6 +87,13 @@ namespace rta {
 
 		return true;
 	}
+
+	struct initial_plugin_directory_registration {
+		initial_plugin_directory_registration() {
+			register_plugin_search_path(PKG_LIB_DIR);
+		}
+	};
+	static initial_plugin_directory_registration ipdr;
 }
 
 

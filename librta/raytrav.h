@@ -100,6 +100,7 @@ template<box_t__and__tri_t> class cpu_ray_bouncer : public bouncer {
  */
 template<box_t__and__tri_t> class primary_intersection_collector : public cpu_ray_bouncer<forward_traits> {
 	public:
+		declare_traits_types;
 		primary_intersection_collector(uint w, uint h) : cpu_ray_bouncer<forward_traits>(w,h) {
 		}
 // 		virtual void bounce_ray(const traversal_state<tri_t> &state, vec3_t *origin, vec3_t *dir) {
@@ -107,8 +108,13 @@ template<box_t__and__tri_t> class primary_intersection_collector : public cpu_ra
 		virtual bool trace_further_bounces() {
 			return false;
 		}
+		virtual void bounce() {
+		}
 		virtual std::string identification() {
 			return "not implemented yet.";
+		}
+		const triangle_intersection<tri_t>& intersection(uint x, uint y) {
+			return this->last_intersection.pixel(x,y);
 		}
 };
 
