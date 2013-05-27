@@ -335,7 +335,13 @@ template<box_t__and__tri_t> class basic_raytracer : public raytracer {
 		}
 		std::vector<float> timings;
 		virtual void ray_generator(rta::ray_generator *rg) { raygen = rg; }
-		virtual void ray_bouncer(rta::bouncer *rb) { bouncer = rb; cpu_bouncer = dynamic_cast<cpu_ray_bouncer<forward_traits>*>(rb); }
+		virtual void ray_bouncer(rta::bouncer *rb) { 
+			cpu_bouncer = dynamic_cast<cpu_ray_bouncer<forward_traits>*>(rb); 
+			bouncer = rb; 
+		}
+		virtual void force_cpu_bouncer(rta::cpu_ray_bouncer<forward_traits> *rb) {
+			cpu_bouncer = rb;
+		}
 };
 
 ////////////////////
