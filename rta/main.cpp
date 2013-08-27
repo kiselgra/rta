@@ -3,6 +3,7 @@
 #include "librta/wall-timer.h"
 #include "librta/ocl.h"
 #include "librta/plugins.h"
+#include "librta/material.h"
 
 #include <libobjloader/default.h>
 #include <libplyloader/plyloader.h>
@@ -14,6 +15,7 @@
 #include <list>
 #include <float.h>
 #include <unistd.h>
+#include <libgen.h>
 
 #include <dlfcn.h>
 
@@ -45,6 +47,8 @@ namespace rta {
 
 	int res_x, res_y; // gets parsed from command line
 
+// 	vector<obj_default::ObjFileLoader::Mtl> obj_materials;
+
 ////////////////////
 ////////////////////
 
@@ -57,12 +61,26 @@ flat_triangle_list load_objfile_to_flat_tri_list(const std::string &filename) {
 
 	flat_triangle_list ftl(triangles);
 
+	append_image_path(string(getenv("HOME")) + "/render-data/images");
+	append_image_path(string(getenv("HOME")) + "/render-data/images/sponza");
+	prepend_image_path(dirname((char*)filename.c_str()));
+
 	int run = 0;
 	for (auto &group : loader.groups) {
 		// building those is expensive!
-		auto vertex = [=](int id, int i) { auto v = loader.load_verts[((int*)&group.load_idxs_v[i])[id]]; vec3_t r = {v.x,v.y,v.z}; return r; };
-		auto normal = [=](int id, int i) { auto v = loader.load_norms[((int*)&group.load_idxs_n[i])[id]]; vec3_t r = {v.x,v.y,v.z}; return r; };
+		auto vertex   = [=](int id, int i) { auto v = loader.load_verts[((int*)&group.load_idxs_v[i])[id]]; vec3_t r = {v.x,v.y,v.z}; return r; };
+		auto normal   = [=](int id, int i) { auto v = loader.load_norms[((int*)&group.load_idxs_n[i])[id]]; vec3_t r = {v.x,v.y,v.z}; return r; };
+		auto texcoord = [=](int id, int i) { auto v = loader.load_texs[((int*)&group.load_idxs_t[i])[id]]; vec2_t r = {v.x,v.y}; return r; };
 		int t = group.load_idxs_v.size();
+		int mid = -1;
+		if (group.mat) {
+			mid = material(group.mat->name);
+			if (mid == -1) {
+				vec3f d = { group.mat->dif_r, group.mat->dif_g, group.mat->dif_b };
+				material_t *mat = new material_t(group.mat->name, d, group.mat->tex_d);
+				mid = register_material(mat);
+			}
+		}
 		for (int i = 0; i < t; ++i)	{
 			ftl.triangle[run + i].a = vertex(0, i);
 			ftl.triangle[run + i].b = vertex(1, i);
@@ -70,9 +88,15 @@ flat_triangle_list load_objfile_to_flat_tri_list(const std::string &filename) {
 			ftl.triangle[run + i].na = normal(0, i);
 			ftl.triangle[run + i].nb = normal(1, i);
 			ftl.triangle[run + i].nc = normal(2, i);
+			ftl.triangle[run + i].ta = texcoord(0, i);
+			ftl.triangle[run + i].tb = texcoord(1, i);
+			ftl.triangle[run + i].tc = texcoord(2, i);
+			ftl.triangle[run + i].material_index = mid;
 		}
 		run += t;
 	}
+
+	pop_image_path_front();
 
 	return ftl;
 }
@@ -109,6 +133,45 @@ vec3f make_vec3f(float x, float y, float z) {
 
 using namespace rta;
 
+template<box_t__and__tri_t> class lighting_shader_with_material : public lighting_collector<forward_traits> {
+public:
+	typedef _tri_t tri_t;
+	
+	lighting_shader_with_material(uint w, uint h, image<triangle_intersection<tri_t>, 1> *li) : lighting_collector<forward_traits>(w, h, li) {
+	}
+
+	virtual void shade(bool b = false) {
+		lighting_collector<forward_traits>::shade(b);
+		if (!b) {
+			for (int y = 0; y < this->res.h; ++y)
+				for (int x = 0; x < this->res.w; ++x) {
+					triangle_intersection<tri_t> &is = this->last_intersection->pixel(x,y);
+					if (!is.valid()) continue;
+					tri_t ref = this->triangles[is.ref];
+					if (ref.material_index >= 0) {
+						vec3_t bc; 
+						is.barycentric_coord(&bc);
+						const vec2_t &ta = texcoord_a(ref);
+						const vec2_t &tb = texcoord_b(ref);
+						const vec2_t &tc = texcoord_c(ref);
+						vec2_t T;
+						barycentric_interpolation(&T, &bc, &ta, &tb, &tc);
+						material_t *mat = material(ref.material_index);
+						vec3f factor = (*mat)();
+						if (mat->diffuse_texture) {
+							factor = (*mat)(T);
+// 							cout << "fac " << factor.x << ", " << factor.y << ", " << factor.z << endl;
+						}
+
+						this->res.pixel(x,y,0) *= factor.x;
+						this->res.pixel(x,y,1) *= factor.y;
+						this->res.pixel(x,y,2) *= factor.z;
+					}
+				}
+		}
+	}
+};
+
 /*! \brief Runs the actual measurements.
  * 	\ingroup main
  *
@@ -124,7 +187,7 @@ template<box_t__and__tri_t> class directional_analysis_pass {
 		float *timings;
 		rta::cam_ray_generator_shirley *crgs;
 // 		rta::basic_raytracer<box_t, tri_t> *rt;
-		lighting_collector<forward_traits> *shader;
+		lighting_shader_with_material<forward_traits> *shader;
 		rt_set<box_t, tri_t> the_set;
 		vec3f obj_center;
 		box_t bb;
@@ -235,7 +298,7 @@ template<box_t__and__tri_t> class directional_analysis_pass {
 		void set(rt_set<forward_traits> set) {
 			the_set = set;
 			tracer(set.rt);
-			shader = dynamic_cast<lighting_collector<forward_traits>*>(set.bouncer);
+			shader = dynamic_cast<lighting_shader_with_material<forward_traits>*>(set.bouncer);
 			shader->triangle_ptr(the_set.as->triangle_ptr());
 		}
 		//! supposes that the tracer's accelstruct has been set up, already
@@ -401,7 +464,7 @@ int main(int argc, char **argv) {
 		*/
 
 		if (!ocl::using_ocl())
-			set.bouncer = new direct_diffuse_illumination<box_t, tri_t>(res_x, res_y);
+			set.bouncer = new direct_diffuse_illumination<box_t, tri_t, lighting_shader_with_material<box_t, tri_t>>(res_x, res_y);
 #if RTA_HAVE_LIBLUMOCL == 1
 		else
 			set.bouncer = new ocl::direct_diffuse_illumination<box_t, tri_t>(res_x, res_y, *ocl::context);

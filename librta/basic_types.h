@@ -35,6 +35,7 @@ namespace rta {
 
 	typedef unsigned int uint;
 	typedef float float_t;
+	typedef vec2f vec2_t;
 	typedef vec3f vec3_t;
 	typedef vec4f vec4_t;
 
@@ -42,6 +43,8 @@ namespace rta {
 	struct simple_triangle {
 		vec3_t a, b, c;
 		vec3_t na, nb, nc;
+		vec2_t ta, tb, tc;
+		int material_index;
 	};
 
 	//! simple aabb
@@ -101,6 +104,7 @@ namespace rta {
 	 */
 	//! acess vector components by name
 	template<typename T> inline       float_t& x_comp(T &t)            { invalid_instantiation(T); return 0; }
+	template<>           inline       float_t& x_comp(vec2_t &t)       { return t.x; }
 	template<>           inline       float_t& x_comp(vec3_t &t)       { return t.x; }
 	template<>           inline       float_t& x_comp(vec4_t &t)       { return t.x; }
 	template<typename T> inline const float_t& x_comp(const T &t)      { invalid_instantiation(T); return 0; }
@@ -109,6 +113,7 @@ namespace rta {
 	
 	//! acess vector components by name
 	template<typename T> inline       float_t& y_comp(T &t)            { invalid_instantiation(T); return 0; }
+	template<>           inline       float_t& y_comp(vec2_t &t)       { return t.y; }
 	template<>           inline       float_t& y_comp(vec3_t &t)       { return t.y; }
 	template<>           inline       float_t& y_comp(vec4_t &t)       { return t.y; }
 	template<typename T> inline const float_t& y_comp(const T &t)      { invalid_instantiation(T); return 0; }
@@ -189,6 +194,24 @@ namespace rta {
 	template<>           inline       vec3_t& normal_c(simple_triangle &t)       { return t.nc; }
 	template<typename T> inline const vec3_t& normal_c(const T &t)               { invalid_instantiation(T); return vec3_t(); }
 	template<>           inline const vec3_t& normal_c(const simple_triangle &t) { return t.nc; }
+	
+	//! access a triangle's texture coordinate by name - a
+	template<typename T> inline       vec2_t& texcoord_a(T &t)                     { invalid_instantiation(T); return vec2_t(); }
+	template<>           inline       vec2_t& texcoord_a(simple_triangle &t)       { return t.ta; }
+	template<typename T> inline const vec2_t& texcoord_a(const T &t)               { invalid_instantiation(T); return vec2_t(); }
+	template<>           inline const vec2_t& texcoord_a(const simple_triangle &t) { return t.ta; }
+
+	//! access a triangle's texture coordinate by name - b
+	template<typename T> inline       vec2_t& texcoord_b(T &t)                     { invalid_instantiation(T); return vec2_t(); }
+	template<>           inline       vec2_t& texcoord_b(simple_triangle &t)       { return t.tb; }
+	template<typename T> inline const vec2_t& texcoord_b(const T &t)               { invalid_instantiation(T); return vec2_t(); }
+	template<>           inline const vec2_t& texcoord_b(const simple_triangle &t) { return t.tb; }
+
+	//! access a triangle's texture coordinate by name - c
+	template<typename T> inline       vec2_t& texcoord_c(T &t)                     { invalid_instantiation(T); return vec2_t(); }
+	template<>           inline       vec2_t& texcoord_c(simple_triangle &t)       { return t.tc; }
+	template<typename T> inline const vec2_t& texcoord_c(const T &t)               { invalid_instantiation(T); return vec2_t(); }
+	template<>           inline const vec2_t& texcoord_c(const simple_triangle &t) { return t.tc; }
 	//! @}
 
 	/*! \defgroup bounding_box_accessors Bounding Box Accessors

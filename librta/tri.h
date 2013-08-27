@@ -47,6 +47,15 @@ namespace rta {
 		add_components_vec3f(to,  to, &tmp);
 	}
 
+	inline void barycentric_interpolation(vec2_t *to, const vec3_t *b_coord, const vec2_t *a, const vec2_t *b, const vec2_t *c) {
+		vec2_t tmp;
+		mul_vec2f_by_scalar(to,   a,  x_comp(*b_coord));
+		mul_vec2f_by_scalar(&tmp, b,  y_comp(*b_coord));
+		add_components_vec2f(to , to, &tmp);
+		mul_vec2f_by_scalar(&tmp, c,  z_comp(*b_coord));
+		add_components_vec2f(to,  to, &tmp);
+	}
+
 // 	void interpolate_normal(vec3_t *to, const triangle_intersection &is) {
 // 		vec3_t bcoord = { is.beta, is.gamma, (float_t)(1.0 - is.beta - is.gamma) };
 // 		vec3_t interpol = 

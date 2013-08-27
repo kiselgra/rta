@@ -4,6 +4,7 @@ librta_la_SOURCES = aabb.h  \
 					basic_types.h  \
 					image.h  \
 					intersect.h  \
+					material.h material.cpp \
 					plugins.h plugins.cpp\
 					raytrav.h  \
 					template-magic.h  \

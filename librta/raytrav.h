@@ -192,14 +192,14 @@ template<box_t__and__tri_t> class lighting_collector {
 /*! \brief An actual \ref bouncer implementation which traces primary rays (see \ref primary_intersection_collector for confusion)
  *  	and can apply point light illumination on the result.
  */
-template<box_t__and__tri_t> class direct_diffuse_illumination : public cpu_ray_bouncer<forward_traits>, public lighting_collector<forward_traits> {
+template<box_t__and__tri_t, typename shader> class direct_diffuse_illumination : public cpu_ray_bouncer<forward_traits>, public shader {
 	public:
 		typedef _tri_t tri_t;
 		typedef cpu_ray_bouncer<forward_traits> bouncer_t;
 		// on the initialization order, see http://www.informit.com/guides/content.aspx?g=cplusplus&seqNum=169
-		direct_diffuse_illumination(uint w, uint h) : cpu_ray_bouncer<forward_traits>(w,h) , lighting_collector<forward_traits>(w,h, 0) {
+		direct_diffuse_illumination(uint w, uint h) : cpu_ray_bouncer<forward_traits>(w,h), shader(w,h, 0) {
 			image<triangle_intersection<tri_t>, 1> *li = &this->bouncer_t::last_intersection;
-			lighting_collector<forward_traits>::last_intersection = li;
+			shader::last_intersection = li;
 		}
 		virtual void bounce() {
 // 			for (int y = 0; y < res.h; ++y)
