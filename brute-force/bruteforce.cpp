@@ -112,7 +112,7 @@ namespace rta {
 			 */
 			bruteforce_dummy_accel_struct<forward_traits>* build(flat_triangle_list *tris) {
 				bruteforce_dummy_accel_struct<forward_traits> *as = new bruteforce_dummy_accel_struct<forward_traits>;
-				std::vector<tri_t> tmp(tris->triangles);
+				std::vector<tri_t> tmp;
 				for (int i = 0; i < tris->triangles; ++i)
 					tmp.push_back(tris->triangle[i]);
 				as->take_triangle_array(tmp);
