@@ -17,7 +17,7 @@ static char doc[]       = PACKAGE ": ray tracing test suite\n\n"
 static char args_doc[]  = "module -- [OPTIONS for module...]";
 
 // long option without corresponding short option have to define a symbolic constant >= 300
-enum { FIRST = 300, AXIS, ANCHOR, SF, BT, DIST, OPTS };
+enum { FIRST = 300, AXIS, ANCHOR, SF, BT, DIST, NOPNG, OPTS };
 
 static struct argp_option options[] = 
 {
@@ -39,6 +39,7 @@ static struct argp_option options[] =
 	{ "light-color", 'l', "r,g,b",  0, "Color of the lights placed around the rendered object. Default 1,1,1" },
 	{ "help", '?', 0,             0, "Give this help list (or show help of a previously specified module, see -m)." },
 	{ "resolution", 'r', "WxH",             0, "Set the resolution (default: 800x800)." },
+	{ "no-png", NOPNG, 0,             0, "Do not write image files." },
 	{ 0 }
 };	
 
@@ -101,6 +102,8 @@ static error_t parse_options(int key, char *arg, argp_state *state)
 	              cmdline.res_x = res.x;
 	              cmdline.res_y = res.y;
 	              break;
+	case NOPNG:   cmdline.png_output = false;
+				  break;
 
 	case ARGP_KEY_ARG:		// process arguments. 
 							// state->arg_num gives number of current arg

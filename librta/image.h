@@ -1,6 +1,8 @@
 #ifndef __RTA_IMAGE_H__ 
 #define __RTA_IMAGE_H__ 
 
+#include <png.h>
+
 #include <stdexcept>
 #include <string>
 

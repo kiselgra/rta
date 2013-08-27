@@ -290,13 +290,6 @@ template<box_t__and__tri_t> class directional_analysis_pass {
 				sum += rps;
 				timings[i] = rps;
 
-				ostringstream oss;
-				oss << "/tmp/blub-";
-				if (i < 100) oss << "0";
-				if (i < 10) oss << "0";
-				oss << i;
-				oss << ".png";
-
 				box_t light_box = bb;
 				vec3_t diff, delta;
 				sub_components_vec3f(&diff, &max(bb), &min(bb));
@@ -329,7 +322,17 @@ template<box_t__and__tri_t> class directional_analysis_pass {
 				shader->reset(cmdline.back_col);
 
 				shader->shade(cmdline.binary_intersection_debug);
-				shader->save(oss.str());
+				
+				if (cmdline.png_output) {
+					ostringstream oss;
+					oss << "/tmp/blub-";
+					if (i < 100) oss << "0";
+					if (i < 10) oss << "0";
+					oss << i;
+					oss << ".png";
+
+					shader->save(oss.str());
+				}
 
 				cout << "." << flush;
 			}
