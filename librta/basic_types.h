@@ -60,7 +60,7 @@ namespace rta {
 		triangle_intersection(uint t) : t(FLT_MAX), ref(t) {}
 		bool valid() const { return t != FLT_MAX; }
 		void reset() { t = FLT_MAX; ref = 0; }
-		void barycentric_coord(vec3_t *to) {
+		void barycentric_coord(vec3_t *to) const {
 			to->x = 1.0 - beta - gamma;
 			to->y = beta;
 			to->z = gamma;
