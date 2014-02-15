@@ -326,6 +326,7 @@ template<box_t__and__tri_t> class basic_raytracer : public raytracer {
 		}
 		virtual void trace() {
 			raygen->generate_rays();
+			bouncer->new_pass();
 			timings.clear();
 			do {
 				float ms = trace_rays();
