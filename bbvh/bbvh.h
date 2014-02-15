@@ -337,6 +337,9 @@ template<box_t__and__tri_t, typename bvh_t_> class bbvh_direct_is_tracer : publi
 			}
 		}
 		virtual std::string identification() { return "bbvh_direct_is_tracer"; }
+		virtual bbvh_direct_is_tracer* copy() {
+			return new bbvh_direct_is_tracer(*this);
+		}
 };
 
 
@@ -411,6 +414,9 @@ template<box_t__and__tri_t, typename bvh_t_> class bbvh_child_is_tracer : public
 			}
 		}
 		virtual std::string identification() { return "bbvh_child_is_tracer"; }
+		virtual bbvh_child_is_tracer* copy() {
+			return new bbvh_child_is_tracer(*this);
+		}
 };
 
 

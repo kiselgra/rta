@@ -299,6 +299,7 @@ class raytracer {
 		virtual void prepare_bvh_for_tracing() = 0;
 		virtual void trace() = 0;
 		virtual std::string identification() = 0;
+		virtual raytracer* copy() = 0;
 };
 
 /*! A framework ray tracer extension that implements the whole \ref ray_generator, \ref raytracer, \ref bouncer cycle, 
@@ -343,6 +344,7 @@ template<box_t__and__tri_t> class basic_raytracer : public raytracer {
 		virtual void force_cpu_bouncer(rta::cpu_ray_bouncer<forward_traits> *rb) {
 			cpu_bouncer = rb;
 		}
+		virtual basic_raytracer* copy() = 0;
 };
 
 ////////////////////

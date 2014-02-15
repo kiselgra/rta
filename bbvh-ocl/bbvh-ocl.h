@@ -115,7 +115,9 @@ namespace rta {
 					return ms;
 				}
 				virtual std::string identification() { return "bbvh_tracer using ocl (kernel: " + kernel->name + ")"; }
-
+				virtual bbvh_gpu_tracer* copy() {
+					return new bbvh_gpu_tracer(*this);
+				}
 		};
 
 

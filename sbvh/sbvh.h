@@ -393,6 +393,9 @@ namespace rta {
 				}
 			}
 			virtual std::string identification() { return "preorder sbvh tracer"; }
+			virtual preorder_sbvh_tracer* copy() {
+				return new preorder_sbvh_tracer(*this);
+			}
 	};
 
 
@@ -551,6 +554,9 @@ namespace rta {
 				}
 			}
 			virtual std::string identification() { return "order independent sbvh tracer"; }
+			virtual order_independent_sbvh_tracer* copy() {
+				return new order_independent_sbvh_tracer(*this);
+			}
 	};
 
 

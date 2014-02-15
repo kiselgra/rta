@@ -172,6 +172,9 @@ namespace rta {
 				}
 			}
 			virtual std::string identification() { return "brute force ray tracer"; }
+			virtual bruteforce_tracer* copy() {
+				return new bruteforce_tracer(*this);
+			}
 		};
 	}
 }
