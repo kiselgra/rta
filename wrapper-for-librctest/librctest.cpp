@@ -154,7 +154,8 @@ struct rctest_raytracer : public rta::basic_raytracer<rta::simple_aabb, rta::sim
 				is.beta = ti.beta; 
 				is.gamma = ti.gamma;
 				is.t = ti.t;
-				is.ref = this->accel_struct->triangle_ptr() + idx;
+// 				is.ref = this->accel_struct->triangle_ptr() + idx;
+				is.ref = idx;
 				cpu_bouncer->save_intersection(x,y,is);
 			}
 		return ms;
@@ -162,6 +163,7 @@ struct rctest_raytracer : public rta::basic_raytracer<rta::simple_aabb, rta::sim
 	std::string identification() {
 		return "kai's da rt (" + bvh_string() + ")";
 	}
+	rctest_raytracer* copy() { return new rctest_raytracer(*this); }
 };
 
 template<typename Trav, typename InnerTrav, typename RC, typename AS> 
@@ -220,7 +222,7 @@ extern "C" {
 
 	int parse_cmdline(int argc, char **argv)
 	{
-		argv[0] = "librctest";
+		argv[0] = (char*)"librctest";
 		int ret = librc_parse_cmdline(argc, argv);
 		return ret;
 	}
