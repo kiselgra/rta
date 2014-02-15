@@ -297,6 +297,7 @@ template<box_t__and__tri_t, typename bvh_t_> class bbvh_direct_is_tracer : publi
 		virtual float trace_rays() {
 			wall_time_timer wtt; wtt.start();
 			traversal_state<tri_t> state;
+			#pragma omp parallel for schedule(dynamic, 32) private(state)
 			for (uint y = 0; y < raygen->res_y(); ++y) {
 				for (uint x = 0; x < raygen->res_x(); ++x) {
 					state.reset(x,y);
@@ -356,6 +357,7 @@ template<box_t__and__tri_t, typename bvh_t_> class bbvh_child_is_tracer : public
 		virtual float trace_rays() {
 			wall_time_timer wtt; wtt.start();
 			traversal_state<tri_t> state;
+			#pragma omp parallel for schedule(dynamic, 32) private(state)
 			for (uint y = 0; y < raygen->res_y(); ++y) {
 				for (uint x = 0; x < raygen->res_x(); ++x) {
 					state.reset(x,y);

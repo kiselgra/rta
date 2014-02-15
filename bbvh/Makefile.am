@@ -5,9 +5,9 @@ bbvh_la_SOURCES = main.cpp \
 					  bbvh.h
 
 bbvh_la_CPPFLAGS = -D PACKAGE=\"$(PACKAGE)\" -D VERSION=\"$(VERSION)\" -I$(top_builddir)
-bbvh_la_CXXFLAGS = -Wreturn-type
+bbvh_la_CXXFLAGS = -Wreturn-type -fopenmp
 
-bbvh_la_LDFLAGS = -shared -module -avoid-version # do i want "avoid-version"?
+bbvh_la_LDFLAGS = -shared -module -avoid-version -fopenmp # do i want "avoid-version"?
 
 library_includedir = $(includedir)/$(PACKAGE)-$(VERSION)/bbvh
 library_include_HEADERS = bbvh.h
