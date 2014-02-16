@@ -33,6 +33,7 @@ fi
 AC_MSG_RESULT([found g++-$GCC_VER_D])
 CXXFLAGS="$CXXFLAGS -std=gnu++0x"
 
+AX_ENABLE_GDB_OPTION
 
 # when using flex/bison:
 # AC_PROG_LEX
