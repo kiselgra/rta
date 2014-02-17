@@ -5,6 +5,7 @@
 // #include "librc-test/vecs.h"
 
 #include <vector>
+#include <type_traits>
 
 namespace rta
 {
@@ -14,16 +15,22 @@ namespace rta
 	template<typename T> struct enable_if<true, T> { typedef T type; };
 	template<typename T> struct disable_if<false, T> { typedef T type; };
 
-	template<typename T> struct iscontainer
-	{
-		enum { result = 0 };
-	};
-
-	template<typename T> struct iscontainer<std::vector<T> >
-	{
-		enum { result = 1 };
-	};
-
+ 	// taken from http://stackoverflow.com/questions/9242209/is-container-trait-fails-on-stdset-sfinae-issue
+	// comment of http://stackoverflow.com/users/34509/johannes-schaub-litb
+    template<typename Container, typename = void>
+    struct is_container : std::false_type { };
+     
+    template<typename A, A, A>
+    struct is_of_type { typedef void type; };
+     
+    template<typename C>
+    struct is_container<C,
+                        typename is_of_type<typename C::iterator(C::*)(),
+                                            &C::begin,
+                                            &C::end>::type> 
+	       : std::is_class<C> { };
+	// ---
+     
 	
 // 	template<typename T> struct isscalar	{ enum { Result = true }; 	};
 // 	template<> struct isscalar<vec4fsse> 	{ enum { Result = false}; 	};

@@ -47,7 +47,7 @@ namespace rta {
 		return bb;
 	}
 
-	template<typename aabb, typename CONTAINER> typename enable_if<iscontainer<CONTAINER>::Result, aabb>::Type compute_aabb(const CONTAINER &container)
+	template<typename aabb, typename CONTAINER> typename enable_if<is_container<CONTAINER>::value, aabb>::Type compute_aabb(const CONTAINER &container)
 	{
 		return compute_aabb<aabb>(container, container.begin(), container.end());
 	}
@@ -63,7 +63,7 @@ namespace rta {
 		return bb;
 	}
 
-	template<typename aabb, typename TRI> typename enable_if<!iscontainer<TRI>::Result, aabb>::Type compute_aabb(const TRI &t)
+	template<typename aabb, typename TRI> typename enable_if<!is_container<TRI>::value, aabb>::Type compute_aabb(const TRI &t)
 	{	
 		aabb bb;
 		min(bb) = vertex_a(t);

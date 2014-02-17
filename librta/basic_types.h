@@ -251,6 +251,17 @@ namespace rta {
 
 #include "tri.h"
 #include "aabb.h"
+	
+namespace rta {
+	inline simple_aabb compute_aabb(const simple_triangle &t)
+	{	
+		simple_aabb bb;
+		min(bb) = vertex_a(t);
+		max(bb) = vertex_a(t);
+		merge(bb, t);
+		return bb;
+	}
+}
 
 #endif
 
