@@ -278,9 +278,18 @@ template<box_t__and__tri_t, typename bvh_t_> class bbvh_tracer : public basic_ra
 		declare_traits_types;
 		typedef bvh_t_ bbvh_t;
 	protected:
+		/*! A downcast version of basic_raytracer::accel_struct.
+		 *  \note If you keep such a pointer, make sure to keep it up to date with the base version 
+		 *        so you don't end up tracing a different acceleration structure than set via the base's
+		 *        interface. See \ref basic_raytracer::accelration_structure.
+		 */
 		bbvh_t *bvh;
 	public:
 		bbvh_tracer(ray_generator *gen, bbvh_t *bvh, class bouncer *b) : basic_raytracer<forward_traits>(gen, b, bvh), bvh(bvh) {
+		}
+		virtual void acceleration_structure(rta::acceleration_structure<forward_traits> *as) {
+			bvh = dynamic_cast<bvh_t_*>(as);
+			basic_raytracer<forward_traits>::acceleration_structure(as);
 		}
 };
 
@@ -355,6 +364,7 @@ template<box_t__and__tri_t, typename bvh_t_> class bbvh_child_is_tracer : public
 		bbvh_child_is_tracer(ray_generator *gen, bbvh_t *bvh, class bouncer *b) : bbvh_tracer<forward_traits, bvh_t_>(gen, bvh, b) {
 		}
 		virtual float trace_rays() {
+			this->bvh = dynamic_cast<bbvh_t*>(this->accel_struct);
 			wall_time_timer wtt; wtt.start();
 			traversal_state<tri_t> state;
 			#pragma omp parallel for schedule(dynamic, 32) private(state)

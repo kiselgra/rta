@@ -303,8 +303,8 @@ template<box_t__and__tri_t> class directional_analysis_pass {
 		}
 		//! supposes that the tracer's accelstruct has been set up, already
 		void tracer(rta::basic_raytracer<box_t, tri_t> *tracer) { 
-			tri_t *tris = tracer->accel_struct->triangle_ptr();
-			int n = tracer->accel_struct->triangle_count();
+			tri_t *tris = tracer->acceleration_structure()->triangle_ptr();
+			int n = tracer->acceleration_structure()->triangle_count();
 			bb = rta::compute_aabb<box_t>(tris, 0, n);
 			vec3f diff;
 			sub_components_vec3f(&diff, &max(bb), &min(bb));
