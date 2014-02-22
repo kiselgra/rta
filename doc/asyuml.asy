@@ -64,6 +64,7 @@ struct class {
 	pair size;
 	real[] heights;
 	bool track_positions = false;
+	class[] bases;
 	int index_of_element(string name) {
 		for (int i = 0; i < members.length; ++i)
 			if (members[i].name == name)
@@ -141,7 +142,17 @@ struct class {
 		}
 		// and draw name
 		draw_name(to, offset + (xpart(frame_dim)*.5,0));
+
+		// draw inheritance arrows
+		for (int i = 0; i < bases.length; ++i) {
+			real ymid = ypart(top()) + 0.5*(ypart(bases[i].bottom()) - ypart(top()));
+			add(to,arrow(top() -- (xpart(top()), ymid) -- (xpart(bases[i].bottom()), ymid) -- bases[i].bottom(),FillDraw(white,black),size=15));
+		}
 	}
+	void add_baseclass(class x) {
+		bases.push(x);
+	}
+
 	void finalize() {
 		track_positions = true;
 		picture pic;
@@ -150,9 +161,22 @@ struct class {
 	}
 };
 
+class all_classes[];
+
+void finalize_all_classes() {
+	for (int i = 0; i < all_classes.length; ++i)
+		all_classes[i].finalize();
+}
+
+void draw_all_classes() {
+	for (int i = 0; i < all_classes.length; ++i)
+		all_classes[i].draw();
+}
+
 class make_class(string name, pair position = (0,0)) {
 	class c;
 	c.name = name;
+	all_classes.push(c);
 	return c;
 }
 
