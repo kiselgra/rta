@@ -35,7 +35,7 @@ bool3 Public = default;
 bool3 Private = false;
 bool3 Protected = true;
 
-member make_member(string name, bool3 Access) {
+member make_member(string name, bool3 Access = Protected) {
 	member m;
 	m.name = name;
 	if (Access == Public) m.visibility = "+";
@@ -44,12 +44,12 @@ member make_member(string name, bool3 Access) {
 	return m;
 }
 
-function make_function(string name, bool3 Access, string suffix = "") {
+function make_function(string name, bool3 Access = Public, string suffix = "") {
 	function f;
 	f.name = name;
 	if (Access == Public) f.visibility = "+";
 	else if (Access == Private) f.visibility = "-";
-	else f.visibility = "#";
+	else f.visibility = "\#";
 	f.after = suffix;
 	return f;
 }
@@ -65,13 +65,23 @@ struct class {
 	real[] heights;
 	bool track_positions = false;
 	class[] bases;
-	int index_of_element(string name) {
+	path[] base_path;
+
+	void add_function(string name, bool3 Access = Public, string suffix = "") {
+		functions.push(make_function(name, Access, suffix));
+	}
+	void add_member(string name, bool3 Access = Protected) {
+		members.push(make_member(name, Access));
+	}
+	int index_of_element(string n) {
 		for (int i = 0; i < members.length; ++i)
-			if (members[i].name == name)
+			if (members[i].name == n)
 				return i;
 		for (int i = 0; i < functions.length; ++i)
-			if (functions[i].name == name)
+			if (functions[i].name == n)
 				return members.length+i;
+		if (n == name)
+			return heights.length-1;
 		return -1;
 	}
 	pair left_of_element(string name) {
@@ -84,6 +94,10 @@ struct class {
 	pair right()  { return position + (xpart(size),ypart(size)*.5); }
 	pair top()    { return position + (xpart(size)*.5,ypart(size)); }
 	pair bottom() { return position + (xpart(size)*.5,0); }
+	void set_left(pair pos)   { position = pos+(0,-ypart(size)*.5); }
+	void set_right(pair pos)  { position = pos+(-xpart(size),-ypart(size)*.5); }
+	void set_top(pair pos)    { position = pos-(xpart(size)*.5,ypart(size)); }
+	void set_bottom(pair pos) { position = pos+(-xpart(size)*.5,0); }
 	void draw_name(picture to = currentpicture, pair pos = (0,0)) {
 		label(to, "{\ttfamily\bfseries "+replace(name,"_","\_")+"}\phantom{\strut}", pos);
 	}
@@ -97,7 +111,7 @@ struct class {
 		pair[] mem_dim = new pair[members.length];
 		pair frame_dim = name_size();
 		if (track_positions)
-			heights = new real[functions.length + members.length];
+			heights = new real[functions.length + members.length + 1];
 
 		// accumulate member variable dimensions
 		for (int i = 0; i < members.length; ++i) {
@@ -124,7 +138,8 @@ struct class {
 			offset = position + (0,ypart(mem_dim[members.length-1])*.5);
 			for (int i = members.length-1; i >= 0; --i) {
 				members[i].draw(to, offset);
-				heights[i] = ypart(offset);
+				if (track_positions)
+					heights[i] = ypart(offset);
 				offset = offset + (0,ypart(mem_dim[i]));
 			}
 			draw(to, offset -(0,ypart(mem_dim[members.length-1])*.5)-- offset + (xpart(frame_dim),-ypart(mem_dim[members.length-1])*.5));
@@ -135,22 +150,33 @@ struct class {
 				offset = position+(0,ypart(fun_dim[functions.length-1])*.5);
 			for (int i = functions.length-1; i >= 0; --i) {
 				functions[i].draw(to, offset);
-				heights[members.length+i] = ypart(offset);
+				if (track_positions)
+					heights[members.length+i] = ypart(offset);
 				offset = offset + (0,ypart(fun_dim[i]));
 			}
 			draw(to, offset -(0,ypart(name_size())*.5)-- offset + (xpart(frame_dim),-ypart(name_size())*.5));
 		}
 		// and draw name
 		draw_name(to, offset + (xpart(frame_dim)*.5,0));
+		if (track_positions)
+			heights[heights.length-1] = ypart(offset);
 
 		// draw inheritance arrows
 		for (int i = 0; i < bases.length; ++i) {
-			real ymid = ypart(top()) + 0.5*(ypart(bases[i].bottom()) - ypart(top()));
-			add(to,arrow(top() -- (xpart(top()), ymid) -- (xpart(bases[i].bottom()), ymid) -- bases[i].bottom(),FillDraw(white,black),size=15));
+			add(to,arrow(base_path[i],FillDraw(white,black),size=15));
 		}
 	}
-	void add_baseclass(class x) {
+	void add_baseclass(class x, path Path=nullpath, real t = 0.5) {
 		bases.push(x);
+		if (Path == nullpath) {
+			write("nullpath for ", name);
+			real ymid = ypart(top()) + t*(ypart(x.bottom()) - ypart(top()));
+			base_path.push(top() -- (xpart(top()), ymid) -- (xpart(x.bottom()), ymid) -- x.bottom());
+		}
+		else {
+			write("path for ", name);
+			base_path.push(Path);
+			}
 	}
 
 	void finalize() {
@@ -178,6 +204,51 @@ class make_class(string name, pair position = (0,0)) {
 	c.name = name;
 	all_classes.push(c);
 	return c;
+}
+
+int ConnectionLeft = 0,
+	ConnectionRight = 1,
+	ConnectionTop = 2,
+	ConnectionBottom = 3
+	;
+path relation_path(pair fro, int fro_side, 
+					pair to, int to_side) {
+	path p;
+	bool fro_left_right = (fro_side == ConnectionLeft || fro_side == ConnectionRight);
+	bool to_left_right = (to_side == ConnectionLeft || to_side == ConnectionRight);
+
+	if ((fro_left_right && !to_left_right) ||
+		(!fro_left_right && to_left_right)) {
+		return fro -- (xpart(to),ypart(fro)) -- to;
+	}
+
+	if (fro_side == ConnectionLeft) {
+		if (to_side == ConnectionLeft) {
+			real min_x = min(xpart(fro), xpart(to));
+			p = fro -- (min_x,ypart(fro))-(15,0) -- (min_x,ypart(to))-(15,0) -- to;
+		}
+		else if (to_side == ConnectionRight) {
+			p = fro -- (xpart(fro)+xpart(to-fro)*.5, ypart(fro)) 
+					-- (xpart(fro)+xpart(to-fro)*.5, ypart(to))
+					-- to;
+		}
+	}
+	else if (fro_side == ConnectionRight) {
+		if (to_side == ConnectionLeft) {
+			p = fro -- (xpart(fro)+xpart(to-fro)*.5, ypart(fro)) 
+					-- (xpart(fro)+xpart(to-fro)*.5, ypart(to))
+					-- to;
+		}
+		else if (to_side == ConnectionRight) {
+			real max_x = max(xpart(fro), xpart(to));
+			p = fro -- (max_x,ypart(fro))+(15,0) -- (max_x,ypart(to))+(15,0) -- to;
+		}
+	}
+	else if (fro_side == ConnectionTop) {
+	}
+	else if (fro_side == ConnectionBottom) {
+	}
+	return p;
 }
 
 
