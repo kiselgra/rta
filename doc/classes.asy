@@ -200,10 +200,10 @@ binary_bvh_sa_node.add_member("axis", Public);
 class binary_bvh_sa = make_class("binary_bvh_with_split_axis");
 binary_bvh_sa.add_member("nodes", Public);
 binary_bvh_sa.add_member("triangles", Public);
-binary_bvh_sa.add_member("take_node_array", Public);
-binary_bvh_sa.add_member("take_triangle_array", Public);
-binary_bvh_sa.add_member("trinangle_ptr", Public);
-binary_bvh_sa.add_member("trinangle_count", Public);
+binary_bvh_sa.add_function("take_node_array", Public);
+binary_bvh_sa.add_function("take_triangle_array", Public);
+binary_bvh_sa.add_function("trinangle_ptr", Public);
+binary_bvh_sa.add_function("trinangle_count", Public);
 
 class bbvh_no_bias = make_class("bbvh_no_bias");
 bbvh_no_bias.add_function("apply");
@@ -276,5 +276,87 @@ draw(relation_path(binary_bvh.left_of_element("nodes"), ConnectionLeft,
 draw(relation_path(binary_bvh_sa.left_of_element("nodes"), ConnectionLeft,
 					binary_bvh_sa_node.top(), ConnectionTop),
 		Arrow);
+draw(relation_path(bbvh_ctor_median.right_of_element("build_om"), ConnectionRight,
+					bbvh_no_bias.right_of_element("apply"), ConnectionRight),
+		Arrow);
+draw(relation_path(bbvh_ctor_median.right_of_element("build_sm"), ConnectionRight,
+					bbvh_no_bias.right_of_element("apply"), ConnectionRight),
+		Arrow);
+
+draw_all_classes();
+
+
+/////
+/////
+/////
+
+max_y = min_y;
+min_y = ypart(binary_bvh_sa_node.bottom())-30;
+draw((min_x,min_y) -- (max_x,min_y));
+label("\Large sbvh", (min_x,min_y), align=Relative(S+E));
+
+/////
+/////
+/////
+
+all_classes = new class[];
+
+class stackless_bvh = make_class("stackless_bvh");
+stackless_bvh.add_member("nodes", Public);
+stackless_bvh.add_member("triangles", Public);
+stackless_bvh.add_function("take_triangle_array", Public);
+stackless_bvh.add_function("trinangle_ptr", Public);
+stackless_bvh.add_function("trinangle_count", Public);
+
+class stackless_bvh_node = make_class("stackless_bvh::node");
+stackless_bvh_node.add_member("type_parent", Public);
+stackless_bvh_node.add_member("children_tris", Public);
+stackless_bvh_node.add_member("box", Public);
+stackless_bvh_node.add_function("inner", Public);
+stackless_bvh_node.add_function("make_inner", Public);
+stackless_bvh_node.add_function("make_leaf", Public);
+stackless_bvh_node.add_function("parent", Public);
+stackless_bvh_node.add_function("children", Public);
+stackless_bvh_node.add_function("tris", Public);
+stackless_bvh_node.add_function("elems", Public);
+stackless_bvh_node.add_function("split_axis", Public);
+stackless_bvh_node.add_function("incorporate", Public);
+
+class sbvh_constructor = make_class("sbvh_constructor");
+sbvh_constructor.add_function("build");
+
+class preorder_stackless_bvh = make_class("preorder_stackless_bvh");
+preorder_stackless_bvh.add_member("nodes", Public);
+preorder_stackless_bvh.add_member("triangles", Public);
+preorder_stackless_bvh.add_function("take_triangle_array", Public);
+preorder_stackless_bvh.add_function("trinangle_ptr", Public);
+preorder_stackless_bvh.add_function("trinangle_count", Public);
+
+class preorder_stackless_bvh_node = make_class("preorder_stackless_bvh::node");
+preorder_stackless_bvh_node.add_member("type_elems");
+preorder_stackless_bvh_node.add_member("skip_tris");
+preorder_stackless_bvh_node.add_member("box");
+preorder_stackless_bvh_node.add_function("inner");
+preorder_stackless_bvh_node.add_function("make_inner");
+preorder_stackless_bvh_node.add_function("make_leaf");
+preorder_stackless_bvh_node.add_function("elems");
+preorder_stackless_bvh_node.add_function("skip");
+preorder_stackless_bvh_node.add_function("tris");
+
+finalize_all_classes();
+
+/////
+
+stackless_bvh.set_top((0, min_y-100));
+stackless_bvh_node.set_left(stackless_bvh.right());
+sbvh_constructor.set_left(stackless_bvh_node.right());
+preorder_stackless_bvh.set_left(sbvh_constructor.right());
+preorder_stackless_bvh_node.set_left(preorder_stackless_bvh.right());
+
+
+
+/////
+
+/////
 
 draw_all_classes();
