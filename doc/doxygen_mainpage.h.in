@@ -82,6 +82,10 @@
  *	\code
  *  $ ./configure CXXFLAGS="-O0 -ggdb3"
  *	\endcode
+ *	Nowadays you can also use
+ *	\code
+ *  $ ./configure --enable-gdb
+ *	\endcode
  *  When debugging rta it does, however, becomes apparent that we're using libtool which wraps local (non-installed) versions of our binaries for library consistency. This may bite you when you try to debug rta. Therefore we provide the correct debugger call here:
  *  \code
  *  $ libtool execute [c]gdb rta/rta
@@ -112,6 +116,9 @@
  *  \endcode
  *  the directory <tt>$libdir/rta/</tt> is searched for <tt>myplugin.so</tt>, if it is not found the given filename itself it tried for library opening (in this case, you'll need the .so extension).
  *  
+ *  \subsection plugin_load_debugging Why is my plugin not loaded
+ *  Check out the plugin-load-debug branch, it has more debugging output.
+ *  Maybe we should enable this via some flag in the master branch, too.
  *
  *
  *

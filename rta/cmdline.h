@@ -21,6 +21,7 @@ struct Cmdline
 	std::string force;
 	std::string outfile;
 	std::string module;
+	std::string png_prefix;
 
 	vec3f back_col, light_col;
 	std::string model;
@@ -32,7 +33,7 @@ struct Cmdline
 
 	int res_x, res_y;
 
-	Cmdline() : verbose(false), positional_series(false), axial_series(false), sphere_series(false), produce_images(true), binary_intersection_debug(false), res_x(800), res_y(800), distance_factor(1.5), png_output(true)
+	Cmdline() : verbose(false), positional_series(false), axial_series(false), sphere_series(false), png_prefix("/tmp/rta-"), produce_images(true), binary_intersection_debug(false), res_x(800), res_y(800), distance_factor(1.5), png_output(true)
 	{
 		pos = { 0,0,0 };
 		dir = { 0,0,-1 };

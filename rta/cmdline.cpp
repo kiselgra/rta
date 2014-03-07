@@ -40,6 +40,7 @@ static struct argp_option options[] =
 	{ "help", '?', 0,             0, "Give this help list (or show help of a previously specified module, see -m)." },
 	{ "resolution", 'r', "WxH",             0, "Set the resolution (default: 800x800)." },
 	{ "no-png", NOPNG, 0,             0, "Do not write image files." },
+	{ "png-prefix", 'P', "prefix",             0, "Write images to this path. Note that this is not be a complete filename, e.g. <prefix> will produce <prefix>0001.png." },
 	{ 0 }
 };	
 
@@ -94,6 +95,7 @@ static error_t parse_options(int key, char *arg, argp_state *state)
 	case DIST:    cmdline.distance_factor = atof(arg); break;
 	case 'f':     cmdline.force = sarg; break;
 	case 'o':     cmdline.outfile = sarg; break;
+	case 'P':     cmdline.png_prefix = sarg; break;
 	case 'm':     cmdline.model = sarg; break;
 	case 'b':     cmdline.back_col  = read_vec3f(sarg); break;
 	case 'l':     cmdline.light_col = read_vec3f(sarg); break;

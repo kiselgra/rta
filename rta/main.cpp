@@ -395,7 +395,7 @@ template<box_t__and__tri_t> class directional_analysis_pass {
 				
 				if (cmdline.png_output) {
 					ostringstream oss;
-					oss << "/tmp/blub-";
+					oss << cmdline.png_prefix;
 					if (i < 100) oss << "0";
 					if (i < 10) oss << "0";
 					oss << i;
