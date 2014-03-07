@@ -80,7 +80,7 @@ namespace rta {
 					coll_t::add_pointlight(at, col);
 				}
 				virtual void shade() {
-					download_intersection_info(last_intersection.data);
+					this->download_intersection_info(last_intersection.data);
 					coll_t::shade();
 				}
 				virtual void bounce() {
