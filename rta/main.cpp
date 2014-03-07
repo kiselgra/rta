@@ -88,9 +88,16 @@ flat_triangle_list load_objfile_to_flat_tri_list(const std::string &filename) {
 			ftl.triangle[run + i].na = normal(0, i);
 			ftl.triangle[run + i].nb = normal(1, i);
 			ftl.triangle[run + i].nc = normal(2, i);
-			ftl.triangle[run + i].ta = texcoord(0, i);
-			ftl.triangle[run + i].tb = texcoord(1, i);
-			ftl.triangle[run + i].tc = texcoord(2, i);
+			if (mid >= 0 && material(mid)->diffuse_texture) {
+				ftl.triangle[run + i].ta = texcoord(0, i);
+				ftl.triangle[run + i].tb = texcoord(1, i);
+				ftl.triangle[run + i].tc = texcoord(2, i);
+			}
+			else {
+				ftl.triangle[run + i].ta = {0,0};
+				ftl.triangle[run + i].tb = {0,0};
+				ftl.triangle[run + i].tc = {0,0};
+			}
 			ftl.triangle[run + i].material_index = mid;
 		}
 		run += t;
