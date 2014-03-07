@@ -306,17 +306,17 @@ class raytracer {
  *		as well as the taking of  timings.
  */
 template<box_t__and__tri_t> class basic_raytracer : public raytracer {
-// 		struct trace_thread {
-// 		};
+	public:
+		declare_traits_types;
+
 	protected:
 		rta::ray_generator *raygen;
 		rta::bouncer *bouncer;
 		cpu_ray_bouncer<forward_traits> *cpu_bouncer;
 		virtual float trace_rays() = 0;
-	public:
-		declare_traits_types;
 		rta::acceleration_structure<forward_traits> *accel_struct;
 
+	public:
 		basic_raytracer(rta::ray_generator *raygen, class bouncer *bouncer, acceleration_structure<forward_traits> *as) : raygen(raygen), bouncer(bouncer), cpu_bouncer(dynamic_cast<cpu_ray_bouncer<forward_traits>*>(bouncer)), accel_struct(as) {
 			if (bouncer)
 				basic_raytracer::ray_bouncer(bouncer);
@@ -335,6 +335,10 @@ template<box_t__and__tri_t> class basic_raytracer : public raytracer {
 				bouncer->bounce();
 			} while (bouncer->trace_further_bounces());
 		}
+		/*! This holds the timings for each bounce of the last call to \ref trace.
+		 *  \attention Each invocation of \ref trace clears this structure, i.e. if you want to accumulate different traces 
+		 *  (e.g. primary ray performance) you have to copy the timings after each \ref trace.
+		 */
 		std::vector<float> timings;
 		virtual void ray_generator(rta::ray_generator *rg) { raygen = rg; }
 		virtual void ray_bouncer(rta::bouncer *rb) { 
@@ -345,6 +349,13 @@ template<box_t__and__tri_t> class basic_raytracer : public raytracer {
 			cpu_bouncer = rb;
 		}
 		virtual basic_raytracer* copy() = 0;
+		
+		virtual void acceleration_structure(rta::acceleration_structure<forward_traits> *as) {
+			accel_struct = as;
+		}
+		rta::acceleration_structure<forward_traits>* acceleration_structure() {
+			return accel_struct;
+		}
 };
 
 ////////////////////
