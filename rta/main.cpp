@@ -128,9 +128,9 @@ defun foo2 (int x, int y) -> int {
 	return x + y;
 }
 
-bool operator==(const vec3f &a, const vec3f &b) {
-	return a.x == b.x && a.y == b.y && a.z == b.z;
-}
+// bool operator==(const vec3f &a, const vec3f &b) {
+// 	return a.x == b.x && a.y == b.y && a.z == b.z;
+// }
 
 vec3f make_vec3f(float x, float y, float z) {
 	vec3f r;

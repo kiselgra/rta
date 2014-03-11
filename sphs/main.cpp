@@ -34,13 +34,13 @@ void parse_comment_meta_info(ply &p, header_info_map &map) {
 	}
 }
 
-bool operator==(const vec3f &a, const vec3f &b) {
-	return a.x == b.x && a.y == b.y && a.z == b.z;
-}
+// bool operator==(const vec3f &a, const vec3f &b) {
+// 	return a.x == b.x && a.y == b.y && a.z == b.z;
+// }
 
-std::ostream& operator<<(std::ostream &out, const vec3f &v) {
-	out << v.x << " " << v.y << " " << v.z;
-}
+// std::ostream& operator<<(std::ostream &out, const vec3f &v) {
+// 	out << v.x << " " << v.y << " " << v.z;
+// }
 
 float in_units(float f) { return f/cmdline.unit; }
 
