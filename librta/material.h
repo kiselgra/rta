@@ -19,6 +19,8 @@ namespace rta {
 		std::string filename;
 		std::vector<vec3f*> data;
 		int w, h;
+		enum repeat_mode { clamp, wrap };
+		repeat_mode repeat_mode_s, repeat_mode_t;
 		texture(const std::string &filename);
 		vec3f sample(float s, float t);
 	};

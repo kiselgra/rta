@@ -69,7 +69,7 @@ namespace rta {
 	static map<std::string, texture*> texture_map;
 
 	texture::texture(const std::string &filename)
-    : data(0), w(0), h(0) {
+    : data(0), w(0), h(0), repeat_mode_s(wrap), repeat_mode_t(wrap) {
 		cout << "looking for " << filename << endl;
 		string found = find_file_default_version(filename);
 		png::image<png::rgba_pixel> img(found);
@@ -99,6 +99,10 @@ namespace rta {
 		float y = (1.0f-t)*h;
 		int nearest_x = int(x);
 		int nearest_y = int(y);
+		while (repeat_mode_s == wrap && nearest_x > w) nearest_x -= w;
+		while (repeat_mode_t == wrap && nearest_y > h) nearest_y -= h;
+		while (repeat_mode_s == wrap && nearest_x < 0) nearest_x += w;
+		while (repeat_mode_t == wrap && nearest_y < 0) nearest_y += h;
 		
 		return data[0][nearest_y*w+nearest_x];
 	}
