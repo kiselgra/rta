@@ -61,6 +61,8 @@ flat_triangle_list load_objfile_to_flat_tri_list(const std::string &filename) {
 
 	flat_triangle_list ftl(triangles);
 
+	for (auto path : cmdline.image_paths)
+		append_image_path(path);
 	append_image_path(string(getenv("HOME")) + "/render-data/images");
 	append_image_path(string(getenv("HOME")) + "/render-data/images/sponza");
 	prepend_image_path(dirname((char*)filename.c_str()));

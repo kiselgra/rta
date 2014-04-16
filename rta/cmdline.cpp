@@ -41,6 +41,7 @@ static struct argp_option options[] =
 	{ "resolution", 'r', "WxH",             0, "Set the resolution (default: 800x800)." },
 	{ "no-png", NOPNG, 0,             0, "Do not write image files." },
 	{ "png-prefix", 'P', "prefix",             0, "Write images to this path. Note that this is not be a complete filename, e.g. <prefix> will produce <prefix>0001.png." },
+	{ "image-path", 'I', "path",             0, "Add paths to search for images." },
 	{ 0 }
 };	
 
@@ -100,6 +101,7 @@ static error_t parse_options(int key, char *arg, argp_state *state)
 	case 'b':     cmdline.back_col  = read_vec3f(sarg); break;
 	case 'l':     cmdline.light_col = read_vec3f(sarg); break;
 	case 'B':     cmdline.binary_intersection_debug = true; break;
+	case 'I':     cmdline.image_paths.push_back(sarg); break;
 	case 'r':     res = read_vec2f(sarg);
 	              cmdline.res_x = res.x;
 	              cmdline.res_y = res.y;
