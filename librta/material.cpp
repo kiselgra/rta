@@ -99,8 +99,8 @@ namespace rta {
 		float y = (1.0f-t)*h;
 		int nearest_x = int(x);
 		int nearest_y = int(y);
-		while (repeat_mode_s == wrap && nearest_x > w) nearest_x -= w;
-		while (repeat_mode_t == wrap && nearest_y > h) nearest_y -= h;
+		while (repeat_mode_s == wrap && nearest_x >= w) nearest_x -= w;
+		while (repeat_mode_t == wrap && nearest_y >= h) nearest_y -= h;
 		while (repeat_mode_s == wrap && nearest_x < 0) nearest_x += w;
 		while (repeat_mode_t == wrap && nearest_y < 0) nearest_y += h;
 		
