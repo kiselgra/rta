@@ -219,7 +219,9 @@ template<box_t__and__tri_t, typename shader> class direct_diffuse_illumination :
 class ray_generator {
 	public:
 		image<vec3f, 2> raydata;
-		ray_generator(unsigned int res_x, unsigned int res_y) : raydata(res_x, res_y) {
+		//! this stores the maximal length of each ray. initialize to FLT_MAX if you want your rays to extent infinitely.
+		image<float, 1> ray_max_t;
+		ray_generator(unsigned int res_x, unsigned int res_y) : raydata(res_x, res_y), ray_max_t(res_x, res_y) {
 		}
 		/*! \brief The actual interface function.
 		 * 
@@ -233,7 +235,11 @@ class ray_generator {
 		inline const vec3f* origin(uint x, uint y) const    { return &raydata.pixel(x, y, 0); }
 		inline vec3f* direction(uint x, uint y)             { return &raydata.pixel(x, y, 1); }
 		inline const vec3f* direction(uint x, uint y) const { return &raydata.pixel(x, y, 1); }
+ 		inline float& max_t(uint x, uint y)                 { return ray_max_t.pixel(x, y, 0); }
+		inline const float& max_t(uint x, uint y) const     { return ray_max_t.pixel(x, y, 0); }
 		virtual std::string identification() = 0;
+		//! this is here just to find bugs in legacy ray generators. subject to removal.
+		virtual void dont_forget_to_initialize_max_t() = 0;
 };
 
 //! A ray generator according to the setup presented in Shirley's book.
@@ -285,9 +291,11 @@ class cam_ray_generator_shirley : public ray_generator {
 				for (uint x = 0; x < res_x(); ++x) {
 					*origin(x, y) = position;
 					generate_ray_dir_from_cam_parameters(direction(x, y), fovy, aspect, x, y, res_x(), res_y(), &dir, &up);
+					max_t(x, y) = FLT_MAX;
 				}
 		}
 		virtual std::string identification() { return "ray generator according to shirley."; }
+		virtual void dont_forget_to_initialize_max_t() {}
 };
 
 ////////////////////
@@ -300,6 +308,9 @@ class raytracer {
 		virtual void trace() = 0;
 		virtual std::string identification() = 0;
 		virtual raytracer* copy() = 0;
+
+		//! returns true if the tracer honores the ray_generator's max_t.
+		virtual bool supports_max_t() = 0;
 };
 
 /*! A framework ray tracer extension that implements the whole \ref ray_generator, \ref raytracer, \ref bouncer cycle, 

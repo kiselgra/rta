@@ -164,6 +164,7 @@ struct rctest_raytracer : public rta::basic_raytracer<rta::simple_aabb, rta::sim
 		return "kai's da rt (" + bvh_string() + ")";
 	}
 	rctest_raytracer* copy() { return new rctest_raytracer(*this); }
+	virtual bool supports_max_t() { return false; }
 };
 
 template<typename Trav, typename InnerTrav, typename RC, typename AS> 

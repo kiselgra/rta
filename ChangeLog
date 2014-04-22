@@ -1,0 +1,30 @@
+2014-04-22	Kai
+
+* All tracers must implement the following virtual function.  
+	virtual bool supports_max_t() = 0 
+This way we can check if a tracer can be used for a given purpose (e.g.
+shadow rays). Expect some more of these to appear in the future. Note that
+constexpr and static_assert will not work as we usually handle objects of
+unknown type created in a plugin.
+supports_max_t is meant to signify that a tracer honors a predefined maximal
+ray length and does not report intersections farther away.
+  
+* ray_generator now has
+	ray_max_t
+an image of per-ray maximal ray lengths, accessible via
+	max_t(). 
+Tracers should honor this information and ray_generators should take care for
+its proper initialization.
+We introduced
+	virtual void dont_forget_to_initialize_max_t() = 0
+to find ray generators which do not initialize max_t during generate_rays.
+This precaution will be dropped after a while.
+
+* cam_ray_generator_shirley initializes all max_t to FLT_MAX and
+bbvh_direct_is_tracer and bbvh_child_is_tracer support this extension.
+
+
+
+2014-04-22	Kai
+
+* material.cpp (texture::sample): Fix border case (y==h, x==w).

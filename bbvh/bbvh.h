@@ -291,6 +291,7 @@ template<box_t__and__tri_t, typename bvh_t_> class bbvh_tracer : public basic_ra
 			bvh = dynamic_cast<bvh_t_*>(as);
 			basic_raytracer<forward_traits>::acceleration_structure(as);
 		}
+		virtual bool supports_max_t() { return true; }
 };
 
 template<box_t__and__tri_t, typename bvh_t_> class bbvh_direct_is_tracer : public bbvh_tracer<forward_traits, bvh_t_> {
@@ -321,6 +322,7 @@ template<box_t__and__tri_t, typename bvh_t_> class bbvh_direct_is_tracer : publi
 			state.stack[0] = 0;
 			state.sp = 0;
 			node_t *curr = 0;
+			state.intersection.t = raygen->max_t(state.x, state.y);
 			while (state.sp >= 0) {
 				uint node = state.pop();
 				curr = &bbvh_tracer<forward_traits, bbvh_t>::bvh->nodes[node];
@@ -345,6 +347,8 @@ template<box_t__and__tri_t, typename bvh_t_> class bbvh_direct_is_tracer : publi
 					}
 				}
 			}
+			if (!state.intersection.ref)
+				state.intersection.t = FLT_MAX;
 		}
 		virtual std::string identification() { return "bbvh_direct_is_tracer"; }
 		virtual bbvh_direct_is_tracer* copy() {
@@ -382,6 +386,7 @@ template<box_t__and__tri_t, typename bvh_t_> class bbvh_child_is_tracer : public
 			state.stack[0] = 0;
 			state.sp = 0;
 			node_t *curr = 0;
+			state.intersection.t = raygen->max_t(state.x, state.y);
 			while (state.sp >= 0) {
 				uint node = state.pop();
 				curr = &bbvh_tracer<forward_traits, bbvh_t>::bvh->nodes[node];
@@ -424,6 +429,8 @@ template<box_t__and__tri_t, typename bvh_t_> class bbvh_child_is_tracer : public
 					}
 				}
 			}
+			if (!state.intersection.ref)
+				state.intersection.t = FLT_MAX;
 		}
 		virtual std::string identification() { return "bbvh_child_is_tracer"; }
 		virtual bbvh_child_is_tracer* copy() {

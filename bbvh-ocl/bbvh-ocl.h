@@ -118,6 +118,7 @@ namespace rta {
 				virtual bbvh_gpu_tracer* copy() {
 					return new bbvh_gpu_tracer(*this);
 				}
+				virtual bool supports_max_t() { return false; }
 		};
 
 
