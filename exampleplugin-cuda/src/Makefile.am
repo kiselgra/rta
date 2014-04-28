@@ -4,7 +4,7 @@ plugin_name = exampleplugin.so
 SUFFIXES = .cu
 
 # libconfigfiles_la_SOURCES = grammar.yy  lexer.ll  parser.h  token.h lexer.h config_creator.h configfile.h configfile.cpp
-exampleplugin_la_SOURCES = 	main.cu \
+exampleplugin_la_SOURCES = 	main.cpp \
 							bruteforce.h \
 							cmdline.cpp cmdline.h
 

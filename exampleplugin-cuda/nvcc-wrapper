@@ -1,0 +1,39 @@
+#!/bin/bash
+
+## the purpose of this script is to prefix the PIC specific compiler options
+## produced by libtool with nvcc's compiler fowrading flag.
+
+args=""
+while (( "$#" )); do
+	case "$1" in 
+	"-fPIC"|"-DPIC"|"-ggdb3")
+		args="$args -Xcompiler"
+		;;
+	*)
+		if [[ "$1" == "-std=gnu++0x" ]] ; then
+			args="$args -Xcompiler"
+		else
+			echo "no match: '$1'."
+		fi
+		;;
+	esac
+	args="$args $1"
+	shift
+done
+
+# #switch to cc 200 for AILA.cu, KDIS_SL.cu, presort.cu
+# if [[ "$args" == *"AILA.cu"* || "$args" == *"KDIS_SL.cu"* || "$args" == *"presort.cu"* ]] ; then
+# 	args=$(echo "$args" | sed -e "s/12/20/g")
+# fi
+
+echo
+echo $args
+echo
+echo
+nvcc $args #2> /tmp/nvccwrapper-log
+ret=$?
+
+#cat /tmp/nvccwrapper-log >> /tmp/ptxas.log
+#grep -e "error" -e "fatal" -e "warning" /tmp/nvccwrapper-log
+
+exit $ret
