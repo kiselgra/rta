@@ -80,6 +80,7 @@ namespace rta {
 				: bbvh_gpu_tracer<forward_traits, sbvh_t>(gen, bvh, b, c, sourcefile, kernelname), sbvh(bvh) {
 				}
 				virtual std::string identification() { return "sbvh_tracer using ocl (based on " + bbvh_gpu_tracer<forward_traits, sbvh_t>::identification() + ")"; }
+				virtual bool supports_max_t() { return false; }
 		};
 
 
@@ -95,6 +96,7 @@ namespace rta {
 					uint32_t end = sbvh->end();
 					this->kernel->add_param(&end, "the intersection output buffer");
 				}
+				virtual bool supports_max_t() { return false; }
 		};
 
 

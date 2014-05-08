@@ -396,6 +396,7 @@ namespace rta {
 			virtual preorder_sbvh_tracer* copy() {
 				return new preorder_sbvh_tracer(*this);
 			}
+			virtual bool supports_max_t() { return false; }
 	};
 
 
@@ -557,6 +558,7 @@ namespace rta {
 			virtual order_independent_sbvh_tracer* copy() {
 				return new order_independent_sbvh_tracer(*this);
 			}
+			virtual bool supports_max_t() { return false; }
 	};
 
 

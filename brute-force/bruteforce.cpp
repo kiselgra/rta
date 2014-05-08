@@ -175,6 +175,7 @@ namespace rta {
 			virtual bruteforce_tracer* copy() {
 				return new bruteforce_tracer(*this);
 			}
+			virtual bool supports_max_t() { return false; }
 		};
 	}
 }
