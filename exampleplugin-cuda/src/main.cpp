@@ -16,7 +16,8 @@ extern "C" {
 	}
 
 	rt_set<simple_aabb, simple_triangle> create_rt_set(flat_triangle_list &triangle_lists, int w, int h) {
-		using namespace rta::example;
+		using namespace rta::cuda::example;
+		using namespace rta::cuda;
 
 		typedef simple_triangle tri_t;
 		typedef simple_aabb box_t;
@@ -25,7 +26,7 @@ extern "C" {
 		set.ctor = new bruteforce_dummy_as_ctor<box_t, tri_t>;
 		set.as = set.ctor->build(&triangle_lists);	// here we just use the first triangle list; this is actually stupid.
 		set.rt = new bruteforce_tracer<box_t, tri_t>(0, 0, dynamic_cast<bruteforce_dummy_accel_struct<box_t, tri_t>*>(set.as));
-		
+		set.rgen = new raygen_with_buffer<cam_ray_generator_shirley>(w, h);
 		return set;
 	}
 }
