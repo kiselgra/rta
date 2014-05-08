@@ -1,9 +1,63 @@
 #include <librta/librta.h>
 #include <librta/wall-timer.h>
 
+#include </opt/cuda/include/cuda.h>
+#include </opt/cuda/include/cuda_runtime_api.h>
+
 using namespace std;
 using namespace rta;
 
+//// cuda stuff
+
+namespace rta {
+	namespace cuda {
+		class ray_generator : public rta::ray_generator {
+			public:
+				float *gpu_origin, *gpu_direction;
+				float *gpu_maxt;
+
+				ray_generator(int w, int h) : rta::ray_generator(w, h), gpu_origin(0), gpu_direction(0),  gpu_maxt(0) {
+					cudaMalloc((void**)&gpu_origin, w*h*3*sizeof(float));
+					cudaMalloc((void**)&gpu_direction, w*h*3*sizeof(float));
+					cudaMalloc((void**)&gpu_maxt, w*h*sizeof(float));
+				}
+				~ray_generator() {
+					cudaFree(gpu_origin);
+					cudaFree(gpu_direction);
+					cudaFree(gpu_maxt);
+				}
+		};
+
+		class raygen_with_buffer : public ray_generator {
+			public:
+				rta::ray_generator *cpu_rgen;
+				vec3_t *tmp0, *tmp1;
+
+				raygen_with_buffer(int w, int h, rta::ray_generator *cpu_rgen = 0) : ray_generator(w, h), cpu_rgen(cpu_rgen), tmp0(0), tmp1(0) {
+					tmp0 = new vec3_t[3*w*h];
+					tmp1 = new vec3_t[3*w*h];
+				}
+				~raygen_with_buffer() {
+					delete [] tmp0;
+					delete [] tmp1;
+				}
+				void ray_gen(rta::ray_generator *rg) { cpu_rgen = rg; }
+				virtual void generate_rays() {
+					cpu_rgen->generate_rays();
+					for (int y = 0; y < raydata.h; ++y)
+						for (int x = 0; x < raydata.w; ++x)
+							tmp0[y*raydata.w+x] = *cpu_rgen->origin(x,y),
+							tmp1[y*raydata.w+x] = *cpu_rgen->direction(x,y);
+					cudaMemcpy(gpu_origin, tmp0, raydata.w*raydata.h*3*sizeof(float), cudaMemcpyHostToDevice);
+					cudaMemcpy(gpu_direction, tmp1, raydata.w*raydata.h*3*sizeof(float), cudaMemcpyHostToDevice);
+				}
+				virtual std::string identification() {
+					return "cuda raygen adator for " + cpu_rgen->identification();
+				}
+				virtual void dont_forget_to_initialize_max_t() {}
+		};
+	}
+}
 
 //// brute force implementation
 
@@ -70,6 +124,7 @@ namespace rta {
 
 		public:
 			bruteforce_tracer(ray_generator *gen, bouncer *b, bruteforce_dummy_accel_struct<forward_traits> *as) : basic_raytracer<forward_traits>(gen, b, as), as(as) {
+				cuda::raygen_with_buffer rgwb(1024, 1024, gen);
 			}
 
 			virtual float trace_rays() {

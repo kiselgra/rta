@@ -42,6 +42,8 @@ AC_CHECK_HEADERS([inttypes.h stdlib.h string.h unistd.h])
 # Checks for typedefs, structures, and compiler characteristics.
 
 # Checks for library functions.
+AC_CHECK_LIB([cudart], [main])
+
 PKG_CHECK_MODULES(RTA, rta)
 AC_SUBST(RTA_CFLAGS)
 AC_SUBST(RTA_LDFLAGS)
