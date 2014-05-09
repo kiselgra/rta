@@ -9,7 +9,9 @@ extern "C" {
 		return (char*)"a brute force ray caster";
 	}
 
-	void initialize() {}
+	void initialize() {
+		rta::cuda::plugin_with_cuda_loaded = true;
+	}
 
 	int parse_cmdline(int argc, char **argv) {
 		my_parse_cmdline(argc, argv);

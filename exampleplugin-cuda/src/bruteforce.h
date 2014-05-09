@@ -1,14 +1,16 @@
 #include <librta/librta.h>
+#include <librta/cuda.h>
 #include <librta/wall-timer.h>
 
-#include </opt/cuda/include/cuda.h>
-#include </opt/cuda/include/cuda_runtime_api.h>
+// #include </opt/cuda/include/cuda.h>
+// #include </opt/cuda/include/cuda_runtime_api.h>
 
 using namespace std;
 using namespace rta;
 
 //// cuda stuff
 
+/*
 namespace rta {
 	namespace cuda {
 		class raygen_buffer_addon {
@@ -59,6 +61,7 @@ namespace rta {
 		
 	}
 }
+*/
 
 //// brute force implementation
 
@@ -134,7 +137,7 @@ namespace rta {
 	
 				virtual float trace_rays() {
 					wall_time_timer wtt; wtt.start();
-// 					trace_bruteforce(as->gpu_triangles, 
+					trace_bruteforce(as->gpu_triangles, 
 					/*
 					traversal_state<tri_t> state;
 					for (uint y = 0; y < raygen->res_y(); ++y) {

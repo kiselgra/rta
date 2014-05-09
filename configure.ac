@@ -53,10 +53,13 @@ AC_CHECK_LIB([dl], [main])
 AC_CHECK_LIB([lumocl], [main])
 AC_CHECK_LIB([OpenCL], [main])
 AC_CHECK_LIB([GL], [main])
-AC_CHECK_LIB([GLblub], [main])
+#AC_CHECK_LIB([GLblub], [main])
+AC_CHECK_LIB([cudart], [main])
 
 AM_CONDITIONAL([opencl], [test "x$ac_cv_lib_lumocl_main" == "xyes"])
 AM_CONDITIONAL([use_librctest], [test "x" == "y"])
+
+AM_CONDITIONAL([cuda], [test "x$ac_cv_lib_cudart_main" == "xyes"])
 
 # Checks for header files.
 AC_HEADER_STDC

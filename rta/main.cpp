@@ -2,6 +2,7 @@
 #include "cmdline.h"
 #include "librta/wall-timer.h"
 #include "librta/ocl.h"
+#include "librta/cuda.h"
 #include "librta/plugins.h"
 #include "librta/material.h"
 
