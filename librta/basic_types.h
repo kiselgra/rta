@@ -32,6 +32,12 @@ namespace rta {
  * 	@{
  */
 
+#ifdef __CUDACC__
+#define heterogenous __host__ __device__
+#else
+#define heterogenous
+#endif
+
 
 	typedef unsigned int uint;
 	typedef float float_t;
@@ -56,11 +62,11 @@ namespace rta {
 		typedef _tri_t tri_t;
 		float_t t, beta, gamma;
 		uint ref;
-		triangle_intersection() : t(FLT_MAX), ref(0) {}
-		triangle_intersection(uint t) : t(FLT_MAX), ref(t) {}
-		bool valid() const { return t != FLT_MAX; }
-		void reset() { t = FLT_MAX; ref = 0; }
-		void barycentric_coord(vec3_t *to) const {
+		heterogenous triangle_intersection() : t(FLT_MAX), ref(0) {}
+		heterogenous triangle_intersection(uint t) : t(FLT_MAX), ref(t) {}
+		heterogenous bool valid() const { return t != FLT_MAX; }
+		heterogenous void reset() { t = FLT_MAX; ref = 0; }
+		heterogenous void barycentric_coord(vec3_t *to) const {
 			to->x = 1.0 - beta - gamma;
 			to->y = beta;
 			to->z = gamma;
@@ -76,6 +82,8 @@ namespace rta {
 	};
 
 
+	#ifndef __CUDACC__	// cuda never really supported templates...
+
 	// !!! be aware that these are defined everywhere!
 
 	//! really just a shortcut...
@@ -87,11 +95,9 @@ namespace rta {
 	//! just another shortcut
 	#define traits_of(X) typename X::box_t, typename X::tri_t
 
-
-
 	#define invalid_instantiation_message "Invalid instantiation of a function allowed for certain types, only."
-	#define invalid_instantiation(TTT) static_assert(fail<TTT>::result, invalid_instantiation_message)
 	#define invalid_t void
+	#define invalid_instantiation(TTT) static_assert(fail<TTT>::result, invalid_instantiation_message)
 	
 	
 	// accessors
@@ -232,6 +238,7 @@ namespace rta {
 	template<>           inline const vec3_t& max(const simple_aabb &bb) { return bb.max; }
 	//! @}
 
+	#endif
 
 
 	// output
@@ -248,11 +255,13 @@ namespace rta {
 	//! @}
 }
 
+#include <librta/cuda-vec.h>
 
 #include "tri.h"
 #include "aabb.h"
 	
 namespace rta {
+	#ifndef __CUDACC__
 	inline simple_aabb compute_aabb(const simple_triangle &t)
 	{	
 		simple_aabb bb;
@@ -261,6 +270,7 @@ namespace rta {
 		merge(bb, t);
 		return bb;
 	}
+	#endif
 }
 
 #endif

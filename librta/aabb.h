@@ -6,6 +6,7 @@
 
 namespace rta {
 
+	#ifndef __CUDACC__
 	template<typename aabb, typename tri> void merge(aabb &bb, const tri &t)
 	{
 		typedef vec3_t V;
@@ -98,6 +99,7 @@ namespace rta {
 	{
 		return typename aabb::vec3_t((b.max - b.min) * 0.5 + b.min);
 	}
+	#endif
 
 }
 

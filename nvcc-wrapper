@@ -15,8 +15,9 @@ while (( "$#" )); do
 	elif [[ "$1" =~ -O. ]] ; then
 		last_O="$1"
 	elif [[ "$1" == "-std=gnu++0x" ]] ; then	# new standard is not available in nvcc.
-		#args="$args -Xcompiler $1"
-		0;
+		true;
+	elif [[ "$1" == "-Wreturn-type" ]] ; then	# not available in nvcc?
+		true;
 	else
 		#echo "plain forward: '$1'."
 		args="$args $1"

@@ -1,6 +1,7 @@
-/* $Id$ */
 #ifndef __RTA_TEMPLATE_MAGIC_H__ 
 #define __RTA_TEMPLATE_MAGIC_H__ 
+
+#ifndef __CUDACC__
 
 // #include "librc-test/vecs.h"
 
@@ -51,6 +52,8 @@ namespace rta
 // 	template<> struct static_assertion<true> {};
 
 }
+
+#endif
 
 #endif
 

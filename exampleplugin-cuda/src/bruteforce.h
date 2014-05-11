@@ -69,6 +69,9 @@ namespace rta {
 namespace rta {
 	namespace cuda {
 		namespace example {
+			
+			// see bruteforce.cu
+			void trace_bruteforce(simple_triangle *triangles, int n, vec3f *ray_orig, vec3f *ray_dir, float *max_t, int w, int h, triangle_intersection<simple_triangle> *is);
 	
 			/*! \brief Implementation of the \ref acceleration_structure interface for brute force ray tracing.
 			 *  \note For the BF case this is bogus, of course :)
@@ -122,22 +125,26 @@ namespace rta {
 	
 			/*! \brief Implemantation of the \ref raytracer interface via \ref basic_raytracer to integrate nicely into the evaluation code.
 			 */
-			template<box_t__and__tri_t> class bruteforce_tracer : public basic_raytracer<forward_traits> {
+			template<box_t__and__tri_t> class bruteforce_tracer : public gpu_raytracer<forward_traits> {
 				declare_traits_types;
 	
 				// we "use" these here to avoid more ugly syntax in the functions using them.
-				using basic_raytracer<forward_traits>::raygen;
-				using basic_raytracer<forward_traits>::cpu_bouncer;
+// 				using basic_raytracer<forward_traits>::raygen;
+// 				using basic_raytracer<forward_traits>::cpu_bouncer;
 	
 				bruteforce_dummy_accel_struct<forward_traits> *as;
 	
 			public:
-				bruteforce_tracer(ray_generator *gen, bouncer *b, bruteforce_dummy_accel_struct<forward_traits> *as) : basic_raytracer<forward_traits>(gen, b, as), as(as) {
+				bruteforce_tracer(ray_generator *gen, bouncer *b, bruteforce_dummy_accel_struct<forward_traits> *as)
+				: gpu_raytracer<forward_traits>(gen, b, as), as(as) {
 				}
 	
 				virtual float trace_rays() {
 					wall_time_timer wtt; wtt.start();
-					trace_bruteforce(as->gpu_triangles, 
+					trace_bruteforce(as->gpu_triangles, as->triangle_count(), 
+					                 (vec3f*)this->gpu_raygen->gpu_origin, (vec3f*)this->gpu_raygen->gpu_direction, this->gpu_raygen->gpu_maxt,
+									 this->gpu_raygen->w, this->gpu_raygen->h,
+					                 this->gpu_bouncer->gpu_last_intersection);
 					/*
 					traversal_state<tri_t> state;
 					for (uint y = 0; y < raygen->res_y(); ++y) {

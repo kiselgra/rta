@@ -59,17 +59,17 @@ namespace rta {
 
 		/*! \brief Implemantation of the \ref raytracer interface via \ref basic_raytracer to integrate nicely into the evaluation code.
 		 */
-		template<box_t__and__tri_t> class bruteforce_tracer : public basic_raytracer<forward_traits> {
+		template<box_t__and__tri_t> class bruteforce_tracer : public cpu_raytracer<forward_traits> {
 			declare_traits_types;
 
 			// we "use" these here to avoid more ugly syntax in the functions using them.
 			using basic_raytracer<forward_traits>::raygen;
-			using basic_raytracer<forward_traits>::cpu_bouncer;
+			using cpu_raytracer<forward_traits>::cpu_bouncer;
 
 			bruteforce_dummy_accel_struct<forward_traits> *as;
 
 		public:
-			bruteforce_tracer(ray_generator *gen, bouncer *b, bruteforce_dummy_accel_struct<forward_traits> *as) : basic_raytracer<forward_traits>(gen, b, as), as(as) {
+			bruteforce_tracer(ray_generator *gen, bouncer *b, bruteforce_dummy_accel_struct<forward_traits> *as) : cpu_raytracer<forward_traits>(gen, b, as), as(as) {
 			}
 
 			virtual float trace_rays() {

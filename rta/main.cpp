@@ -195,7 +195,8 @@ template<box_t__and__tri_t> class directional_analysis_pass {
 		float *timings;
 		rta::cam_ray_generator_shirley *crgs;
 // 		rta::basic_raytracer<box_t, tri_t> *rt;
-		lighting_shader_with_material<forward_traits> *shader;
+// 		lighting_shader_with_material<forward_traits> *shader;
+		lighting_collector<forward_traits> *shader;
 		rt_set<box_t, tri_t> the_set;
 		vec3f obj_center;
 		box_t bb;
@@ -306,7 +307,8 @@ template<box_t__and__tri_t> class directional_analysis_pass {
 		void set(rt_set<forward_traits> set) {
 			the_set = set;
 			tracer(set.rt);
-			shader = dynamic_cast<lighting_shader_with_material<forward_traits>*>(set.bouncer);
+			// shader = dynamic_cast<lighting_shader_with_material<forward_traits>*>(set.bouncer);
+			shader = dynamic_cast<lighting_collector<forward_traits>*>(set.bouncer);
 			shader->triangle_ptr(the_set.as->triangle_ptr());
 		}
 		//! supposes that the tracer's accelstruct has been set up, already
@@ -471,11 +473,15 @@ int main(int argc, char **argv) {
 
 		*/
 
-		if (!ocl::using_ocl())
+		if (!ocl::using_ocl() && !cuda::using_cuda())
 			set.bouncer = new direct_diffuse_illumination<box_t, tri_t, lighting_shader_with_material<box_t, tri_t>>(res_x, res_y);
 #if RTA_HAVE_LIBLUMOCL == 1
-		else
+		else if (ocl::using_ocl())
 			set.bouncer = new ocl::direct_diffuse_illumination<box_t, tri_t>(res_x, res_y, *ocl::context);
+#endif
+#if RTA_HAVE_LIBCUDART == 1
+		else if (cuda::using_cuda())
+			set.bouncer = new cuda::direct_diffuse_illumination<box_t, tri_t, lighting_collector<box_t, tri_t>>(res_x, res_y);
 #endif
 
 		set.rt->ray_bouncer(set.bouncer);

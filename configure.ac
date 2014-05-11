@@ -54,7 +54,8 @@ AC_CHECK_LIB([lumocl], [main])
 AC_CHECK_LIB([OpenCL], [main])
 AC_CHECK_LIB([GL], [main])
 #AC_CHECK_LIB([GLblub], [main])
-AC_CHECK_LIB([cudart], [main])
+#AC_CHECK_LIB([cudart], [main])
+AX_WITH_CUDA
 
 AM_CONDITIONAL([opencl], [test "x$ac_cv_lib_lumocl_main" == "xyes"])
 AM_CONDITIONAL([use_librctest], [test "x" == "y"])

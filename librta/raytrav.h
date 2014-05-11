@@ -1,6 +1,8 @@
 #ifndef __RTA_RAYTRAV_H__ 
 #define __RTA_RAYTRAV_H__ 
 
+#include "image.h"
+
 #include <algorithm>  // min,max
 #include <list>
 
@@ -81,7 +83,7 @@ class bouncer { // sequential calls to raytrace
  *  the ray data is supposed to be stored in the ray generator's structure until the bouncer replaces it.
  *  \todo does this generalize to gpu tracing?
  */
-template<box_t__and__tri_t> class cpu_ray_bouncer : public bouncer {
+template<box_t__and__tri_t> class cpu_ray_bouncer : virtual public bouncer {
 	public:
 		declare_traits_types;
 	protected:
@@ -175,9 +177,9 @@ template<box_t__and__tri_t> class lighting_collector {
 							add_components_vec3f(&col, &col, &c);
 						}
 					}
-					res.pixel(x,y,0) = std::min(int(col.x*255), 255);
-					res.pixel(x,y,1) = std::min(int(col.y*255), 255);
-					res.pixel(x,y,2) = std::min(int(col.z*255), 255);
+					res.pixel(x,y,0) = std::max(0, std::min(int(col.x*255), 255));
+					res.pixel(x,y,1) = std::max(0, std::min(int(col.y*255), 255));
+					res.pixel(x,y,2) = std::max(0, std::min(int(col.z*255), 255));
 			}
 		}
 		virtual void add_pointlight(const vec3_t &at, const vec3_t &col) {
@@ -205,7 +207,7 @@ template<box_t__and__tri_t, typename shader> class direct_diffuse_illumination :
 // 			for (int y = 0; y < res.h; ++y)
 // 				for (int x = 0; x < res.w; ++x)
 // 					res.pixel(x,y,1) = this->last_intersection.pixel(x,y).valid() ? 255 : 0;
-			this->shade();
+// 			this->shade();
 		}
 		virtual bool trace_further_bounces() {
 			return false;
@@ -303,8 +305,8 @@ class cam_ray_generator_shirley : public ray_generator {
 //! The general ray tracing interface.
 class raytracer {
 	public:
-		virtual void setup_rays() = 0;
-		virtual void prepare_bvh_for_tracing() = 0;
+// 		virtual void setup_rays() = 0;
+// 		virtual void prepare_bvh_for_tracing() = 0;
 		virtual void trace() = 0;
 		virtual std::string identification() = 0;
 		virtual raytracer* copy() = 0;
@@ -332,15 +334,19 @@ template<box_t__and__tri_t> class basic_raytracer : public raytracer {
 			if (bouncer)
 				basic_raytracer::ray_bouncer(bouncer);
 		}
-		virtual void setup_rays() { // potentially uploads ray data to the gpu
-		}
-		virtual void prepare_bvh_for_tracing() { // potentially uploads the bvh to the gpu? will ich das?
+// 		virtual void setup_rays() { // potentially uploads ray data to the gpu
+// 		}
+// 		virtual void prepare_bvh_for_tracing() { // potentially uploads the bvh to the gpu? will ich das?
+// 		}
+		//! \brief this can be used, e.g., to initialize gpu buffers. time spent is not accumulated in \ref timings.
+		virtual void prepare_trace() {
 		}
 		virtual void trace() {
 			raygen->generate_rays();
 			bouncer->new_pass();
 			timings.clear();
 			do {
+				prepare_trace();
 				float ms = trace_rays();
 				timings.push_back(ms);
 				bouncer->bounce();
@@ -379,8 +385,8 @@ template<box_t__and__tri_t> class cpu_raytracer : public basic_raytracer<forward
 				this->ray_bouncer(bouncer);
 		}
 		virtual void ray_bouncer(rta::bouncer *rb) { 
-			cpu_bouncer = dynamic_cast<cpu_ray_bouncer<forward_traits>*>(rb); 
 			basic_raytracer<forward_traits>::ray_bouncer(rb);
+			cpu_bouncer = dynamic_cast<cpu_ray_bouncer<forward_traits>*>(rb); 
 		}
 		virtual void force_cpu_bouncer(rta::cpu_ray_bouncer<forward_traits> *rb) {
 			std::cerr << "> > > WARNING > > > you are using cpu_raytracer::force_cpu_bouncer." << std::endl;
