@@ -65,7 +65,6 @@ namespace rta {
 				typedef bvh_t_ bbvh_t;
 				typedef typename bbvh_t::node_t node_t;
 				using basic_raytracer<forward_traits>::raygen;
-				using basic_raytracer<forward_traits>::cpu_bouncer;
 				// required because of template base:
 				using ocl::raytracer_ocl_addon<forward_traits>::kernel;
 				using ocl::raytracer_ocl_addon<forward_traits>::opencl;

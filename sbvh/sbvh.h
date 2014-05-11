@@ -339,16 +339,16 @@ namespace rta {
 			}
 	};
 
-	template<box_t__and__tri_t, typename sbvh_t_> class preorder_sbvh_tracer : public basic_raytracer<forward_traits> {
+	template<box_t__and__tri_t, typename sbvh_t_> class preorder_sbvh_tracer : public cpu_raytracer<forward_traits> {
 		public:
 			declare_traits_types;
 			typedef sbvh_t_ sbvh_t;
 			typedef typename sbvh_t::node_t node_t;
 			using basic_raytracer<forward_traits>::raygen;
-			using basic_raytracer<forward_traits>::cpu_bouncer;
+			using cpu_raytracer<forward_traits>::cpu_bouncer;
 			sbvh_t *sbvh;
 
-			preorder_sbvh_tracer(ray_generator *gen, sbvh_t *bvh, class bouncer *b) : basic_raytracer<forward_traits>(gen, b, bvh), sbvh(bvh) {
+			preorder_sbvh_tracer(ray_generator *gen, sbvh_t *bvh, class bouncer *b) : cpu_raytracer<forward_traits>(gen, b, bvh), sbvh(bvh) {
 			}
 			virtual float trace_rays() {
 				wall_time_timer wtt; wtt.start();
@@ -462,16 +462,16 @@ namespace rta {
 	};
 
 	/*! sbvh traverser for the \ref order_independent_sbvh. */
-	template<box_t__and__tri_t, typename sbvh_t_> class order_independent_sbvh_tracer : public basic_raytracer<forward_traits> {
+	template<box_t__and__tri_t, typename sbvh_t_> class order_independent_sbvh_tracer : public cpu_raytracer<forward_traits> {
 		public:
 			declare_traits_types;
 			typedef sbvh_t_ sbvh_t;
 			typedef typename sbvh_t::node_t node_t;
 			using basic_raytracer<forward_traits>::raygen;
-			using basic_raytracer<forward_traits>::cpu_bouncer;
+			using cpu_raytracer<forward_traits>::cpu_bouncer;
 			sbvh_t *sbvh;
 
-			order_independent_sbvh_tracer(ray_generator *gen, sbvh_t *bvh, class bouncer *b) : basic_raytracer<forward_traits>(gen, b, bvh), sbvh(bvh) {
+			order_independent_sbvh_tracer(ray_generator *gen, sbvh_t *bvh, class bouncer *b) : cpu_raytracer<forward_traits>(gen, b, bvh), sbvh(bvh) {
 			}
 			virtual float trace_rays() {
 				wall_time_timer wtt; wtt.start();

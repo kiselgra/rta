@@ -273,7 +273,7 @@ template<typename bvh_t, typename bias_t = bbvh_no_bias> class bbvh_constructor_
 		virtual std::string identification() { return "not implemented, yet."; }
 };
 
-template<box_t__and__tri_t, typename bvh_t_> class bbvh_tracer : public basic_raytracer<forward_traits> {
+template<box_t__and__tri_t, typename bvh_t_> class bbvh_tracer : public cpu_raytracer<forward_traits> {
 	public:
 		declare_traits_types;
 		typedef bvh_t_ bbvh_t;
@@ -285,7 +285,7 @@ template<box_t__and__tri_t, typename bvh_t_> class bbvh_tracer : public basic_ra
 		 */
 		bbvh_t *bvh;
 	public:
-		bbvh_tracer(ray_generator *gen, bbvh_t *bvh, class bouncer *b) : basic_raytracer<forward_traits>(gen, b, bvh), bvh(bvh) {
+		bbvh_tracer(ray_generator *gen, bbvh_t *bvh, class bouncer *b) : cpu_raytracer<forward_traits>(gen, b, bvh), bvh(bvh) {
 		}
 		virtual void acceleration_structure(rta::acceleration_structure<forward_traits> *as) {
 			bvh = dynamic_cast<bvh_t_*>(as);
@@ -300,7 +300,7 @@ template<box_t__and__tri_t, typename bvh_t_> class bbvh_direct_is_tracer : publi
 		typedef bvh_t_ bbvh_t;
 		typedef typename bbvh_t::node_t node_t;
 		using basic_raytracer<forward_traits>::raygen;
-		using basic_raytracer<forward_traits>::cpu_bouncer;
+		using cpu_raytracer<forward_traits>::cpu_bouncer;
 
 		bbvh_direct_is_tracer(ray_generator *gen, bbvh_t *bvh, class bouncer *b) : bbvh_tracer<forward_traits, bbvh_t>(gen, bvh, b) {
 		}
@@ -363,7 +363,7 @@ template<box_t__and__tri_t, typename bvh_t_> class bbvh_child_is_tracer : public
 		typedef bvh_t_ bbvh_t;
 		typedef typename bbvh_t::node_t node_t;
 		using basic_raytracer<forward_traits>::raygen;
-		using basic_raytracer<forward_traits>::cpu_bouncer;
+		using cpu_raytracer<forward_traits>::cpu_bouncer;
 
 		bbvh_child_is_tracer(ray_generator *gen, bbvh_t *bvh, class bouncer *b) : bbvh_tracer<forward_traits, bvh_t_>(gen, bvh, b) {
 		}

@@ -313,8 +313,8 @@ class raytracer {
 		virtual bool supports_max_t() = 0;
 };
 
-/*! A framework ray tracer extension that implements the whole \ref ray_generator, \ref raytracer, \ref bouncer cycle, 
- *		as well as the taking of  timings.
+/*! \brief A framework ray tracer extension that implements the whole \ref ray_generator, \ref raytracer, \ref bouncer cycle, 
+ *		   as well as the taking of  timings.
  */
 template<box_t__and__tri_t> class basic_raytracer : public raytracer {
 	public:
@@ -323,12 +323,12 @@ template<box_t__and__tri_t> class basic_raytracer : public raytracer {
 	protected:
 		rta::ray_generator *raygen;
 		rta::bouncer *bouncer;
-		cpu_ray_bouncer<forward_traits> *cpu_bouncer;
 		virtual float trace_rays() = 0;
 		rta::acceleration_structure<forward_traits> *accel_struct;
 
 	public:
-		basic_raytracer(rta::ray_generator *raygen, class bouncer *bouncer, acceleration_structure<forward_traits> *as) : raygen(raygen), bouncer(bouncer), cpu_bouncer(dynamic_cast<cpu_ray_bouncer<forward_traits>*>(bouncer)), accel_struct(as) {
+		basic_raytracer(rta::ray_generator *raygen, class bouncer *bouncer, acceleration_structure<forward_traits> *as)
+		: raygen(raygen), bouncer(bouncer), accel_struct(as) {
 			if (bouncer)
 				basic_raytracer::ray_bouncer(bouncer);
 		}
@@ -352,13 +352,7 @@ template<box_t__and__tri_t> class basic_raytracer : public raytracer {
 		 */
 		std::vector<float> timings;
 		virtual void ray_generator(rta::ray_generator *rg) { raygen = rg; }
-		virtual void ray_bouncer(rta::bouncer *rb) { 
-			cpu_bouncer = dynamic_cast<cpu_ray_bouncer<forward_traits>*>(rb); 
-			bouncer = rb; 
-		}
-		virtual void force_cpu_bouncer(rta::cpu_ray_bouncer<forward_traits> *rb) {
-			cpu_bouncer = rb;
-		}
+		virtual void ray_bouncer(rta::bouncer *rb) { bouncer = rb; }
 		virtual basic_raytracer* copy() = 0;
 		
 		virtual void acceleration_structure(rta::acceleration_structure<forward_traits> *as) {
@@ -367,6 +361,34 @@ template<box_t__and__tri_t> class basic_raytracer : public raytracer {
 		rta::acceleration_structure<forward_traits>* acceleration_structure() {
 			return accel_struct;
 		}
+};
+
+/*! \brief Extension to basic_raytracer to be able to access cpu_ray_bouncer.
+ */
+template<box_t__and__tri_t> class cpu_raytracer : public basic_raytracer<forward_traits> {
+	public:
+		declare_traits_types;
+	
+	protected:
+		cpu_ray_bouncer<forward_traits> *cpu_bouncer;
+
+	public:
+		cpu_raytracer(rta::ray_generator *raygen, class bouncer *bouncer, acceleration_structure<forward_traits> *as)
+		: basic_raytracer<forward_traits>(raygen, bouncer, as), cpu_bouncer(0) {
+			if (bouncer)
+				this->ray_bouncer(bouncer);
+		}
+		virtual void ray_bouncer(rta::bouncer *rb) { 
+			cpu_bouncer = dynamic_cast<cpu_ray_bouncer<forward_traits>*>(rb); 
+			basic_raytracer<forward_traits>::ray_bouncer(rb);
+		}
+		virtual void force_cpu_bouncer(rta::cpu_ray_bouncer<forward_traits> *rb) {
+			std::cerr << "> > > WARNING > > > you are using cpu_raytracer::force_cpu_bouncer." << std::endl;
+			std::cerr << "> > > WARNING > > > please make sure if your code runs without this call." << std::endl;
+			std::cerr << "> > > WARNING > > > if not, get back to me!" << std::endl;
+			cpu_bouncer = rb;
+		}
+
 };
 
 ////////////////////
