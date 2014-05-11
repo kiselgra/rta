@@ -34,6 +34,17 @@ namespace rta {
 		
 		///// different memory layouts for cuda data. not done yet.
 		
+		/*! \defgroup cuda_data_layout Cuda Data Layouts.
+		 * 	
+		 * 	\brief Different data layouts for information loaded from cuda
+		 * 	kernels. We might use these find the best representation for a
+		 * 	given kind of data.
+		 * 	\attention Note integrated yet - just a sketch.
+		 */
+
+		/*! \addtogroup cuda_data_layout
+		 * 	@{
+		 */
 		namespace triangle_layout {
 			struct plain_vntm {
 				struct tri {
@@ -53,9 +64,18 @@ namespace rta {
 				float *max_t;
 			};
 		}
+		//! @}
 
 		///// rta interface
 		
+		/*! \addtogroup cuda
+		 * 	@{
+		 */
+
+		/*! \brief Representation of ray data that is allocated on the GPU.
+		 * 	\note Derive from this, as well as from rta::ray_generator for cuda ray generators.
+		 * 	\note Due to layouts (\ref cuda_data_layout) this might get extended.
+		 */
 		class gpu_ray_generator {
 			public:
 				float *gpu_origin, *gpu_direction;
@@ -75,6 +95,9 @@ namespace rta {
 				}
 		};
 
+		/*! \brief An adaptor for existing cpu ray generators which uploads the
+		 * 	ray data to the GPU via \ref gpu_ray_generator.
+		 */
 		template<typename base_rgen> class raygen_with_buffer : public base_rgen, public gpu_ray_generator {
 			public:
 				vec3_t *tmp0, *tmp1;
@@ -107,6 +130,13 @@ namespace rta {
 				virtual void dont_forget_to_initialize_max_t() {}
 		};
 
+		/*! \brief Basic ray bouncer for cuda tracers.
+		 *
+		 * 	It maintains the gpu accesible intersection data, its job is the
+		 * 	same as that of \ref cpu_ray_bouncer.
+		 *
+		 * 	\note Due to layouts this might get extended.
+		 */
 		template<box_t__and__tri_t> class gpu_ray_bouncer : virtual public rta::bouncer {
 			public:
 				declare_traits_types;
@@ -118,6 +148,7 @@ namespace rta {
 				}
 		};
 
+		//! A \ref rta::primary_intersection_collector for cuda.
 		template<box_t__and__tri_t> class primary_intersection_collector : public gpu_ray_bouncer<forward_traits> {
 			public:
 				primary_intersection_collector(uint w, uint h) : gpu_ray_bouncer<forward_traits>(w, h) {
@@ -132,6 +163,7 @@ namespace rta {
 				}
 		};
 
+		//! Supplies primary intersections to host programs, e.g. the standard rta program's shader.
 		template<box_t__and__tri_t> class primary_intersection_downloader : public primary_intersection_collector<forward_traits>, 
 		                                                                    public rta::primary_intersection_collector<forward_traits> {
 			public:
@@ -151,6 +183,7 @@ namespace rta {
 				}
 		};
 
+		//! An implementation of rta::direct_diffuse_illumination that downloads the intersection data from cuda.
 		template<box_t__and__tri_t, typename shader> class direct_diffuse_illumination : public primary_intersection_downloader<forward_traits>, 
 		                                                                                 public shader {
 			public:
@@ -169,6 +202,17 @@ namespace rta {
 				}
 		};
 
+		/*! \brief The basic cuda ray tracing interface.
+		 *
+		 * 	In contrast to \ref cpu_raytracer this not only keeps a reference
+		 * 	to the ray bouncer, but also to the gpu version of the ray
+		 * 	generators. This is because we have to pass all the pointers to the
+		 * 	kernel at one place.
+		 * 	We'll see how this will work out with different layouts...
+		 *
+		 *  \note prepare_trace initializes the intersection data and this step
+		 *  is not integrated into the \ref basic_raytracer's timings.
+		 */
 		template<box_t__and__tri_t> class gpu_raytracer : public basic_raytracer<forward_traits> {
 			public:
 				declare_traits_types;
@@ -204,6 +248,8 @@ namespace rta {
 		 */
 		bool using_cuda();
 		extern bool plugin_with_cuda_loaded;
+
+		//! @}
 	}
 }
 

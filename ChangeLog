@@ -1,3 +1,34 @@
+2014-05-11	Kai
+
+* Introduced the interface
+	cpu_raytracer : public basic_raytracer
+which takes a small part of the old basic_raytracer to make it an interface to
+encapsulate the general rta-tracing algorithm, without relying on cpu tracing
+data. This data is moved to cpu_raytracer. All tracers and examples have beed
+adapted to derive from the cpu interface, if appropriate.
+
+* Rudimentary integration of cuda ray tracing is now integrated into rta. All
+of it lives in the namespace
+	rta::cuda.
+We provide the following interfaces
+	a) gpu_ray_generator,
+	b) raygen_with_buffer,
+	c) gpu_ray_bouncer, and
+	d) gpu_raytracer.
+a) A simple representation of gpu ray data. Might be generalized later.
+b) An adaptor to existing ray generators which uploads the generated rays to
+the gpu.
+c) The same as cpu_ray_bouncer. It holds the intersection data which is
+proviced to the tracer.
+d) A similar interface to cpu_raytracer. It captures and converts ray
+generators and bouncers via the interface established in basic_raytracer.
+
+Note the first sketch of different layouts possible for ray-, triangle- and
+box-data. The current interface might be extended to allow for fundamental
+tests on data layout.
+
+
+
 2014-04-22	Kai
 
 * All tracers must implement the following virtual function.  
