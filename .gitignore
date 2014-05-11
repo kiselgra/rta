@@ -12,6 +12,8 @@ config.log
 config.status
 config.sub
 configure
+config.h
+config.h.in
 depcomp
 install-sh
 libtool
@@ -21,7 +23,13 @@ m4/ltoptions.m4
 m4/ltsugar.m4
 m4/ltversion.m4
 m4/lt~obsolete.m4
+*/m4/libtool.m4
+*/m4/ltoptions.m4
+*/m4/ltsugar.m4
+*/m4/ltversion.m4
+*/m4/lt~obsolete.m4
 missing
+*/missing
 .deps/
 src/.libs/
 stamp-h1
@@ -32,3 +40,12 @@ Makefile.in
 *.bbl
 *.aux
 *.dvi
+
+.cproject
+.project
+Makefile
+doc/doxyfile
+doc/doxygen_mainpage.h
+doc/html/
+rta.pc
+
