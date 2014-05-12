@@ -130,6 +130,23 @@ namespace rta {
 				virtual void dont_forget_to_initialize_max_t() {}
 		};
 
+		template<typename T> class device_array {
+			public:
+				T *data;
+				uint n;
+				device_array() : data(0), n(0) {}
+				void upload(T *in, uint elems) {
+					n = elems;
+					cudaMalloc((void**)&data, n*sizeof(T));
+					cudaMemcpy(data, in, n*sizeof(T), cudaMemcpyHostToDevice);
+				}
+				~device_array() {
+					cudaFree(data);
+					data = 0;
+					n = 0;
+				}
+		};
+
 		/*! \brief Basic ray bouncer for cuda tracers.
 		 *
 		 * 	It maintains the gpu accesible intersection data, its job is the
