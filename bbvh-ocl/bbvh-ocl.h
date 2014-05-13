@@ -52,7 +52,7 @@ namespace rta {
 	
 				virtual std::string identification() { return "bbvh ctor to ocl buffer (based on " + bbvh_ctor.identification() + ")"; }
 
-				bbvh_t* build(flat_triangle_list *tris) {
+				virtual bbvh_t* build(flat_triangle_list *tris) {
 					bbvh_t *bbvh = bbvh_ctor.build(tris);
 					bbvh->fill_buffers(ctx);
 					return bbvh;

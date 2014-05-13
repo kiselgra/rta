@@ -35,12 +35,12 @@ template<box_t__and__tri_t> class binary_bvh : public acceleration_structure<for
 		std::vector<tri_t> triangles;
 
 		//! take the nodes stored in the array. \attention does so destructively!
-		void take_node_array(std::vector<node> &n) {
+		virtual void take_node_array(std::vector<node> &n) {
 			nodes.swap(n);
 		}
 		
 		//! take the triangles stored in the array. \attention does so destructively!
-		void take_triangle_array(std::vector<tri_t> &t) {
+		virtual void take_triangle_array(std::vector<tri_t> &t) {
 			triangles.swap(t);
 		}
 

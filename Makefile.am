@@ -11,6 +11,9 @@ endif
 if use_librctest
 SUBDIRS += wrapper-for-librctest 
 endif
+if cuda
+SUBDIRS += bbvh-cuda
+endif
 
 SUBDIRS += doc
 
