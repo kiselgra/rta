@@ -53,7 +53,7 @@ namespace rta {
 	}	
 
 	
-	template<typename aabb> bool intersect_aabb(const aabb &box, const vec3f *ray_origin, const vec3f *ray_dir, float &is)
+	template<typename aabb> heterogenous bool intersect_aabb(const aabb &box, const vec3f *ray_origin, const vec3f *ray_dir, float &is)
 	{
 		float_t t_near = -FLT_MAX;
 		float_t t_far  =  FLT_MAX;

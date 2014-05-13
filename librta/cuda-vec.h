@@ -69,8 +69,16 @@ namespace rta {
 	//! access a triangle's vertices by name - c
 	heterogenous inline       vec3_t& vertex_c(simple_triangle &t)       { return t.c; }
 	heterogenous inline const vec3_t& vertex_c(const simple_triangle &t) { return t.c; }
-	#endif	
 
+	//! access an aabb's vertices by name - min
+	heterogenous inline       vec3_t& min(simple_aabb &bb)       { return bb.min; }
+	heterogenous inline const vec3_t& min(const simple_aabb &bb) { return bb.min; }
+	
+	//! access an aabb's vertices by name - max
+	heterogenous inline       vec3_t& max(simple_aabb &bb)       { return bb.max; }
+	heterogenous inline const vec3_t& max(const simple_aabb &bb) { return bb.max; }
+	#endif	
+	
 }
 
 #endif

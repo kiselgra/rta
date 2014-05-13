@@ -67,7 +67,7 @@ namespace rta {
 					wall_time_timer wtt; wtt.start();
 					void trace_dis(tri_t *triangles, int n, bbvh::node<box_t> *nodes, 
 					               vec3f *ray_orig, vec3f *ray_dir, float *max_t, int w, int h, triangle_intersection<tri_t> *is);
-					trace_dis(this->bbvh->triangle_data.data, this->bbvh->triangle_data.n,   /*!!!*/0,
+					trace_dis(this->bbvh->triangle_data.data, this->bbvh->triangle_data.n, this->bbvh->node_data.data,
 					          (vec3f*)this->gpu_raygen->gpu_origin, (vec3f*)this->gpu_raygen->gpu_direction, this->gpu_raygen->gpu_maxt,
 					          this->gpu_raygen->w, this->gpu_raygen->h,
 					          this->gpu_bouncer->gpu_last_intersection);
