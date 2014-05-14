@@ -197,7 +197,7 @@ template<box_t__and__tri_t> class directional_analysis_pass {
 // 		rta::basic_raytracer<box_t, tri_t> *rt;
 // 		lighting_shader_with_material<forward_traits> *shader;
 		lighting_collector<forward_traits> *shader;
-		rt_set<box_t, tri_t> the_set;
+		rt_set the_set;
 		vec3f obj_center;
 		box_t bb;
 		float bb_diam;
@@ -304,15 +304,17 @@ template<box_t__and__tri_t> class directional_analysis_pass {
 		rta::cam_ray_generator_shirley*& ray_gen() { 
 			return crgs; 
 		}
-		void set(rt_set<forward_traits> set) {
+		void set(rt_set set) {
 			the_set = set;
 			tracer(set.rt);
 			// shader = dynamic_cast<lighting_shader_with_material<forward_traits>*>(set.bouncer);
 			shader = dynamic_cast<lighting_collector<forward_traits>*>(set.bouncer);
-			shader->triangle_ptr(the_set.as->triangle_ptr());
+			basic_acceleration_structure<forward_traits> *as = dynamic_cast<basic_acceleration_structure<forward_traits>*>(the_set.as);
+			shader->triangle_ptr(as->triangle_ptr());
 		}
 		//! supposes that the tracer's accelstruct has been set up, already
-		void tracer(rta::basic_raytracer<box_t, tri_t> *tracer) { 
+		void tracer(raytracer *tr) { 
+			auto *tracer = dynamic_cast<rta::basic_raytracer<box_t, tri_t>*>(tr);
 			tri_t *tris = tracer->acceleration_structure()->triangle_ptr();
 			int n = tracer->acceleration_structure()->triangle_count();
 			bb = rta::compute_aabb<box_t>(tris, 0, n);
@@ -359,7 +361,9 @@ template<box_t__and__tri_t> class directional_analysis_pass {
 				crgs->generate_rays();
 
 				the_set.rt->trace();
-				float rps = res_x * res_y * (1000.0f / the_set.rt->timings.front());
+				auto brt = dynamic_cast<rta::basic_raytracer<box_t, tri_t>*>(the_set.rt);
+				float first = brt->timings.front();
+				float rps = res_x * res_y * (1000.0f / first);
 				sum += rps;
 				timings[i] = rps;
 
@@ -443,7 +447,7 @@ int main(int argc, char **argv) {
 		res_y = ocl::pow2roundup(res_y);
 	}
 
-	rt_set<simple_aabb, simple_triangle> set = plugin_create_rt_set(triangle_lists, res_x, res_y);
+	rt_set set = plugin_create_rt_set(triangle_lists, res_x, res_y);
 
 	if (cmdline.axial_series || cmdline.sphere_series || cmdline.positional_series)
 	{
@@ -484,9 +488,9 @@ int main(int argc, char **argv) {
 			set.bouncer = new cuda::direct_diffuse_illumination<box_t, tri_t, lighting_collector<box_t, tri_t>>(res_x, res_y);
 #endif
 
-		set.rt->ray_bouncer(set.bouncer);
+		set.basic_rt<box_t, tri_t>()->ray_bouncer(set.bouncer);
 		if (set.rgen) {
-			set.rt->ray_generator(set.rgen);
+			set.basic_rt<box_t, tri_t>()->ray_generator(set.rgen);
 			cam_ray_generator_shirley *crgs = dynamic_cast<cam_ray_generator_shirley*>(set.rgen);
 			if (crgs == 0)
 				throw std::logic_error("the ray generator set by the plugin is not compatible!");
@@ -494,7 +498,7 @@ int main(int argc, char **argv) {
 		}
 		else {
 			set.rgen = dap->ray_gen();
-			set.rt->ray_generator(set.rgen);
+			set.basic_rt<box_t, tri_t>()->ray_generator(set.rgen);
 		}
 		dap->set(set);
 		dap->run();

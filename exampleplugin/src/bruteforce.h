@@ -11,10 +11,10 @@ using namespace rta;
 namespace rta {
 	namespace example {
 
-		/*! \brief Implementation of the \ref acceleration_structure interface for brute force ray tracing.
+		/*! \brief Implementation of the \ref basic_acceleration_structure interface for brute force ray tracing.
 		 *  \note For the BF case this is bogus, of course :)
 		 */
-		template<box_t__and__tri_t> class bruteforce_dummy_accel_struct : public acceleration_structure<forward_traits> {
+		template<box_t__and__tri_t> class bruteforce_dummy_accel_struct : public basic_acceleration_structure<forward_traits> {
 		public:
 			declare_traits_types;
 
@@ -33,11 +33,11 @@ namespace rta {
 			virtual std::string identification() { return "dummy accel struct for brute force ray tracing"; }
 		};
 
-		/*! \brief Constructor for the dummy acceleration structure, \ref bruteforce_dummy_accel_struct, implementing \ref acceleration_structure_constructor.
+		/*! \brief Constructor for the dummy acceleration structure, \ref bruteforce_dummy_accel_struct, implementing \ref basic_acceleration_structure_constructor.
 		 *  \note For the case of BF RT this is really bogus.
 		 *  \note We forward our template parameters but it is not really required to happen this way, so feel free.
 		 */
-		template<box_t__and__tri_t> class bruteforce_dummy_as_ctor : public acceleration_structure_constructor<forward_traits> {
+		template<box_t__and__tri_t> class bruteforce_dummy_as_ctor : public basic_acceleration_structure_constructor<forward_traits> {
 		public:
 			declare_traits_types;
 

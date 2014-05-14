@@ -116,7 +116,7 @@ extern "C" {
 		return ret;
 	}
 
-	rt_set<simple_aabb, simple_triangle> create_rt_set(std::list<flat_triangle_list> &triangle_lists, int w, int h) {
+	rt_set create_rt_set(std::list<flat_triangle_list> &triangle_lists, int w, int h) {
 		cout << "creating set" << endl;
 		typedef simple_triangle tri_t;
 		typedef simple_aabb box_t;
@@ -128,8 +128,8 @@ extern "C" {
 		typedef bbvh_constructor_using_median<bvh_t> bbvh_ctor_t;
 		typedef bbvh_constructor_using_median<bvh_with_sa_t> bbvh_ctor_with_sa_t;
 		cout << "building bvh" << endl;
-		acceleration_structure_constructor<box_t, tri_t> *ctor = 0;
-		acceleration_structure<box_t, tri_t> *sbvh = 0;
+		basic_acceleration_structure_constructor<box_t, tri_t> *ctor = 0;
+		basic_acceleration_structure<box_t, tri_t> *sbvh = 0;
 
 		switch (cmdline.bvh_trav) {
 			case Cmdline::bbvh_cis:
@@ -172,7 +172,7 @@ extern "C" {
 				exit(EXIT_FAILURE);
 		}
 
-		rt_set<box_t, tri_t> set;
+		rt_set set;
 		set.as = sbvh;
 		set.ctor = ctor;
 		set.rt = rt;

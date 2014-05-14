@@ -115,7 +115,7 @@ extern "C" {
 		return ret;
 	}
 
-	rt_set<simple_aabb, simple_triangle> create_rt_set(flat_triangle_list &triangle_lists, int w, int h) {
+	rt_set create_rt_set(flat_triangle_list &triangle_lists, int w, int h) {
 		cout << "setting up open cl" << endl;
 		cl::verbose = true;
 		ctx = rta::ocl::context;
@@ -127,8 +127,8 @@ extern "C" {
 		typedef bbvh_constructor_using_median<obvh_t> std_bbvh_ctor_t;
 		typedef ocl::bbvh_constructor<std_bbvh_ctor_t> obvh_ctor_t;
 		cout << "building bvh" << endl;
-		acceleration_structure_constructor<box_t, tri_t> *ctor = 0;
-		acceleration_structure<box_t, tri_t> *bvh = 0;
+		basic_acceleration_structure_constructor<box_t, tri_t> *ctor = 0;
+		basic_acceleration_structure<box_t, tri_t> *bvh = 0;
 
 // 		ctor = new bbvh_ctor_t(bbvh_ctor_t::spatial_median);
 // 		bvh = ctor->build(&triangle_lists.front());
@@ -150,7 +150,7 @@ extern "C" {
 				exit(EXIT_FAILURE);
 		}
 
-		rt_set<box_t, tri_t> set;
+		rt_set set;
 		set.as = bvh;
 		set.ctor = ocl_ctor;
 		set.rt = rt;

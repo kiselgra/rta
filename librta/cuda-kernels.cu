@@ -12,7 +12,7 @@ namespace rta {
 			#define ray_x (blockIdx.x * blockDim.x + threadIdx.x)
 			#define ray_y (blockIdx.y * blockDim.y + threadIdx.y)
 
-			__global__ void reset_intersections(triangle_intersection<simple_triangle> *last_intersection, uint w, uint h) {
+			__global__ void reset_intersections(rta::triangle_intersection<rta::cuda::simple_triangle> *last_intersection, uint w, uint h) {
 				if (ray_x < w && ray_y < h) {
 					last_intersection[ray_y * w + ray_x].t = FLT_MAX;
 				}
@@ -20,7 +20,7 @@ namespace rta {
 
 		}
 
-		void reset_intersections(triangle_intersection<simple_triangle> *last_intersection, uint w, uint h) {
+		void reset_intersections(rta::triangle_intersection<rta::cuda::simple_triangle> *last_intersection, uint w, uint h) {
 			cout << "resetting intersections!" << endl;
 			dim3 threads(16, 16);
 			dim3 blocks = block_configuration_2d(w, h, threads);

@@ -111,7 +111,18 @@ extern "C" {
 		return ret;
 	}
 
-	rt_set<simple_aabb, simple_triangle> create_rt_set(flat_triangle_list &triangle_lists, int w, int h) {
+
+	/*   WHAT TODO
+	 *
+	 *   tri vs cuda::tri -> derive special ctor (in plugin) to handle conversion of triangle types (see bruteforce).
+	 *
+	 *   maybe we should add some triangle-handling portion of the ctor to a general cuda::ctor interface?
+	 *
+	 *   hm
+	 *
+	 */
+
+	rt_set create_rt_set(flat_triangle_list &triangle_lists, int w, int h) {
 		typedef simple_triangle tri_t;
 		typedef simple_aabb box_t;
 		typedef cuda::binary_bvh<box_t, tri_t> cuda_bvh_t;
@@ -122,13 +133,13 @@ extern "C" {
 		bvh = ctor->build(&triangle_lists);
 
 
-		basic_raytracer<box_t, tri_t> *rt = 0;
+		basic_raytracer<box_t, cuda::simple_triangle> *rt = 0;
 // 		if (cmdline.bvh_trav == Cmdline::cis)
 // 			rt = new bbvh_child_is_tracer<box_t, tri_t, binary_bvh<box_t, tri_t>>(0, bvh, 0);
 // 		else
-			rt = new cuda::bbvh_gpu_dis_tracer<box_t, tri_t>(0, bvh, 0);
+			rt = new cuda::bbvh_gpu_dis_tracer<box_t, cuda::simple_triangle, cuda_bvh_t>(0, bvh, 0);
 
-		rt_set<box_t, tri_t> set;
+		rt_set set;
 		set.as = bvh;
 		set.ctor = ctor;
 		set.rt = rt;

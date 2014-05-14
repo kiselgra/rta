@@ -14,7 +14,7 @@ namespace rta {
 			return dim3(x, y);
 		}
 
-		void reset_intersections(triangle_intersection<simple_triangle> *last_intersection, uint w, uint h);
+		void reset_intersections(rta::triangle_intersection<rta::cuda::simple_triangle> *last_intersection, uint w, uint h);
 	
 	}
 }

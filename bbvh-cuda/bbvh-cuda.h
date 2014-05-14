@@ -54,10 +54,11 @@ namespace rta {
 				virtual bool supports_max_t() { return true; }
 		};
 
-		template<box_t__and__tri_t>
+		template<box_t__and__tri_t, typename bvh_t>
 		class bbvh_gpu_dis_tracer : public bbvh_gpu_tracer<forward_traits> {
 			public:
-				typedef typename bbvh_gpu_tracer<forward_traits>::bbvh_t bbvh_t;
+// 				typedef typename bbvh_gpu_tracer<forward_traits>::bbvh_t bbvh_t;
+				typedef bvh_t bbvh_t;
 				declare_traits_types;
 				bbvh_gpu_dis_tracer(rta::ray_generator *gen, bbvh_t *bvh, class bouncer *b)
 				: bbvh_gpu_tracer<forward_traits>(gen, bvh, b) {

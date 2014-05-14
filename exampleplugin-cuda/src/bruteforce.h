@@ -14,10 +14,10 @@ namespace rta {
 			// see bruteforce.cu
 			void trace_bruteforce(simple_triangle *triangles, int n, vec3f *ray_orig, vec3f *ray_dir, float *max_t, int w, int h, triangle_intersection<simple_triangle> *is);
 	
-			/*! \brief Implementation of the \ref acceleration_structure interface for brute force ray tracing.
+			/*! \brief Implementation of the \ref basic_acceleration_structure interface for brute force ray tracing.
 			 *  \note For the BF case this is bogus, of course :)
 			 */
-			template<box_t__and__tri_t> class bruteforce_dummy_accel_struct : public acceleration_structure<forward_traits> {
+			template<box_t__and__tri_t> class bruteforce_dummy_accel_struct : public basic_acceleration_structure<forward_traits> {
 			public:
 				declare_traits_types;
 	
@@ -40,11 +40,11 @@ namespace rta {
 				virtual std::string identification() { return "cuda dummy accel struct for brute force ray tracing"; }
 			};
 	
-			/*! \brief Constructor for the dummy acceleration structure, \ref bruteforce_dummy_accel_struct, implementing \ref acceleration_structure_constructor.
+			/*! \brief Constructor for the dummy acceleration structure, \ref bruteforce_dummy_accel_struct, implementing \ref basic_acceleration_structure_constructor.
 			 *  \note For the case of BF RT this is really bogus.
 			 *  \note We forward our template parameters but it is not really required to happen this way, so feel free.
 			 */
-			template<box_t__and__tri_t> class bruteforce_dummy_as_ctor : public acceleration_structure_constructor<forward_traits> {
+			template<box_t__and__tri_t> class bruteforce_dummy_as_ctor : public basic_acceleration_structure_constructor<forward_traits> {
 			public:
 				declare_traits_types;
 	
@@ -53,10 +53,11 @@ namespace rta {
 				 * 		return intersection information respecting the original configuration (which would probably be harder to do).
 				 */
 				bruteforce_dummy_accel_struct<forward_traits>* build(flat_triangle_list *tris) {
+					cuda_ftl tri_data(*tris);
 					bruteforce_dummy_accel_struct<forward_traits> *as = new bruteforce_dummy_accel_struct<forward_traits>;
 					std::vector<tri_t> tmp;
-					for (int i = 0; i < tris->triangles; ++i)
-						tmp.push_back(tris->triangle[i]);
+					for (int i = 0; i < tri_data.triangles; ++i)
+						tmp.push_back(tri_data.triangle[i]);
 					as->take_triangle_array(tmp);
 					return as;
 				}

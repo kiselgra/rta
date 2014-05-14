@@ -36,27 +36,56 @@ template<typename _tri_t> struct traversal_state {
 
 ////////////////////
 
-/*! \brief The interface for acceleration structures. See \ref triangle_ptr.
+/*! \brief The base of all acceleration structures. This is here only for a generic (tri_t, box_t agnostic) plugin interface.
+ * 	\attention Please derive from basic_acceleration_structure.
  */
-template<box_t__and__tri_t> struct acceleration_structure {
-	declare_traits_types;
-	virtual ~acceleration_structure() {}
-	/*! This *must* return an array that can be indexed with the ref value stored in a \ref triangle_intersection instance.
-	 */
-	virtual tri_t* triangle_ptr() = 0;
-	//! The length of the array returned by \ref triangle_ptr.
-	virtual int triangle_count() = 0;
-	virtual std::string identification() = 0;
+class acceleration_structure {
+	public:
+		virtual ~acceleration_structure() {}
+		virtual std::string identification() = 0;
+		//! \attention this is a temporary precaution to catch old code. will be deleted in some time.
+		virtual void please_derive_from_basic_acceleration_structure() = 0;
 };
 
-/*! The interface for acceleration structure constructors.
+/*! \brief The real interface for acceleration structures. See \ref triangle_ptr.
+ */
+template<box_t__and__tri_t> class basic_acceleration_structure : public acceleration_structure {
+	public:
+		declare_traits_types;
+		
+		/*! This *must* return an array that can be indexed with the ref value stored in a \ref triangle_intersection instance.
+		 */
+		virtual tri_t* triangle_ptr() = 0;
+		//! The length of the array returned by \ref triangle_ptr.
+		virtual int triangle_count() = 0;
+
+		//! \attention this is a temporary precaution to catch old code. will be deleted in some time.
+		virtual void please_derive_from_basic_acceleration_structure() {}
+};
+
+/*! \brief The base of all acceleration structure constructors. This is here only for a generic (tri_t, box_t agnostic) plugin interface.
+ * 	\attention Please derive from basic_acceleration_structure.
+ */
+class acceleration_structure_constructor {
+	public:
+		virtual ~acceleration_structure_constructor() {}
+		virtual std::string identification() = 0;
+		
+		//! \attention this is a temporary precaution to catch old code. will be deleted in some time.
+		virtual void please_derive_from_basic_acceleration_structure_constructor() = 0;
+};
+
+/*! The real interface for acceleration structure constructors.
  * 	
  * 	We have this as a separate entity because there are different ways to obtain an acceleration structure of the same type.
  */
-template<box_t__and__tri_t> struct acceleration_structure_constructor {
-	declare_traits_types;
-	virtual acceleration_structure<box_t, tri_t>* build(flat_triangle_list *tris) = 0;
-	virtual std::string identification() = 0;
+template<box_t__and__tri_t> class basic_acceleration_structure_constructor : public acceleration_structure_constructor {
+	public:
+		declare_traits_types;
+		virtual basic_acceleration_structure<box_t, tri_t>* build(flat_triangle_list *tris) = 0;
+		
+		//! \attention this is a temporary precaution to catch old code. will be deleted in some time.
+		virtual void please_derive_from_basic_acceleration_structure_constructor() {}
 };
 
 ////////////////////
@@ -326,10 +355,10 @@ template<box_t__and__tri_t> class basic_raytracer : public raytracer {
 		rta::ray_generator *raygen;
 		rta::bouncer *bouncer;
 		virtual float trace_rays() = 0;
-		rta::acceleration_structure<forward_traits> *accel_struct;
+		rta::basic_acceleration_structure<forward_traits> *accel_struct;
 
 	public:
-		basic_raytracer(rta::ray_generator *raygen, class bouncer *bouncer, acceleration_structure<forward_traits> *as)
+		basic_raytracer(rta::ray_generator *raygen, class bouncer *bouncer, basic_acceleration_structure<forward_traits> *as)
 		: raygen(raygen), bouncer(bouncer), accel_struct(as) {
 			if (bouncer)
 				basic_raytracer::ray_bouncer(bouncer);
@@ -361,10 +390,10 @@ template<box_t__and__tri_t> class basic_raytracer : public raytracer {
 		virtual void ray_bouncer(rta::bouncer *rb) { bouncer = rb; }
 		virtual basic_raytracer* copy() = 0;
 		
-		virtual void acceleration_structure(rta::acceleration_structure<forward_traits> *as) {
+		virtual void acceleration_structure(rta::basic_acceleration_structure<forward_traits> *as) {
 			accel_struct = as;
 		}
-		rta::acceleration_structure<forward_traits>* acceleration_structure() {
+		rta::basic_acceleration_structure<forward_traits>* acceleration_structure() {
 			return accel_struct;
 		}
 };
@@ -379,7 +408,7 @@ template<box_t__and__tri_t> class cpu_raytracer : public basic_raytracer<forward
 		cpu_ray_bouncer<forward_traits> *cpu_bouncer;
 
 	public:
-		cpu_raytracer(rta::ray_generator *raygen, class bouncer *bouncer, acceleration_structure<forward_traits> *as)
+		cpu_raytracer(rta::ray_generator *raygen, class bouncer *bouncer, basic_acceleration_structure<forward_traits> *as)
 		: basic_raytracer<forward_traits>(raygen, bouncer, as), cpu_bouncer(0) {
 			if (bouncer)
 				this->ray_bouncer(bouncer);

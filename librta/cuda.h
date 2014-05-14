@@ -5,6 +5,7 @@
 #include "basic_types.h"
 #include "raytrav.h"
 #include "cuda-kernels.h"
+#include "cuda-vec.h"
 
 #if RTA_HAVE_LIBCUDART == 1
 #define WITH_CUDA
@@ -239,7 +240,7 @@ namespace rta {
 				gpu_ray_generator *gpu_raygen;
 
 			public:
-				gpu_raytracer(rta::ray_generator *raygen, class bouncer *bouncer, acceleration_structure<forward_traits> *as)
+				gpu_raytracer(rta::ray_generator *raygen, class bouncer *bouncer, basic_acceleration_structure<forward_traits> *as)
 				: basic_raytracer<forward_traits>(raygen, bouncer, as), gpu_bouncer(0), gpu_raygen(0) {
 					this->ray_bouncer(bouncer);
 					this->ray_generator(raygen);

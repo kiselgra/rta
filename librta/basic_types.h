@@ -51,7 +51,7 @@ namespace rta {
 		vec3_t na, nb, nc;
 		vec2_t ta, tb, tc;
 		int material_index;
-	};
+	} __attribute__ ((aligned (8)));
 
 	//! simple aabb
 	struct simple_aabb {

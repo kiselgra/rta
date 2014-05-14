@@ -15,16 +15,44 @@ namespace rta {
 		#define ray_y (blockIdx.y * blockDim.y + threadIdx.y)
 
 		namespace k {
-			__global__ void trace_dis(simple_triangle *triangles, int n, bbvh::node<simple_aabb> *nodes, vec3f *ray_orig, vec3f *ray_dir, float *max_t, 
-			               int w, int h, triangle_intersection<simple_triangle> *is) {
+			__global__ void trace_dis(cuda::simple_triangle *triangles, int n, bbvh::node<cuda::simple_aabb> *nodes, 
+			                          vec3f *ray_orig, vec3f *ray_dir, float *max_t, 
+			                          int w, int h, triangle_intersection<simple_triangle> *is) {
+					/*
+				uint32_t stack[16];
+				stack[0] = 0;
+				int sp = 0;
 				uint tid = ray_y*w+ray_x;
 				vec3f orig = (ray_orig)[tid];
 				vec3f dir = (ray_dir)[tid];
-// 				float t_max = max_t[tid];
-				simple_aabb box = nodes[0].box;
+				float t_max = max_t[tid];
+				simple_aabb box;
 				float dist;
-				if (intersect_aabb(box, &orig, &dir, dist))
-					is[tid].t = 0;
+				triangle_intersection<simple_triangle> closest;
+				closest.t = FLT_MAX;
+				while (sp >= 0) {
+					uint node = stack[sp--];
+					bbvh::node<simple_aabb> curr = nodes[node];
+					if (curr.inner()) {
+						if (intersect_aabb(curr.box, &orig, &dir, dist))
+							if (dist < closest.t && dist <= t_max) {
+								stack[++sp] = curr.right();
+								stack[++sp] = curr.left();
+							}
+					}
+					else {
+						uint elems = curr.elems();
+						uint offset = curr.tris();
+						for (int i = 0; i < elems; ++i) {
+							triangle_intersection<simple_triangle> is(offset+i);
+							if (intersect_tri_opt(triangles[offset+i], &orig, &dir, is)) {
+								if (is.t < closest.t)
+									closest = is;
+							}
+						}
+					}
+				}
+					*/
 			}
 		}
 

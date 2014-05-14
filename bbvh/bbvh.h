@@ -6,7 +6,7 @@
 
 namespace rta {
 
-template<box_t__and__tri_t> class binary_bvh : public acceleration_structure<forward_traits> {
+template<box_t__and__tri_t> class binary_bvh : public basic_acceleration_structure<forward_traits> {
 	public:
 		declare_traits_types;
 		typedef uint32_t link_t;
@@ -56,7 +56,7 @@ template<box_t__and__tri_t> class binary_bvh : public acceleration_structure<for
  *  this structure is intended for use in the contruction of other acceleration structures for
  *  which we wan't to take advantage of the already implented space subdivision.
  */
-template<box_t__and__tri_t> class binary_bvh_with_split_axis : public acceleration_structure<forward_traits> {
+template<box_t__and__tri_t> class binary_bvh_with_split_axis : public basic_acceleration_structure<forward_traits> {
 	public:
 		declare_traits_types;
 		typedef uint32_t link_t;
@@ -93,7 +93,7 @@ struct bbvh_no_bias {
 };
 
 template<typename bvh_t_, typename bias_t = bbvh_no_bias> 
-class bbvh_constructor_using_median : public acceleration_structure_constructor<typename bvh_t_::box_t, typename bvh_t_::tri_t> {
+class bbvh_constructor_using_median : public basic_acceleration_structure_constructor<typename bvh_t_::box_t, typename bvh_t_::tri_t> {
 	public:
 		typedef bvh_t_ bvh_t;
 		typedef typename bvh_t::node node_t;
@@ -281,13 +281,13 @@ template<box_t__and__tri_t, typename bvh_t_> class bbvh_tracer : public cpu_rayt
 		/*! A downcast version of basic_raytracer::accel_struct.
 		 *  \note If you keep such a pointer, make sure to keep it up to date with the base version 
 		 *        so you don't end up tracing a different acceleration structure than set via the base's
-		 *        interface. See \ref basic_raytracer::accelration_structure.
+		 *        interface. See \ref basic_raytracer::basic_accelration_structure.
 		 */
 		bbvh_t *bvh;
 	public:
 		bbvh_tracer(ray_generator *gen, bbvh_t *bvh, class bouncer *b) : cpu_raytracer<forward_traits>(gen, b, bvh), bvh(bvh) {
 		}
-		virtual void acceleration_structure(rta::acceleration_structure<forward_traits> *as) {
+		virtual void basic_acceleration_structure(rta::basic_acceleration_structure<forward_traits> *as) {
 			bvh = dynamic_cast<bvh_t_*>(as);
 			basic_raytracer<forward_traits>::acceleration_structure(as);
 		}
@@ -445,20 +445,20 @@ template<box_t__and__tri_t, typename bvh_t_> class bbvh_child_is_tracer : public
 //////////////
 //////////////
 
-template<box_t__and__tri_t> class multi_bvh_sse : public acceleration_structure<forward_traits> {
+template<box_t__and__tri_t> class multi_bvh_sse : public basic_acceleration_structure<forward_traits> {
 	public:
 		declare_traits_types;
 		virtual std::string identification() { return "not implemented, yet"; }
 };
 
-template<box_t__and__tri_t> class multi_bvh_avx : public acceleration_structure<forward_traits> {
+template<box_t__and__tri_t> class multi_bvh_avx : public basic_acceleration_structure<forward_traits> {
 	public:
 		declare_traits_types;
 		virtual std::string identification() { return "not implemented, yet"; }
 };
 
 
-template<typename mbvh_t, typename bbvh_ctor_t> class mbvh_sse_contructor : public acceleration_structure_constructor<typename mbvh_t::box_t, typename mbvh_t::tri_t> {
+template<typename mbvh_t, typename bbvh_ctor_t> class mbvh_sse_contructor : public basic_acceleration_structure_constructor<typename mbvh_t::box_t, typename mbvh_t::tri_t> {
 	public:
 		class mbvh_bbvh_building_bias {
 		};

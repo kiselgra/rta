@@ -32,7 +32,7 @@ namespace rta {
 		};
 
 		template<typename bvh_ctor_t, typename bias_t = bbvh_no_bias>
-		class bbvh_constructor : public acceleration_structure_constructor<typename bvh_ctor_t::box_t, typename bvh_ctor_t::tri_t> {
+		class bbvh_constructor : public basic_acceleration_structure_constructor<typename bvh_ctor_t::box_t, typename bvh_ctor_t::tri_t> {
 			public:
 				typedef typename bvh_ctor_t::bvh_t bbvh_t;
 				typedef typename bvh_ctor_t::box_t box_t;

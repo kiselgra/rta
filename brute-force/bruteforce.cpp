@@ -79,7 +79,7 @@ namespace rta {
 		/*! \brief Implementation of the \ref acceleration_structure interface for brute force ray tracing.
 		 *  \note For the BF case this is bogus, of course :)
 		 */
-		template<box_t__and__tri_t> class bruteforce_dummy_accel_struct : public acceleration_structure<forward_traits> {
+		template<box_t__and__tri_t> class bruteforce_dummy_accel_struct : public basic_acceleration_structure<forward_traits> {
 		public:
 			declare_traits_types;
 
@@ -102,7 +102,7 @@ namespace rta {
 		 *  \note For the case of BF RT this is really bogus.
 		 *  \note We forward our template parameters but it is not really required to happen this way, so feel free.
 		 */
-		template<box_t__and__tri_t> class bruteforce_dummy_as_ctor : public acceleration_structure_constructor<forward_traits> {
+		template<box_t__and__tri_t> class bruteforce_dummy_as_ctor : public basic_acceleration_structure_constructor<forward_traits> {
 		public:
 			declare_traits_types;
 
@@ -200,15 +200,16 @@ extern "C" {
 		return ret;
 	}
 
-	rt_set<simple_aabb, simple_triangle> create_rt_set(flat_triangle_list &triangle_lists, int w, int h) {
+	rt_set create_rt_set(flat_triangle_list &triangle_lists, int w, int h) {
 		using namespace rta::example;
 
 		typedef simple_triangle tri_t;
 		typedef simple_aabb box_t;
 
-		rt_set<box_t, tri_t> set;
-		set.ctor = new bruteforce_dummy_as_ctor<box_t, tri_t>;
-		set.as = set.ctor->build(&triangle_lists);	// here we just use the first triangle list; this is actually stupid.
+		rt_set set;
+		bruteforce_dummy_as_ctor<box_t, tri_t> *ctor = new bruteforce_dummy_as_ctor<box_t, tri_t>;
+		set.ctor = ctor;
+		set.as = ctor->build(&triangle_lists);	// here we just use the first triangle list; this is actually stupid.
 		set.rt = new bruteforce_tracer<box_t, tri_t>(0, 0, dynamic_cast<bruteforce_dummy_accel_struct<box_t, tri_t>*>(set.as));
 		
 		return set;
