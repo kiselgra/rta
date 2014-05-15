@@ -82,7 +82,8 @@ class acceleration_structure_constructor {
 template<box_t__and__tri_t> class basic_acceleration_structure_constructor : public acceleration_structure_constructor {
 	public:
 		declare_traits_types;
-		virtual basic_acceleration_structure<box_t, tri_t>* build(flat_triangle_list *tris) = 0;
+		typedef typename tri_t::input_flat_triangle_list_t flat_triangle_list_t;
+		virtual basic_acceleration_structure<box_t, tri_t>* build(flat_triangle_list_t *tris) = 0;
 		
 		//! \attention this is a temporary precaution to catch old code. will be deleted in some time.
 		virtual void please_derive_from_basic_acceleration_structure_constructor() {}
@@ -153,6 +154,7 @@ template<box_t__and__tri_t> class primary_intersection_collector : public cpu_ra
 template<box_t__and__tri_t> class lighting_collector {
 	public:
 		typedef _tri_t tri_t;
+		typedef typename tri_t::vec3_t vec3_t;
 	protected:
 		image<unsigned char, 3> res;
 		struct light { vec3_t pos, col ; };
@@ -176,7 +178,7 @@ template<box_t__and__tri_t> class lighting_collector {
 				for (int x = 0; x < res.w; ++x) {
 					triangle_intersection<tri_t> &is = this->last_intersection->pixel(x,y);
 					if (!is.valid()) continue;
-					vec3f col = {0,0,0};
+					vec3_t col = {0,0,0};
 					if (binary_result_only)
 						col = lights.front().col;
 					else {

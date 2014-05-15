@@ -120,7 +120,7 @@ namespace rta {
 	
 			virtual std::string identification() { return "stackless bvh ctor (based on " + bbvh_ctor.identification() + ")"; }
 		
-			sbvh_t* build(flat_triangle_list *tris) {
+			sbvh_t* build(typename tri_t::input_flat_triangle_list_t *tris) {
 				bbvh_t *bbvh = bbvh_ctor.build(tris);
 				sbvh_t *stackless_bvh = new sbvh_t;
 
@@ -317,7 +317,7 @@ namespace rta {
 	
 			virtual std::string identification() { return "preorder stackless bvh ctor (based on " + fat_sbvh_ctor.identification() + ")"; }
 		
-			sbvh_t* build(flat_triangle_list *tris) {
+			sbvh_t* build(typename tri_t::input_flat_triangle_list_t *tris) {
 				std::cout << "preorder ctor" << std::endl;
 				fat_sbvh *fbvh = fat_sbvh_ctor.build(tris);
 				std::cout << "built fat sbvh" << std::endl;

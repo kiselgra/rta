@@ -110,7 +110,7 @@ namespace rta {
 			 * 	The triangle data returned by the acceleration structure must reflect those changes or 
 			 * 		return intersection information respecting the original configuration (which would probably be harder to do).
 			 */
-			bruteforce_dummy_accel_struct<forward_traits>* build(flat_triangle_list *tris) {
+			bruteforce_dummy_accel_struct<forward_traits>* build(typename tri_t::input_flat_triangle_list_t *tris) {
 				bruteforce_dummy_accel_struct<forward_traits> *as = new bruteforce_dummy_accel_struct<forward_traits>;
 				std::vector<tri_t> tmp;
 				for (int i = 0; i < tris->triangles; ++i)
@@ -200,7 +200,7 @@ extern "C" {
 		return ret;
 	}
 
-	rt_set create_rt_set(flat_triangle_list &triangle_lists, int w, int h) {
+	rt_set create_rt_set(basic_flat_triangle_list<simple_triangle> &triangle_lists, int w, int h) {
 		using namespace rta::example;
 
 		typedef simple_triangle tri_t;

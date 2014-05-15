@@ -61,7 +61,7 @@ namespace rta {
 	
 				virtual std::string identification() { return "sbvh ctor to ocl buffer (based on " + sbvh_ctor.identification() + ")"; }
 
-				bvh_t* build(flat_triangle_list *tris) {
+				bvh_t* build(typename tri_t::input_flat_triangle_list_t *tris) {
 					std::cout << "ocl sbvh build" << std::endl;
 					bvh_t *sbvh = sbvh_ctor.build(tris);
 					std::cout << "done" << std::endl;

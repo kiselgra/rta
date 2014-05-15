@@ -52,7 +52,7 @@ namespace rta {
 				 * 	The triangle data returned by the acceleration structure must reflect those changes or 
 				 * 		return intersection information respecting the original configuration (which would probably be harder to do).
 				 */
-				bruteforce_dummy_accel_struct<forward_traits>* build(flat_triangle_list *tris) {
+				bruteforce_dummy_accel_struct<forward_traits>* build(typename tri_t::input_flat_triangle_list_t *tris) {
 					cuda_ftl tri_data(*tris);
 					bruteforce_dummy_accel_struct<forward_traits> *as = new bruteforce_dummy_accel_struct<forward_traits>;
 					std::vector<tri_t> tmp;

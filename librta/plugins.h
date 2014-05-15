@@ -15,7 +15,7 @@ namespace rta {
 	extern char* (*plugin_description)();
 	extern int (*plugin_parse_cmdline)(int argc, char **argv);
 	extern void (*plugin_initialize)();
-	extern rt_set (*plugin_create_rt_set)(flat_triangle_list&,int,int);
+	extern rt_set (*plugin_create_rt_set)(basic_flat_triangle_list<simple_triangle>&,int,int);
 
 	void register_plugin_search_path(const std::string &path);
 	bool load_plugin_functions(const std::string &plugin_name);
