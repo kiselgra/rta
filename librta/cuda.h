@@ -192,6 +192,7 @@ namespace rta {
 					return false;
 				}
 				virtual void bounce() {
+					std::cout << "Primary is downloader: " << this->w << "x" << this->h << std::endl;
 					cudaMemcpy(this->last_intersection.data, this->gpu_last_intersection, sizeof(triangle_intersection<tri_t>)*this->w*this->h, 
 					           cudaMemcpyDeviceToHost);
 					cudaDeviceSynchronize();
