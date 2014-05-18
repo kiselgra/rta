@@ -144,6 +144,8 @@ using namespace rta;
 template<box_t__and__tri_t> class lighting_shader_with_material : public lighting_collector<forward_traits> {
 public:
 	typedef _tri_t tri_t;
+	typedef typename tri_t::vec3_t vec3_t;
+	typedef typename vector_traits<vec3_t>::vec2_t vec2_t;
 	
 	lighting_shader_with_material(uint w, uint h, image<triangle_intersection<tri_t>, 1> *li) : lighting_collector<forward_traits>(w, h, li) {
 	}
@@ -166,8 +168,9 @@ public:
 						barycentric_interpolation(&T, &bc, &ta, &tb, &tc);
 						material_t *mat = material(ref.material_index);
 						vec3f factor = (*mat)();
+						vec2f TC = { T.x, T.y };
 						if (mat->diffuse_texture) {
-							factor = (*mat)(T);
+							factor = (*mat)(TC);
 // 							cout << "fac " << factor.x << ", " << factor.y << ", " << factor.z << endl;
 						}
 
@@ -524,7 +527,7 @@ int main(int argc, char **argv) {
 #endif
 #if RTA_HAVE_LIBCUDART == 1
 		else if (cuda::using_cuda()) {
-			set.bouncer = new cuda::direct_diffuse_illumination<cuda::simple_aabb, cuda::simple_triangle, lighting_collector<cuda::simple_aabb, cuda::simple_triangle>>(res_x, res_y);
+			set.bouncer = new cuda::direct_diffuse_illumination<cuda::simple_aabb, cuda::simple_triangle, lighting_shader_with_material<cuda::simple_aabb, cuda::simple_triangle>>(res_x, res_y);
 			setup_and_run_pass<cuda::simple_aabb, cuda::simple_triangle>(set);
 		}
 #endif

@@ -45,6 +45,15 @@ namespace rta {
 	typedef vec3f vec3_t;
 	typedef vec4f vec4_t;
 	
+	template<typename vec3_base> struct vector_traits {
+	};
+
+	template<> struct vector_traits<vec3_t> {
+		typedef rta::vec2_t vec2_t;
+		typedef rta::vec3_t vec3_t;
+		typedef rta::vec4_t vec4_t;
+	};
+
 	template<typename tri_t_> struct basic_flat_triangle_list {
 		typedef tri_t_ tri_t;
 		uint triangles;

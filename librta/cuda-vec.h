@@ -11,8 +11,14 @@
 namespace rta {
 	struct cuda_ftl;
 
+	template<> struct vector_traits<float3> {
+		typedef float2 vec2_t;
+		typedef float3 vec3_t;
+		typedef float4 vec4_t;
+	};
+		
 	namespace cuda {
-	
+
 		/*! cuda version of our most primitive triangle type.
 		 * 	\note we need this as cuda requries __device__ functions
 		 * 	throughout, i.e. we can't use our own math lib that is not written
@@ -118,6 +124,33 @@ namespace rta {
 
 	// where is cgen based code when you need it....
 	#ifndef __CUDACC__	// the indirection might kill us on cuda.
+	inline void sub_components_vec2f(float2 *out, float2 *lhs, float2 *rhs) {
+		out->x = lhs->x - rhs->x;
+		out->y = lhs->y - rhs->y;
+	}
+	inline void add_components_vec2f(float2 *out, float2 *lhs, float2 *rhs) {
+		out->x = lhs->x + rhs->x;
+		out->y = lhs->y + rhs->y;
+	}
+	inline void mul_vec2f_by_scalar(float2 *out, const float2 *lhs, float rhs) {
+		out->x = (lhs->x * rhs);
+		out->y = (lhs->y * rhs);
+	}
+	inline void div_vec2f_by_scalar(float2 *out, const float2 *lhs, float rhs) {
+		out->x = (lhs->x / rhs);
+		out->y = (lhs->y / rhs);
+	}
+	inline float dot_vec2f(const float2 *lhs, const float2 *rhs) {
+		float sum = (lhs->x * rhs->x);
+		sum = (sum + (lhs->y * rhs->y));
+		return sum;
+	}
+	inline float length_of_vec2f(const float2 *v) {
+		return sqrtf(dot_vec2f(v, v));
+	}
+	inline void normalize_vec2f(float2 *v) {
+		div_vec2f_by_scalar(v, v, length_of_vec2f(v));
+	}
 	inline void sub_components_vec3f(float3 *out, float3 *lhs, float3 *rhs) {
 		out->x = lhs->x - rhs->x;
 		out->y = lhs->y - rhs->y;
@@ -171,6 +204,12 @@ namespace rta {
 	inline const float3& normal_b(const cuda::simple_triangle &t) { return t.nb; }
 	inline       float3& normal_c(cuda::simple_triangle &t)       { return t.nc; }
 	inline const float3& normal_c(const cuda::simple_triangle &t) { return t.nc; }
+	inline       float2& texcoord_a(cuda::simple_triangle &t)       { return t.ta; }
+	inline const float2& texcoord_a(const cuda::simple_triangle &t) { return t.ta; }
+	inline       float2& texcoord_b(cuda::simple_triangle &t)       { return t.tb; }
+	inline const float2& texcoord_b(const cuda::simple_triangle &t) { return t.tb; }
+	inline       float2& texcoord_c(cuda::simple_triangle &t)       { return t.tc; }
+	inline const float2& texcoord_c(const cuda::simple_triangle &t) { return t.tc; }
 	inline       float3& min(cuda::simple_aabb &bb)       { return bb.min; }
 	inline const float3& min(const cuda::simple_aabb &bb) { return bb.min; }
 	inline       float3& max(cuda::simple_aabb &bb)       { return bb.max; }

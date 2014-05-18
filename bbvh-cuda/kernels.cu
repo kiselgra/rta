@@ -42,7 +42,6 @@ namespace rta {
 								}
 						}
 						else {
-// 							closest.t = 0;
 							uint elems = curr.elems();
 							uint offset = curr.tris();
 							for (int i = 0; i < elems; ++i) {
@@ -54,9 +53,6 @@ namespace rta {
 							}
 						}
 					}
-	// 				if (tid % 3 == 0)
-	// 					closest.t = 0;
-	// 				else closest.t = FLT_MAX;
 					intersections[tid] = closest;
 				}
 			}
@@ -76,7 +72,6 @@ namespace rta {
 			checked_cuda(cudaPeekAtLastError());
 			dim3 threads(16, 16);
 			dim3 blocks = block_configuration_2d(w, h, threads);
-			cout << "trace!   T: " << threads.x << " " << threads.y << " " << threads.z << "   B: " << blocks.x << " " << blocks.y << " " << blocks.z << endl;
 			k::trace_dis<<<blocks, threads>>>(triangles, n, nodes, ray_orig, ray_dir, max_t, w, h, is);
 			checked_cuda(cudaPeekAtLastError());
 			checked_cuda(cudaDeviceSynchronize());

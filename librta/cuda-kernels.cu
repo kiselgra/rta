@@ -32,22 +32,12 @@ namespace rta {
 		}
 
 		void reset_intersections(rta::triangle_intersection<rta::cuda::simple_triangle> *last_intersection, uint w, uint h) {
-			checked_cuda(cudaPeekAtLastError());
+			checked_cuda(cudaGetLastError());
 			dim3 threads(16, 16);
 			dim3 blocks = block_configuration_2d(w, h, threads);
-			cout << "resetting intersections!   T: " << threads.x << " " << threads.y << " " << threads.z << "   B: " << blocks.x << " " << blocks.y << " " << blocks.z << endl;
 			k::reset_intersections<<<blocks,threads>>>(last_intersection, w, h);
-			checked_cuda(cudaPeekAtLastError());
+			checked_cuda(cudaGetLastError());
 			checked_cuda(cudaDeviceSynchronize());
-			cout << "bla" << endl;
-			rta::triangle_intersection<rta::cuda::simple_triangle> *X = new rta::triangle_intersection<rta::cuda::simple_triangle>[w*h];
-			cout << "blub" << endl;
-			checked_cuda(cudaMemcpy(X, last_intersection, sizeof(triangle_intersection<cuda::simple_triangle>)*10*10,
-					cudaMemcpyDeviceToHost));
-			cout << "lala" << endl;
-			checked_cuda(cudaDeviceSynchronize());
-			cout << "lulu" << endl;
-			cout << X[0].gamma << endl;
 		}
 
 	}
