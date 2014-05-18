@@ -182,20 +182,23 @@ namespace rta {
 		};
 
 		//! Supplies primary intersections to host programs, e.g. the standard rta program's shader.
-		template<box_t__and__tri_t> class primary_intersection_downloader : public primary_intersection_collector<forward_traits>, 
-		                                                                    public rta::primary_intersection_collector<forward_traits> {
+		template<box_t__and__tri_t, typename cpu_bouncer> class primary_intersection_downloader : public primary_intersection_collector<forward_traits>, 
+		                                                                                          public cpu_bouncer {
 			public:
 				declare_traits_types;
-				primary_intersection_downloader(uint w, uint h) : cuda::primary_intersection_collector<forward_traits>(w, h), rta::primary_intersection_collector<forward_traits>(w, h) {
+				typedef primary_intersection_collector<forward_traits> collector_t;
+
+				primary_intersection_downloader(uint w, uint h) 
+				: cuda::primary_intersection_collector<forward_traits>(w, h), cpu_bouncer(w, h) {
 				}
 				virtual bool trace_further_bounces() {
 					return false;
 				}
 				virtual void bounce() {
-					std::cout << "Primary is downloader: " << this->w << "x" << this->h << std::endl;
-					cudaMemcpy(this->last_intersection.data, this->gpu_last_intersection, sizeof(triangle_intersection<tri_t>)*this->w*this->h, 
-					           cudaMemcpyDeviceToHost);
+					cudaMemcpy(this->last_intersection.data, this->gpu_last_intersection,
+							   sizeof(triangle_intersection<tri_t>)*collector_t::w*collector_t::h, cudaMemcpyDeviceToHost);
 					cudaDeviceSynchronize();
+					cpu_bouncer::bounce();
 				}
 				virtual std::string identification() {
 					return "cuda primary intersection collector providing host data.";
@@ -203,12 +206,15 @@ namespace rta {
 		};
 
 		//! An implementation of rta::direct_diffuse_illumination that downloads the intersection data from cuda.
-		template<box_t__and__tri_t, typename shader> class direct_diffuse_illumination : public primary_intersection_downloader<forward_traits>, 
-		                                                                                 public shader {
+		template<box_t__and__tri_t, typename shader> 
+		class direct_diffuse_illumination : public primary_intersection_downloader<forward_traits, rta::primary_intersection_collector<forward_traits> >, 
+		                                    public shader {
 			public:
 				typedef _tri_t tri_t;
-				typedef primary_intersection_downloader<forward_traits> bouncer_t;
-				direct_diffuse_illumination(uint w, uint h) : primary_intersection_downloader<forward_traits>(w,h), shader(w,h, 0) {
+				typedef primary_intersection_downloader<forward_traits, rta::primary_intersection_collector<forward_traits> > bouncer_t;
+				direct_diffuse_illumination(uint w, uint h) 
+				: primary_intersection_downloader<forward_traits, rta::primary_intersection_collector<forward_traits> >(w,h), 
+				  shader(w,h, 0) {
 					image<triangle_intersection<tri_t>, 1> *li = &this->bouncer_t::last_intersection;
 					shader::last_intersection = li;
 				}
