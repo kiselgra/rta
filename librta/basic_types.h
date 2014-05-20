@@ -44,9 +44,29 @@ namespace rta {
 	typedef vec2f vec2_t;
 	typedef vec3f vec3_t;
 	typedef vec4f vec4_t;
+	
+	template<typename vec3_base> struct vector_traits {
+	};
+
+	template<> struct vector_traits<vec3_t> {
+		typedef rta::vec2_t vec2_t;
+		typedef rta::vec3_t vec3_t;
+		typedef rta::vec4_t vec4_t;
+	};
+
+	template<typename tri_t_> struct basic_flat_triangle_list {
+		typedef tri_t_ tri_t;
+		uint triangles;
+		tri_t *triangle;
+		basic_flat_triangle_list() : triangles(0), triangle(0) {}
+		basic_flat_triangle_list(int size) : triangles(size), triangle(0) { triangle = new tri_t[size]; }
+	};
+
 
 	//! our most primitive triangle type
 	struct simple_triangle {
+		typedef basic_flat_triangle_list<simple_triangle> input_flat_triangle_list_t;
+		typedef rta::vec3_t vec3_t;
 		vec3_t a, b, c;
 		vec3_t na, nb, nc;
 		vec2_t ta, tb, tc;
@@ -60,6 +80,7 @@ namespace rta {
 
 	template<typename _tri_t> struct triangle_intersection {
 		typedef _tri_t tri_t;
+		typedef typename tri_t::vec3_t vec3_t;
 		float_t t, beta, gamma;
 		uint ref;
 		heterogenous triangle_intersection() : t(FLT_MAX), ref(0) {}
@@ -73,13 +94,6 @@ namespace rta {
 		}
 	};
 
-
-	struct flat_triangle_list {
-		uint triangles;
-		simple_triangle *triangle;
-		flat_triangle_list() : triangles(0), triangle(0) {}
-		flat_triangle_list(int size) : triangles(size), triangle(0) { triangle = new simple_triangle[size]; }
-	};
 
 
 	#ifndef __CUDACC__	// cuda never really supported templates...

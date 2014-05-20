@@ -6,10 +6,19 @@
 #if RTA_HAVE_LIBCUDART == 1
 
 #include <vector_types.h>
+#include <math.h>
 
 namespace rta {
+	struct cuda_ftl;
+
+	template<> struct vector_traits<float3> {
+		typedef float2 vec2_t;
+		typedef float3 vec3_t;
+		typedef float4 vec4_t;
+	};
+		
 	namespace cuda {
-	
+
 		/*! cuda version of our most primitive triangle type.
 		 * 	\note we need this as cuda requries __device__ functions
 		 * 	throughout, i.e. we can't use our own math lib that is not written
@@ -20,6 +29,8 @@ namespace rta {
 			float3 na, nb, nc;
 			float2 ta, tb, tc;
 			int material_index;
+			typedef cuda_ftl input_flat_triangle_list_t;
+			typedef float3 vec3_t;
 		};
 
 		//! simple aabb, see cuda::simple_triangle
@@ -111,6 +122,75 @@ namespace rta {
 	heterogenous inline const float3& max(const cuda::simple_aabb &bb) { return bb.max; }
 	#endif	
 
+	// where is cgen based code when you need it....
+	#ifndef __CUDACC__	// the indirection might kill us on cuda.
+	inline void sub_components_vec2f(float2 *out, float2 *lhs, float2 *rhs) {
+		out->x = lhs->x - rhs->x;
+		out->y = lhs->y - rhs->y;
+	}
+	inline void add_components_vec2f(float2 *out, float2 *lhs, float2 *rhs) {
+		out->x = lhs->x + rhs->x;
+		out->y = lhs->y + rhs->y;
+	}
+	inline void mul_vec2f_by_scalar(float2 *out, const float2 *lhs, float rhs) {
+		out->x = (lhs->x * rhs);
+		out->y = (lhs->y * rhs);
+	}
+	inline void div_vec2f_by_scalar(float2 *out, const float2 *lhs, float rhs) {
+		out->x = (lhs->x / rhs);
+		out->y = (lhs->y / rhs);
+	}
+	inline float dot_vec2f(const float2 *lhs, const float2 *rhs) {
+		float sum = (lhs->x * rhs->x);
+		sum = (sum + (lhs->y * rhs->y));
+		return sum;
+	}
+	inline float length_of_vec2f(const float2 *v) {
+		return sqrtf(dot_vec2f(v, v));
+	}
+	inline void normalize_vec2f(float2 *v) {
+		div_vec2f_by_scalar(v, v, length_of_vec2f(v));
+	}
+	inline void sub_components_vec3f(float3 *out, float3 *lhs, float3 *rhs) {
+		out->x = lhs->x - rhs->x;
+		out->y = lhs->y - rhs->y;
+		out->z = lhs->z - rhs->z;
+	}
+	inline void add_components_vec3f(float3 *out, float3 *lhs, float3 *rhs) {
+		out->x = lhs->x + rhs->x;
+		out->y = lhs->y + rhs->y;
+		out->z = lhs->z + rhs->z;
+	}
+	inline void mul_vec3f_by_scalar(float3 *out, const float3 *lhs, float rhs) {
+		out->x = (lhs->x * rhs);
+		out->y = (lhs->y * rhs);
+		out->z = (lhs->z * rhs);
+	}
+	inline void div_vec3f_by_scalar(float3 *out, const float3 *lhs, float rhs) {
+		out->x = (lhs->x / rhs);
+		out->y = (lhs->y / rhs);
+		out->z = (lhs->z / rhs);
+	}
+	inline float dot_vec3f(const float3 *lhs, const float3 *rhs) {
+		float sum = (lhs->x * rhs->x);
+		sum = (sum + (lhs->y * rhs->y));
+		sum = (sum + (lhs->z * rhs->z));
+		return sum;
+	}
+	inline float length_of_vec3f(const float3 *v) {
+		return sqrtf(dot_vec3f(v, v));
+	}
+	inline void normalize_vec3f(float3 *v) {
+		div_vec3f_by_scalar(v, v, length_of_vec3f(v));
+	}
+	inline void cross_vec3f(float3 *out, const float3 *lhs, const float3 *rhs) {
+		out->x = ((lhs->y * rhs->z) - (lhs->z * rhs->y));
+		out->y = ((lhs->z * rhs->x) - (lhs->x * rhs->z));
+		out->z = ((lhs->x * rhs->y) - (lhs->y * rhs->x));
+	}
+
+	#endif
+
 	#ifndef __CUDACC__
 	inline       float3& vertex_a(cuda::simple_triangle &t)       { return t.a; }
 	inline const float3& vertex_a(const cuda::simple_triangle &t) { return t.a; }
@@ -118,10 +198,29 @@ namespace rta {
 	inline const float3& vertex_b(const cuda::simple_triangle &t) { return t.b; }
 	inline       float3& vertex_c(cuda::simple_triangle &t)       { return t.c; }
 	inline const float3& vertex_c(const cuda::simple_triangle &t) { return t.c; }
+	inline       float3& normal_a(cuda::simple_triangle &t)       { return t.na; }
+	inline const float3& normal_a(const cuda::simple_triangle &t) { return t.na; }
+	inline       float3& normal_b(cuda::simple_triangle &t)       { return t.nb; }
+	inline const float3& normal_b(const cuda::simple_triangle &t) { return t.nb; }
+	inline       float3& normal_c(cuda::simple_triangle &t)       { return t.nc; }
+	inline const float3& normal_c(const cuda::simple_triangle &t) { return t.nc; }
+	inline       float2& texcoord_a(cuda::simple_triangle &t)       { return t.ta; }
+	inline const float2& texcoord_a(const cuda::simple_triangle &t) { return t.ta; }
+	inline       float2& texcoord_b(cuda::simple_triangle &t)       { return t.tb; }
+	inline const float2& texcoord_b(const cuda::simple_triangle &t) { return t.tb; }
+	inline       float2& texcoord_c(cuda::simple_triangle &t)       { return t.tc; }
+	inline const float2& texcoord_c(const cuda::simple_triangle &t) { return t.tc; }
 	inline       float3& min(cuda::simple_aabb &bb)       { return bb.min; }
 	inline const float3& min(const cuda::simple_aabb &bb) { return bb.min; }
 	inline       float3& max(cuda::simple_aabb &bb)       { return bb.max; }
 	inline const float3& max(const cuda::simple_aabb &bb) { return bb.max; }
+
+	template<> inline       float_t& x_comp(float3 &t)       { return t.x; }
+	template<> inline const float_t& x_comp(const float3 &t) { return t.x; }
+	template<> inline       float_t& y_comp(float3 &t)       { return t.y; }
+	template<> inline const float_t& y_comp(const float3 &t) { return t.y; }
+	template<> inline       float_t& z_comp(float3 &t)       { return t.z; }
+	template<> inline const float_t& z_comp(const float3 &t) { return t.z; }
 
 	//! a little helper http://stackoverflow.com/questions/7931358/printing-sizeoft-at-compile-time
 	template<int N> 
@@ -129,13 +228,10 @@ namespace rta {
 		char operator()() { return N + 256; } //deliberately causing overflow
 	};
 
-	//! This is rather hacky!
-	struct cuda_ftl {
-		uint triangles;
-		cuda::simple_triangle *triangle;
-		cuda_ftl() : triangles(0), triangle(0) {}
-		cuda_ftl(int size) : triangles(size), triangle(0) { triangle = new cuda::simple_triangle[size]; }
-		cuda_ftl(flat_triangle_list &base) {
+	struct cuda_ftl : public basic_flat_triangle_list<cuda::simple_triangle> {
+		cuda_ftl() : basic_flat_triangle_list<cuda::simple_triangle>() {}
+		cuda_ftl(int size) : basic_flat_triangle_list<cuda::simple_triangle>(size) {}
+		cuda_ftl(basic_flat_triangle_list<rta::simple_triangle> &base) {
 			triangles = base.triangles;
 			static_assert(sizeof(simple_triangle) == sizeof(cuda::simple_triangle),
 			              "Triangle sizes of host vs cuda do not match. Code will break.");

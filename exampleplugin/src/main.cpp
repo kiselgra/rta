@@ -15,7 +15,7 @@ extern "C" {
 		my_parse_cmdline(argc, argv);
 	}
 
-	rt_set create_rt_set(flat_triangle_list &triangle_lists, int w, int h) {
+	rt_set create_rt_set(basic_flat_triangle_list<simple_triangle> &triangle_lists, int w, int h) {
 		using namespace rta::example;
 
 		typedef simple_triangle tri_t;

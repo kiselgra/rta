@@ -100,6 +100,7 @@ class bbvh_constructor_using_median : public basic_acceleration_structure_constr
 		typedef typename bvh_t::box_t box_t;
 		typedef typename bvh_t::tri_t tri_t;
 		typedef typename bvh_t::link_t link_t;
+		typedef typename tri_t::vec3_t vec3_t;
 
 	protected:
 		std::vector<node_t> nodes;
@@ -135,7 +136,7 @@ class bbvh_constructor_using_median : public basic_acceleration_structure_constr
 			uint elems = end-begin;
 			if (elems > max_tris_per_node) 
 			{
-				vec3f dists; sub_components_vec3f(&dists, &n->box.max, &n->box.min);
+				vec3_t dists; sub_components_vec3f(&dists, &n->box.max, &n->box.min);
 				if (dists.x > dists.y)
 					if (dists.x > dists.z)  { n->split_axis(X); qsort(tris+begin, end-begin, sizeof(tri_t), (qsort_pred_t)tri_sort_x);	}
 					else                    { n->split_axis(Z); qsort(tris+begin, end-begin, sizeof(tri_t), (qsort_pred_t)tri_sort_z);	}
@@ -194,7 +195,7 @@ class bbvh_constructor_using_median : public basic_acceleration_structure_constr
 			uint elems = end-begin;
 			if (elems > max_tris_per_node) 
 			{
-				vec3f dists; sub_components_vec3f(&dists, &n->box.max, &n->box.min);
+				vec3_t dists; sub_components_vec3f(&dists, &n->box.max, &n->box.min);
 				const float_t& (*comp_n)(const vec3_t&) = x_comp;
 				if (dists.x > dists.y)
 					if (dists.x > dists.z)  { n->split_axis(X); qsort(tris+begin, end-begin, sizeof(tri_t), (qsort_pred_t)tri_sort_x); comp_n=x_comp; }
@@ -237,7 +238,7 @@ class bbvh_constructor_using_median : public basic_acceleration_structure_constr
 			median_used = median==object_median ? "OM" : "SM";
 		}
 
-		bvh_t* build(flat_triangle_list *tris) {
+		bvh_t* build(typename tri_t::input_flat_triangle_list_t *tris) {
 			std::cout << "building bvh for triangle list of " << tris->triangles << " triangles" << std::endl;
 			uint root = 0;
 			if (median == object_median)
@@ -259,19 +260,23 @@ class bbvh_constructor_using_median : public basic_acceleration_structure_constr
 		virtual std::string identification() { return "bbvh_constructor_using_median: " + median_used; }
 };
 
+/*
 template<typename bvh_t, typename bias_t = bbvh_no_bias> class bbvh_constructor_using_sah {
 	public:
-		bvh_t* build(flat_triangle_list *tris) {
+		declare_traits_types;
+		bvh_t* build(typename tri_t::input_flat_triangle_list *tris) {
 		}
 		virtual std::string identification() { return "not implemented, yet."; }
 };
 
 template<typename bvh_t, typename bias_t = bbvh_no_bias> class bbvh_constructor_using_binning {
 	public:
-		bvh_t* build(flat_triangle_list *tris) {
+		declare_traits_types;
+		bvh_t* build(typename tri_t::input_flat_triangle_list *tris) {
 		}
 		virtual std::string identification() { return "not implemented, yet."; }
 };
+*/
 
 template<box_t__and__tri_t, typename bvh_t_> class bbvh_tracer : public cpu_raytracer<forward_traits> {
 	public:
@@ -458,16 +463,18 @@ template<box_t__and__tri_t> class multi_bvh_avx : public basic_acceleration_stru
 };
 
 
+/*
 template<typename mbvh_t, typename bbvh_ctor_t> class mbvh_sse_contructor : public basic_acceleration_structure_constructor<typename mbvh_t::box_t, typename mbvh_t::tri_t> {
 	public:
 		class mbvh_bbvh_building_bias {
 		};
 		typedef binary_bvh<traits_of(mbvh_t)> bbvh_t;
-		mbvh_t* build(flat_triangle_list *tris, bbvh_ctor_t &bbvhctor) {
+		mbvh_t* build(typename tri_t::input_flat_triangle_list *tris, bbvh_ctor_t &bbvhctor) {
 			bbvh_t *bbvh = bbvhctor.build(tris);
 		}
 		virtual std::string identification() { return "not implemented, yet"; }
 };
+*/
 
 
 

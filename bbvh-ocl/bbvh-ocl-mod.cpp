@@ -115,7 +115,7 @@ extern "C" {
 		return ret;
 	}
 
-	rt_set create_rt_set(flat_triangle_list &triangle_lists, int w, int h) {
+	rt_set create_rt_set(basic_flat_triangle_list<simple_triangle> &triangle_lists, int w, int h) {
 		cout << "setting up open cl" << endl;
 		cl::verbose = true;
 		ctx = rta::ocl::context;

@@ -122,15 +122,16 @@ extern "C" {
 	 *
 	 */
 
-	rt_set create_rt_set(flat_triangle_list &triangle_lists, int w, int h) {
-		typedef simple_triangle tri_t;
-		typedef simple_aabb box_t;
+	rt_set create_rt_set(basic_flat_triangle_list<simple_triangle> &triangle_lists, int w, int h) {
+		typedef cuda::simple_triangle tri_t;
+		typedef cuda::simple_aabb box_t;
 		typedef cuda::binary_bvh<box_t, tri_t> cuda_bvh_t;
 		typedef bbvh_constructor_using_median<cuda_bvh_t> std_bbvh_ctor_t;
 		
 		cuda_bvh_t *bvh = 0;
 		std_bbvh_ctor_t *ctor = new std_bbvh_ctor_t(std_bbvh_ctor_t::spatial_median);
-		bvh = ctor->build(&triangle_lists);
+		cuda_ftl ftl(triangle_lists);
+		bvh = ctor->build(&ftl);
 
 
 		basic_raytracer<box_t, cuda::simple_triangle> *rt = 0;

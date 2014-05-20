@@ -38,7 +38,7 @@ namespace rta {
 				cout << "trace call!" << endl;
 				dim3 threads(16, 16);
 				dim3 blocks = block_configuration_2d(w, h, threads);
-				bruteforce<<<threads, blocks>>>(triangles, n, ray_orig, ray_dir, max_t, w, h, intersection);
+				bruteforce<<<blocks,threads>>>(triangles, n, ray_orig, ray_dir, max_t, w, h, intersection);
 				cudaDeviceSynchronize();
 			}
 

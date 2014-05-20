@@ -1,3 +1,39 @@
+2014-05-18	Kai
+
+* Integration of Cuda with the following changes.
+
+* rt_set is no longer a template, referencing just the base types of the ray
+tracing system. This change also introduced
+	acceleration_structure and acceleration_structure_constructor
+as new base interfaces with the templated versions renamed
+	basic_acceleration_structure and basic_acceleration_structure_constructor
+analogously to the raytracer interface.
+To avoid ugly use of dynamic casts in the setup code we provide the functions
+	basic_rt, basic_as and basic_ctor
+in rt_set. These are all templates in box and tri, so the call syntax is
+	set.basic_**<b,t>()->...
+or in case of the set being a template parameter
+	set.template basic_**<b,t>()->...
+Note that this only wraps dynamic casts and therefore is not guaranteed to
+work, and surely not fast. So just use these functions in your setup code.
+
+* The triangle-parameterization has been put to a test during cuda
+integration. Triangle data to be supplied to cuda has to be specified as
+	rta::cuda::simple_triangle
+flat_triangle_list is therefore no longer a plain struct but a template and
+was renamed basic_flat_triangle_list as more complicated structures might
+arise.
+The appropriate flat_triangle_list for a given kind of triangle is provided as
+an internal typedef in the triangle struct.
+This also led to extend the triangle/box accessors and arithmetic functions to
+support the cuda types, too. The appropriate vec3_t for a given triangle is
+defined in the trinagle struct as triangle::vec3_t.
+To extend this to the other vector types we provide vector_traits which
+provide typedefs based on a given vec3_t.
+
+* TODO.
+
+
 2014-05-11	Kai
 
 * Introduced the interface
