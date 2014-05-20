@@ -1,3 +1,8 @@
+// cuda can't handle gcc 4.7 includes...
+// https://bugs.archlinux.org/task/29359
+#undef _GLIBCXX_ATOMIC_BUILTINS
+#undef _GLIBCXX_USE_INT128
+
 #include "basic_types.h"
 #include "cuda-kernels.h"
 
