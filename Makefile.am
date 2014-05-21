@@ -29,3 +29,7 @@ EXTRA_DIST += dragon-param dragon-param-rttest
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = rta.pc
 
+if cuda
+cudadir = $(pkgdatadir)
+cuda_DATA = nvcc-wrapper
+endif
