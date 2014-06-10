@@ -327,14 +327,15 @@ template<box_t__and__tri_t, typename bvh_t_> class bbvh_direct_is_tracer : publi
 			state.stack[0] = 0;
 			state.sp = 0;
 			node_t *curr = 0;
-			state.intersection.t = raygen->max_t(state.x, state.y);
+			float max_t = raygen->max_t(state.x, state.y);
+			state.intersection.t = FLT_MAX;
 			while (state.sp >= 0) {
 				uint node = state.pop();
 				curr = &bbvh_tracer<forward_traits, bbvh_t>::bvh->nodes[node];
 				if (curr->inner()) {
 					float dist;
 					if (intersect_aabb(curr->box, origin, dir, dist))
-						if (dist < state.intersection.t) {
+						if (dist < state.intersection.t && dist <= max_t) {
 							state.push(curr->right());
 							state.push(curr->left());
 						}
@@ -346,14 +347,12 @@ template<box_t__and__tri_t, typename bvh_t_> class bbvh_direct_is_tracer : publi
 						tri_t *t = &bbvh_tracer<forward_traits, bbvh_t>::bvh->triangles[offset+i];
 						triangle_intersection<tri_t> is(offset+i);
 						if (intersect_tri_opt(*t, origin, dir, is)) {
-							if (is.t < state.intersection.t)
+							if (is.t < state.intersection.t && is.t <= max_t)
 								state.intersection = is;
 						}
 					}
 				}
 			}
-			if (!state.intersection.ref)
-				state.intersection.t = FLT_MAX;
 		}
 		virtual std::string identification() { return "bbvh_direct_is_tracer"; }
 		virtual bbvh_direct_is_tracer* copy() {
@@ -391,6 +390,7 @@ template<box_t__and__tri_t, typename bvh_t_> class bbvh_child_is_tracer : public
 			state.stack[0] = 0;
 			state.sp = 0;
 			node_t *curr = 0;
+			float max_t = raygen->max_t(state.x, state.y);
 			state.intersection.t = raygen->max_t(state.x, state.y);
 			while (state.sp >= 0) {
 				uint node = state.pop();
@@ -405,8 +405,8 @@ template<box_t__and__tri_t, typename bvh_t_> class bbvh_child_is_tracer : public
 					node_t *right = &bbvh_tracer<forward_traits, bbvh_t>::bvh->nodes[n_right];
 					bool do_right = intersect_aabb(right->box, origin, dir, dist_r);
 
-					do_left  = do_left  && dist_l < state.intersection.t;
-					do_right = do_right && dist_r < state.intersection.t;
+					do_left  = do_left  && dist_l < state.intersection.t && dist_l <= max_t;
+					do_right = do_right && dist_r < state.intersection.t && dist_r <= max_t;
 					if (do_left && do_right)
 						if (dist_l <= dist_r) {
 							state.push(n_right);
@@ -428,14 +428,12 @@ template<box_t__and__tri_t, typename bvh_t_> class bbvh_child_is_tracer : public
 						tri_t *t = &bbvh_tracer<forward_traits, bbvh_t>::bvh->triangles[offset+i];
 						triangle_intersection<tri_t> is(offset+i);
 						if (intersect_tri_opt(*t, origin, dir, is)) {
-							if (is.t < state.intersection.t)
+							if (is.t < state.intersection.t && is.t <= max_t)
 								state.intersection = is;
 						}
 					}
 				}
 			}
-			if (!state.intersection.ref)
-				state.intersection.t = FLT_MAX;
 		}
 		virtual std::string identification() { return "bbvh_child_is_tracer"; }
 		virtual bbvh_child_is_tracer* copy() {
