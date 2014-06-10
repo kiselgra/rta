@@ -32,4 +32,5 @@ pkgconfig_DATA = rta.pc
 if cuda
 cudadir = $(pkgdatadir)
 cuda_DATA = nvcc-wrapper
+EXTRA_DIST += nvcc-wrapper
 endif

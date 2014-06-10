@@ -15,7 +15,7 @@ exampleplugin_la_LDFLAGS  = -module -avoid-version -shared $(RTA_LDFLAGS)
 exampleplugin_la_CPPFLAGS = -D PACKAGE=\"$(PACKAGE)\" -D VERSION=\"$(VERSION)\" $(RTA_CFLAGS)
 
 .cu.lo:
-	$(LIBTOOL) --tag=CXX --mode=compile $(top_srcdir)/nvcc-wrapper $(CXXFLAGS) $(exampleplugin_la_CPPFLAGS) -c -o $@ $< -v
+	$(LIBTOOL) --tag=CXX --mode=compile $(top_srcdir)/nvcc-wrapper $(CPPFLAGS) $(CXXFLAGS) $(exampleplugin_la_CPPFLAGS) -c -o $@ $< -v
 
 $(plugin_name): .libs/$(plugin_name)
 	cp $< $@
