@@ -4,6 +4,8 @@
 #include "librta/librta.h"
 #include "librta/wall-timer.h"
 
+#include <ostream>
+
 namespace rta {
 
 template<box_t__and__tri_t> class binary_bvh : public basic_acceleration_structure<forward_traits> {
@@ -28,6 +30,7 @@ template<box_t__and__tri_t> class binary_bvh : public basic_acceleration_structu
 			void tris(link_t n)  { right_tris = n; }
 			uint tris()          { return right_tris; }
 			void split_axis(uint a) {} //!< not implemented for default bbvh nodes.
+			uint split_axis() { return 0; }
 		};
 		typedef node node_t;
 
@@ -48,6 +51,37 @@ template<box_t__and__tri_t> class binary_bvh : public basic_acceleration_structu
 		int triangle_count() { return triangles.size(); }
 		
 		virtual std::string identification() { return "binary_bvh"; }
+		
+		virtual void dump_acceleration_structure(const std::string &filename) {
+			std::ofstream out(filename.c_str());
+			out << "bvh\n" << nodes.size() << "\n";
+			for (int i = 0; i < nodes.size(); ++i) {
+				out << i << " " << (nodes[i].inner() ? "I " : "L ")
+					<< nodes[i].box.min.x << " " << nodes[i].box.min.y << " " << nodes[i].box.min.z << " "
+					<< nodes[i].box.max.x << " " << nodes[i].box.max.y << " " << nodes[i].box.max.z << " ";
+				if (nodes[i].inner())
+					out << nodes[i].split_axis() << " " << nodes[i].left() << " " << nodes[i].right()  << "\n"; 
+				else {
+					out << nodes[i].elems();
+					for (int j = 0; j < nodes[i].elems(); ++j)
+						out << " " << nodes[i].tris() + j;
+					out << "\n";
+				}
+			}
+		}
+		virtual void dump_primitives(const std::string &filename) {
+			std::ofstream out(filename.c_str());
+			out << "tri\n" << triangles.size() << "\n";
+			for (int i = 0; i < triangles.size(); ++i) {
+				out << i 
+					<< " " << triangles[i].a.x << " " << triangles[i].a.y << " " << triangles[i].a.z
+					<< " " << triangles[i].b.x << " " << triangles[i].b.y << " " << triangles[i].b.z
+					<< " " << triangles[i].c.x << " " << triangles[i].c.y << " " << triangles[i].c.z
+					<< " " << triangles[i].na.x << " " << triangles[i].na.y << " " << triangles[i].na.z
+					<< " " << triangles[i].nb.x << " " << triangles[i].nb.y << " " << triangles[i].nb.z
+					<< " " << triangles[i].nc.x << " " << triangles[i].nc.y << " " << triangles[i].nc.z << "\n";
+			}
+		}
 };
 
 /*! a binary bvh like \ref binary_bvh which stores the split axis, too.

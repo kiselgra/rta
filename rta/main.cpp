@@ -13,6 +13,7 @@
 
 #include <string>
 #include <sstream>
+#include <iomanip>
 #include <list>
 #include <float.h>
 #include <unistd.h>
@@ -373,6 +374,10 @@ template<box_t__and__tri_t> class directional_analysis_pass {
 				}
 				crgs->setup(&pos, &dir, &up, 45);
 				crgs->generate_rays();
+				if (cmdline.mamo_output) {
+					ostringstream oss; oss << cmdline.mamo_prefix << setw(3) << setfill('0') << right << i << ".ray";
+					crgs->dump_rays(oss.str());
+				}
 
 				the_set.rt->trace();
 				auto brt = dynamic_cast<rta::basic_raytracer<box_t, tri_t>*>(the_set.rt);
@@ -499,6 +504,11 @@ int main(int argc, char **argv) {
 	}
 
 	rt_set set = plugin_create_rt_set(triangle_lists, res_x, res_y);
+
+	if (cmdline.mamo_output) {
+		set.as->dump_acceleration_structure(cmdline.mamo_prefix + ".bvh");
+		set.as->dump_primitives(cmdline.mamo_prefix + ".tri");
+	}
 
 	if (cmdline.axial_series || cmdline.sphere_series || cmdline.positional_series)
 	{

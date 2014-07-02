@@ -5,6 +5,7 @@
 
 #include <algorithm>  // min,max
 #include <list>
+#include <ostream>
 
 namespace rta {
 
@@ -45,6 +46,8 @@ class acceleration_structure {
 		virtual std::string identification() = 0;
 		//! \attention this is a temporary precaution to catch old code. will be deleted in some time.
 		virtual void please_derive_from_basic_acceleration_structure() = 0;
+		virtual void dump_acceleration_structure(const std::string &) {}
+		virtual void dump_primitives(const std::string &) {}
 };
 
 /*! \brief The real interface for acceleration structures. See \ref triangle_ptr.
@@ -271,6 +274,7 @@ class ray_generator {
  		inline float& max_t(uint x, uint y)                 { return ray_max_t.pixel(x, y, 0); }
 		inline const float& max_t(uint x, uint y) const     { return ray_max_t.pixel(x, y, 0); }
 		virtual std::string identification() = 0;
+		virtual void dump_rays(const std::string &filename) {}
 		//! this is here just to find bugs in legacy ray generators. subject to removal.
 		virtual void dont_forget_to_initialize_max_t() = 0;
 };
@@ -328,6 +332,20 @@ class cam_ray_generator_shirley : public ray_generator {
 				}
 		}
 		virtual std::string identification() { return "ray generator according to shirley."; }
+		virtual void dump_rays(const std::string &filename) {
+			std::ofstream out(filename.c_str());
+			int w = res_x(), h = res_y();
+			out << "ray\n" << w << " " << h << "\n";
+			for (int y = 0; y < h; ++y)
+				for (int x = 0; x < w; ++x) {
+					vec3f *o = origin(x, y),
+						  *d = direction(x, y);
+					out << y*w+x << " " << 2 << " "
+						<< o->x << " " << o->y << " " << o->z << " "
+						<< d->x << " " << d->y << " " << d->z << " "
+						<< "0 " << max_t(x, y) << "\n";
+				}
+		}
 		virtual void dont_forget_to_initialize_max_t() {}
 };
 
