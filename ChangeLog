@@ -1,3 +1,9 @@
+2014-07-06	Kai
+
+* Added Cuda version of shirley ray generator. Default for bbvh-cuda.
+
+
+
 2014-05-18	Kai
 
 * Integration of Cuda with the following changes.
