@@ -131,6 +131,24 @@ namespace rta {
 				virtual void dont_forget_to_initialize_max_t() {}
 		};
 
+		/*! \brief An implementation of \ref rta::cam_ray_generator_shirley that runs on the gpu.
+		 */
+		class cam_ray_generator_shirley : public rta::cam_ray_generator_shirley, public gpu_ray_generator {
+		public:
+			cam_ray_generator_shirley(uint res_x, uint res_y) : rta::cam_ray_generator_shirley(res_x, res_y), gpu_ray_generator(res_x, res_y) {
+			}
+			virtual void generate_rays() {
+				void setup_shirley_rays(float *dirs, float *orgs, float *maxts, 
+										float fovy, float aspect, int w, int h, float3 *dir, float3 *pos, float3 *up, float maxt);
+				setup_shirley_rays(gpu_direction, gpu_origin, gpu_maxt, 
+								   fovy, aspect, w, h, (float3*)&dir, (float3*)&position, (float3*)&up, FLT_MAX);
+			}
+			virtual std::string identification() { return "cuda version of the ray generator according to shirley."; }
+			virtual void dont_forget_to_initialize_max_t() {}
+		};
+
+
+
 		template<typename T> class device_array {
 			public:
 				T *data;

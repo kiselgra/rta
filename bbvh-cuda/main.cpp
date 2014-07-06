@@ -144,7 +144,8 @@ extern "C" {
 		set.as = bvh;
 		set.ctor = ctor;
 		set.rt = rt;
-		set.rgen = new cuda::raygen_with_buffer<cam_ray_generator_shirley>(w, h);
+// 		set.rgen = new cuda::raygen_with_buffer<cam_ray_generator_shirley>(w, h);
+		set.rgen = new cuda::cam_ray_generator_shirley(w, h);
 		
 		return set;
 	}

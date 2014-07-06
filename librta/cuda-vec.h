@@ -123,73 +123,73 @@ namespace rta {
 	#endif	
 
 	// where is cgen based code when you need it....
-	#ifndef __CUDACC__	// the indirection might kill us on cuda.
-	inline void sub_components_vec2f(float2 *out, float2 *lhs, float2 *rhs) {
+	//#ifndef __CUDACC__	// the indirection might kill us on cuda.
+	heterogenous inline void sub_components_vec2f(float2 *out, float2 *lhs, float2 *rhs) {
 		out->x = lhs->x - rhs->x;
 		out->y = lhs->y - rhs->y;
 	}
-	inline void add_components_vec2f(float2 *out, float2 *lhs, float2 *rhs) {
+	heterogenous inline void add_components_vec2f(float2 *out, float2 *lhs, float2 *rhs) {
 		out->x = lhs->x + rhs->x;
 		out->y = lhs->y + rhs->y;
 	}
-	inline void mul_vec2f_by_scalar(float2 *out, const float2 *lhs, float rhs) {
+	heterogenous inline void mul_vec2f_by_scalar(float2 *out, const float2 *lhs, float rhs) {
 		out->x = (lhs->x * rhs);
 		out->y = (lhs->y * rhs);
 	}
-	inline void div_vec2f_by_scalar(float2 *out, const float2 *lhs, float rhs) {
+	heterogenous inline void div_vec2f_by_scalar(float2 *out, const float2 *lhs, float rhs) {
 		out->x = (lhs->x / rhs);
 		out->y = (lhs->y / rhs);
 	}
-	inline float dot_vec2f(const float2 *lhs, const float2 *rhs) {
+	heterogenous inline float dot_vec2f(const float2 *lhs, const float2 *rhs) {
 		float sum = (lhs->x * rhs->x);
 		sum = (sum + (lhs->y * rhs->y));
 		return sum;
 	}
-	inline float length_of_vec2f(const float2 *v) {
+	heterogenous inline float length_of_vec2f(const float2 *v) {
 		return sqrtf(dot_vec2f(v, v));
 	}
-	inline void normalize_vec2f(float2 *v) {
+	heterogenous inline void normalize_vec2f(float2 *v) {
 		div_vec2f_by_scalar(v, v, length_of_vec2f(v));
 	}
-	inline void sub_components_vec3f(float3 *out, float3 *lhs, float3 *rhs) {
+	heterogenous inline void sub_components_vec3f(float3 *out, float3 *lhs, float3 *rhs) {
 		out->x = lhs->x - rhs->x;
 		out->y = lhs->y - rhs->y;
 		out->z = lhs->z - rhs->z;
 	}
-	inline void add_components_vec3f(float3 *out, float3 *lhs, float3 *rhs) {
+	heterogenous inline void add_components_vec3f(float3 *out, float3 *lhs, float3 *rhs) {
 		out->x = lhs->x + rhs->x;
 		out->y = lhs->y + rhs->y;
 		out->z = lhs->z + rhs->z;
 	}
-	inline void mul_vec3f_by_scalar(float3 *out, const float3 *lhs, float rhs) {
+	heterogenous inline void mul_vec3f_by_scalar(float3 *out, const float3 *lhs, float rhs) {
 		out->x = (lhs->x * rhs);
 		out->y = (lhs->y * rhs);
 		out->z = (lhs->z * rhs);
 	}
-	inline void div_vec3f_by_scalar(float3 *out, const float3 *lhs, float rhs) {
+	heterogenous inline void div_vec3f_by_scalar(float3 *out, const float3 *lhs, float rhs) {
 		out->x = (lhs->x / rhs);
 		out->y = (lhs->y / rhs);
 		out->z = (lhs->z / rhs);
 	}
-	inline float dot_vec3f(const float3 *lhs, const float3 *rhs) {
+	heterogenous inline float dot_vec3f(const float3 *lhs, const float3 *rhs) {
 		float sum = (lhs->x * rhs->x);
 		sum = (sum + (lhs->y * rhs->y));
 		sum = (sum + (lhs->z * rhs->z));
 		return sum;
 	}
-	inline float length_of_vec3f(const float3 *v) {
+	heterogenous inline float length_of_vec3f(const float3 *v) {
 		return sqrtf(dot_vec3f(v, v));
 	}
-	inline void normalize_vec3f(float3 *v) {
+	heterogenous inline void normalize_vec3f(float3 *v) {
 		div_vec3f_by_scalar(v, v, length_of_vec3f(v));
 	}
-	inline void cross_vec3f(float3 *out, const float3 *lhs, const float3 *rhs) {
+	heterogenous inline void cross_vec3f(float3 *out, const float3 *lhs, const float3 *rhs) {
 		out->x = ((lhs->y * rhs->z) - (lhs->z * rhs->y));
 		out->y = ((lhs->z * rhs->x) - (lhs->x * rhs->z));
 		out->z = ((lhs->x * rhs->y) - (lhs->y * rhs->x));
 	}
 
-	#endif
+	//#endif
 
 	#ifndef __CUDACC__
 	inline       float3& vertex_a(cuda::simple_triangle &t)       { return t.a; }
