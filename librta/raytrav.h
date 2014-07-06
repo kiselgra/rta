@@ -102,6 +102,7 @@ template<box_t__and__tri_t> class basic_acceleration_structure_constructor : pub
  */
 class bouncer { // sequential calls to raytrace
 	public:
+		virtual ~bouncer() {}
 		virtual void bounce() = 0;
 		virtual bool trace_further_bounces() = 0;
 		virtual void new_pass() {}
@@ -259,6 +260,7 @@ class ray_generator {
 		image<float, 1> ray_max_t;
 		ray_generator(unsigned int res_x, unsigned int res_y) : raydata(res_x, res_y), ray_max_t(res_x, res_y) {
 		}
+		virtual ~ray_generator() {}
 		/*! \brief The actual interface function.
 		 * 
 		 * 	\note The whole image,x,y stuff is to be understood as a means of storage and 

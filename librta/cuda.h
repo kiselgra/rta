@@ -182,6 +182,9 @@ namespace rta {
 				gpu_ray_bouncer(uint w, uint h) : w(w), h(h), gpu_last_intersection(0) {
 					cudaMalloc((void**)&gpu_last_intersection, w*h*sizeof(triangle_intersection<tri_t>));
 				}
+				~gpu_ray_bouncer() {
+					cudaFree(gpu_last_intersection);
+				}
 		};
 
 		//! A \ref rta::primary_intersection_collector for cuda.
