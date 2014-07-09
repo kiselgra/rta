@@ -68,10 +68,10 @@ namespace rta {
 		//! @}
 		
 		#ifndef checked_cuda
-		#define checked_cuda(ans) { gpu_assert((ans), __FILE__, __LINE__); }
-		inline void gpu_assert(cudaError_t code, char *file, int line, bool abort=true) {
+		#define checked_cuda(ans) { rta::cuda::gpu_assert((ans), (const char*)__FILE__, __LINE__); }
+		inline void gpu_assert(cudaError_t code, const char *file, int line, bool abort=true) {
 			if (code != cudaSuccess) {
-				fprintf(stderr,"GPUassert: %s %s %d\n", cudaGetErrorString(code), file, line);
+				fprintf(stderr,(char*)"GPUassert: %s %s %d\n", cudaGetErrorString(code), file, line);
 				if (abort) exit(code);
 			}
 		}
