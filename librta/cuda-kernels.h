@@ -5,9 +5,23 @@
 
 #if RTA_HAVE_LIBCUDART == 1
 
+#include <cuda_runtime.h>
+#include <stdio.h>
+
 namespace rta {
 	namespace cuda {
-		
+			
+		#ifndef checked_cuda
+		#define checked_cuda(ans) { gpu_assert((ans), __FILE__, __LINE__); }
+		inline void gpu_assert(cudaError_t code, char *file, int line, bool abort=true) {
+			if (code != cudaSuccess) {
+				fprintf(stderr,"GPUassert: %s %s %d\n", cudaGetErrorString(code), file, line);
+				if (abort) exit(code);
+			}
+		}
+		#endif
+
+	
 		inline dim3 block_configuration_2d(int w, int h, dim3 threads) {
 			int x = w / threads.x + ((w%threads.x) ? 1 : 0);
 			int y = h / threads.y + ((h%threads.y) ? 1 : 0);

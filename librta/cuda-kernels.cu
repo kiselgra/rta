@@ -34,14 +34,6 @@ namespace rta {
 
 		}
 
-		#define checked_cuda(ans) { gpu_assert((ans), __FILE__, __LINE__); }
-		inline void gpu_assert(cudaError_t code, char *file, int line, bool abort=true) {
-			if (code != cudaSuccess) {
-				fprintf(stderr,"GPUassert: %s %s %d\n", cudaGetErrorString(code), file, line);
-				if (abort) exit(code);
-			}
-		}
-
 		void reset_intersections(rta::triangle_intersection<rta::cuda::simple_triangle> *last_intersection, uint w, uint h) {
 			checked_cuda(cudaGetLastError());
 			dim3 threads(16, 16);
