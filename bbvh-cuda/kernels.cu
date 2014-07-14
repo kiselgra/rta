@@ -26,7 +26,7 @@ namespace rta {
 			                          int w, int h, triangle_intersection<simple_triangle> *intersections) {
 				if (ray_x < w && ray_y < h) {
 					uint tid = ray_y*w+ray_x;
-					uint32_t stack[16];
+					uint32_t stack[32];
 					stack[0] = 0;
 					int sp = 0;
 					vec3f orig = (ray_orig)[tid];
