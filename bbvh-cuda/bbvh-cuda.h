@@ -74,6 +74,10 @@ namespace rta {
 				bbvh_gpu_tracer(rta::ray_generator *gen, bbvh_t *bvh, class bouncer *b)
 				: gpu_raytracer<forward_traits>(gen, b, bvh), bbvh(bvh) {
 				}
+				virtual void acceleration_structure(rta::basic_acceleration_structure<forward_traits> *as) {
+					bbvh = dynamic_cast<bbvh_t*>(as);
+					gpu_raytracer<forward_traits>::acceleration_structure(as);
+				}
 				virtual bool supports_max_t() { return true; }
 		};
 
