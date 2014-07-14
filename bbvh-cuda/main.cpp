@@ -4,6 +4,7 @@
 #include <argp.h>
 
 #include "bbvh-cuda.h"
+#include "lbvh.h"
 
 using namespace std;
 using namespace rta;
@@ -14,11 +15,13 @@ using namespace rta;
 //
 
 struct Cmdline {
+	enum bvh_t { median, lbvh };
 	enum bvh_trav_t { cis, dis };
+	bvh_t bvh_build;
 	bvh_trav_t bvh_trav;
 	bool verbose;
 
-	Cmdline() : bvh_trav(cis), verbose(false) {}
+	Cmdline() : bvh_build(median), bvh_trav(cis), verbose(false) {}
 };
 static Cmdline cmdline;
 
@@ -34,6 +37,7 @@ static struct argp_option options[] =
 {
 	// --[opt]		short/const		arg-descr		?		option-descr
 	{ "verbose", 'v', 0,          0, "Be verbose." },
+	{ "bvh", 'b', "<median|lbvh>",          0, "Which kind of bvh to use. Default: median." },
 // 	{ "bvh-trav", BT, "cis|dis",  0, "Intersection mode of the bvh traversal: direct-is, child-is. Default: cis." },
 	{ 0 }
 };
@@ -65,14 +69,16 @@ static error_t parse_options(int key, char *arg, argp_state *state)
 	switch (key)
 	{
 	case 'v':	cmdline.verbose = true; 	break;
-	case BT:      if (sarg == "dis") cmdline.bvh_trav = Cmdline::dis;
-	              else if (sarg == "cis") cmdline.bvh_trav = Cmdline::cis;
-				  else {
+	case BT:    if (sarg == "dis") cmdline.bvh_trav = Cmdline::dis;
+	            else if (sarg == "cis") cmdline.bvh_trav = Cmdline::cis;
+				else {
 					  cerr << "Unknown bvh traversal scheme: " << sarg << endl;
 					  argp_usage(state);
-				  }
-				  break;
-
+				}
+				break;
+	case 'b':	
+	            if (sarg == "lbvh") cmdline.bvh_build = Cmdline::lbvh;
+				break;
 
 	case ARGP_KEY_ARG:		// process arguments. 
 							// state->arg_num gives number of current arg
@@ -127,11 +133,27 @@ extern "C" {
 		typedef cuda::simple_aabb box_t;
 		typedef cuda::binary_bvh<box_t, tri_t> cuda_bvh_t;
 		typedef bbvh_constructor_using_median<cuda_bvh_t> std_bbvh_ctor_t;
+		typedef cuda::lbvh_constructor<box_t, tri_t> lbvh_ctor_t;
 		
+		acceleration_structure_constructor *base_ctor = 0;
 		cuda_bvh_t *bvh = 0;
-		std_bbvh_ctor_t *ctor = new std_bbvh_ctor_t(std_bbvh_ctor_t::spatial_median);
-		cuda_ftl ftl(triangle_lists);
-		bvh = ctor->build(&ftl);
+
+		if (cmdline.bvh_build == Cmdline::median) {
+			std_bbvh_ctor_t *ctor = new std_bbvh_ctor_t(std_bbvh_ctor_t::spatial_median);
+			cuda_ftl ftl(triangle_lists);
+			bvh = ctor->build(&ftl);
+			base_ctor = ctor;
+		}
+		else {
+			cuda_ftl tmp_ftl(triangle_lists);
+			cuda_ftl ftl;
+			cudaMalloc((void**)&ftl.triangle, sizeof(cuda::simple_triangle)*tmp_ftl.triangles);
+			cudaMemcpy(ftl.triangle, tmp_ftl.triangle, sizeof(cuda::simple_triangle)*tmp_ftl.triangles, cudaMemcpyHostToDevice);
+			ftl.triangles = tmp_ftl.triangles;
+			lbvh_ctor_t *ctor = new lbvh_ctor_t;
+			bvh = ctor->build(&ftl);
+			base_ctor = ctor;
+		}
 
 
 		basic_raytracer<box_t, cuda::simple_triangle> *rt = 0;
@@ -142,7 +164,7 @@ extern "C" {
 
 		rt_set set;
 		set.as = bvh;
-		set.ctor = ctor;
+		set.ctor = base_ctor;
 		set.rt = rt;
 // 		set.rgen = new cuda::raygen_with_buffer<cam_ray_generator_shirley>(w, h);
 		set.rgen = new cuda::cam_ray_generator_shirley(w, h);

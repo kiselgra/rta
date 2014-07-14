@@ -169,6 +169,11 @@ namespace rta {
 					cudaMalloc((void**)&data, n*sizeof(T));
 					cudaMemcpy(data, in, n*sizeof(T), cudaMemcpyHostToDevice);
 				}
+				T* download() {
+					T *t = new T[n];
+					cudaMemcpy(t, data, sizeof(T)*n, cudaMemcpyDeviceToHost);
+					return t;
+				}
 				~device_array() {
 					cudaFree(data);
 					data = 0;

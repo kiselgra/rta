@@ -323,12 +323,12 @@ template<box_t__and__tri_t> class directional_analysis_pass {
 			// shader = dynamic_cast<lighting_shader_with_material<forward_traits>*>(set.bouncer);
 			shader = dynamic_cast<lighting_collector<forward_traits>*>(set.bouncer);
 			basic_acceleration_structure<forward_traits> *as = dynamic_cast<basic_acceleration_structure<forward_traits>*>(the_set.as);
-			shader->triangle_ptr(as->triangle_ptr());
+			shader->triangle_ptr(as->canonical_triangle_ptr());	// this is not freed as of yet.
 		}
 		//! supposes that the tracer's accelstruct has been set up, already
 		void tracer(raytracer *tr) { 
 			auto *tracer = dynamic_cast<rta::basic_raytracer<box_t, tri_t>*>(tr);
-			tri_t *tris = tracer->acceleration_structure()->triangle_ptr();
+			tri_t *tris = tracer->acceleration_structure()->canonical_triangle_ptr();
 			int n = tracer->acceleration_structure()->triangle_count();
 			bb = rta::compute_aabb<box_t>(tris, 0, n);
 			vec3f diff;
@@ -338,6 +338,7 @@ template<box_t__and__tri_t> class directional_analysis_pass {
 			bb_diam = length_of_vec3f(&diff);
 			mul_vec3f_by_scalar(&diff, &diff, 0.5);
 			add_components_vec3f(&obj_center, &min_bb, &diff);
+			tracer->acceleration_structure()->free_canonical_triangles(tris);
 		}
 		rta::bouncer* bouncer() { 
 			return the_set.bouncer; 
