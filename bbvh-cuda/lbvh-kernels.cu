@@ -310,7 +310,6 @@ namespace rta {
 
 					nodes[current].box = box;
 
-					/*
 					if(merge){
 						if(!nodes[nodes[current].right()].inner() && !nodes[nodes[current].left()].inner()){
 
@@ -326,7 +325,6 @@ namespace rta {
 							nodes[current].make_leaf();
 						}
 					}
-					*/
 
 
 
