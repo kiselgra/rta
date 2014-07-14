@@ -42,6 +42,7 @@ static struct argp_option options[] =
 	{ "no-png", NOPNG, 0,             0, "Do not write image files." },
 	{ "png-prefix", 'P', "prefix",             0, "Write images to this path. Note that this is not be a complete filename, e.g. <prefix> will produce <prefix>0001.png." },
 	{ "mamo-output", 'M', "prefix", 0, "Write out mamo data (<prefix>.xx.ray, <prefix>.tri, <prefix>.bvh)." },
+	{ "rebuild-bvh", 'R', 0, 0, "Rebuild the BVH in each frame. This is for 'battle testing' the bvh construction/tracer interface." },
 	{ 0 }
 };	
 
@@ -107,6 +108,8 @@ static error_t parse_options(int key, char *arg, argp_state *state)
 	              cmdline.res_y = res.y;
 	              break;
 	case NOPNG:   cmdline.png_output = false;
+				  break;
+	case 'R':     cmdline.rebuild_bvh = true;
 				  break;
 
 	case ARGP_KEY_ARG:		// process arguments. 
