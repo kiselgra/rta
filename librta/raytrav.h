@@ -98,6 +98,11 @@ template<box_t__and__tri_t> class basic_acceleration_structure_constructor : pub
 		declare_traits_types;
 		typedef typename tri_t::input_flat_triangle_list_t flat_triangle_list_t;
 		virtual basic_acceleration_structure<box_t, tri_t>* build(flat_triangle_list_t *tris) = 0;
+
+		/*! \brief whether the triangle data to build the AS on is supposed to be in host (i.e. system ram) memory.
+		 * 	Host data is the most generic, but potentially slower, choice.
+		 */
+		virtual bool expects_host_triangles() { return true; }
 		
 		//! \attention this is a temporary precaution to catch old code. will be deleted in some time.
 		virtual void please_derive_from_basic_acceleration_structure_constructor() {}

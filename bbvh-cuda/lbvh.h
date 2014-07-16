@@ -162,6 +162,7 @@ namespace rta {
 					return this->bvh;
 				}
 
+				virtual bool expects_host_triangles() { return false; }
 
 				virtual std::string identification() { return "lbvh constructor" ; }
 			};
