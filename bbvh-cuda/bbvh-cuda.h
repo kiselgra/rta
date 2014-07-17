@@ -10,6 +10,15 @@
 namespace rta {
 	namespace cuda {
 
+		/*!	\brief This is just a stub to be used bby cuda::binary_bvh as an alternative to the host-storage requiring rta::binary_bvh.
+		 */
+		template<box_t__and__tri_t, typename node = bbvh_node<_box_t>> class binary_bvh_gpu_only : public basic_acceleration_structure<forward_traits> {
+			public:
+				declare_traits_types;
+				typedef node node_t;
+				typedef typename node_t::link_t link_t;
+		};
+
 		/*! \brief Forwarding of an rta::bbvh to cuda.
 		 *
 		 * 	Same scheme as ocl::binary_bvh.
@@ -17,7 +26,7 @@ namespace rta {
 		 * 	Now extended to also take already-on-gpu data.
 		 *	Takes a Bvh type as parent which must supply a node type according to \ref rta::binary_bvh::node.
 		 */
-		template<box_t__and__tri_t, typename bvh> class binary_bvh : public bvh {
+		template<box_t__and__tri_t, typename bvh = binary_bvh_gpu_only<forward_traits>> class binary_bvh : public bvh {
 			public:
 				declare_traits_types;
 				typedef bvh bvh_t;
@@ -59,6 +68,8 @@ namespace rta {
 				virtual void free_canonical_triangles(tri_t *data) {
 					delete [] data;
 				}
+				tri_t* triangle_ptr() { return triangle_data.data; }
+				int triangle_count() { return triangle_data.n; }
 		};
 			
 		template<box_t__and__tri_t>

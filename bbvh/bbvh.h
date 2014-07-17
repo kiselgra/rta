@@ -9,10 +9,10 @@
 
 namespace rta {
 
-template<box_t__and__tri_t> class binary_bvh : public basic_acceleration_structure<forward_traits> {
+template<box_t__and__tri_t, typename node = bbvh_node<_box_t>> class binary_bvh : public basic_acceleration_structure<forward_traits> {
 	public:
 		declare_traits_types;
-		typedef bbvh_node<box_t> node_t;
+		typedef node node_t;
 		typedef typename node_t::link_t link_t;
 
 		std::vector<node_t> nodes;

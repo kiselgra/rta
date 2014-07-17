@@ -17,11 +17,13 @@ using namespace rta;
 struct Cmdline {
 	enum bvh_t { median, lbvh };
 	enum bvh_trav_t { cis, dis };
+	enum bvh_layout_t { layout_cpu, layout_2f4 };
 	bvh_t bvh_build;
 	bvh_trav_t bvh_trav;
+	bvh_layout_t layout;
 	bool verbose;
 
-	Cmdline() : bvh_build(median), bvh_trav(cis), verbose(false) {}
+	Cmdline() : bvh_build(median), bvh_trav(cis), verbose(false), layout(layout_cpu) {}
 };
 static Cmdline cmdline;
 
@@ -38,6 +40,7 @@ static struct argp_option options[] =
 	// --[opt]		short/const		arg-descr		?		option-descr
 	{ "verbose", 'v', 0,          0, "Be verbose." },
 	{ "bvh", 'b', "<median|lbvh>",          0, "Which kind of bvh to use. Default: median." },
+	{ "layout", 'l', "<cpu|2f4>",          0, "Which bvh layout to choose: Standard cpu tracing layout or node encoded in 2 float4. Default: cpu." },
 // 	{ "bvh-trav", BT, "cis|dis",  0, "Intersection mode of the bvh traversal: direct-is, child-is. Default: cis." },
 	{ 0 }
 };
@@ -78,6 +81,10 @@ static error_t parse_options(int key, char *arg, argp_state *state)
 				break;
 	case 'b':	
 	            if (sarg == "lbvh") cmdline.bvh_build = Cmdline::lbvh;
+				break;
+
+	case 'l':
+				if (sarg == "2f4") cmdline.layout = Cmdline::layout_2f4;
 				break;
 
 	case ARGP_KEY_ARG:		// process arguments. 
@@ -135,35 +142,53 @@ extern "C" {
 		typedef bbvh_constructor_using_median<cuda_bvh_t> std_bbvh_ctor_t;
 		typedef cuda::lbvh_constructor<box_t, tri_t, cuda::binary_lbvh<box_t, tri_t, cuda::binary_bvh<box_t, tri_t, rta::binary_bvh<box_t, tri_t>>>> lbvh_ctor_t;
 		
+		acceleration_structure *as = 0;
 		acceleration_structure_constructor *base_ctor = 0;
-		cuda_bvh_t *bvh = 0;
+		basic_raytracer<box_t, cuda::simple_triangle> *rt = 0;
 
-		if (cmdline.bvh_build == Cmdline::median) {
-			std_bbvh_ctor_t *ctor = new std_bbvh_ctor_t(std_bbvh_ctor_t::spatial_median);
-			cuda_ftl ftl(triangle_lists);
-			bvh = ctor->build(&ftl);
-			base_ctor = ctor;
+		if (cmdline.layout == Cmdline::layout_cpu) {
+			cuda_bvh_t *bvh = 0;
+			if (cmdline.bvh_build == Cmdline::median) {
+				std_bbvh_ctor_t *ctor = new std_bbvh_ctor_t(std_bbvh_ctor_t::spatial_median);
+				cuda_ftl ftl(triangle_lists);
+				bvh = ctor->build(&ftl);
+				base_ctor = ctor;
+			}
+			else {
+				cuda_ftl tmp_ftl(triangle_lists);
+				cuda_ftl ftl;
+				cudaMalloc((void**)&ftl.triangle, sizeof(cuda::simple_triangle)*tmp_ftl.triangles);
+				cudaMemcpy(ftl.triangle, tmp_ftl.triangle, sizeof(cuda::simple_triangle)*tmp_ftl.triangles, cudaMemcpyHostToDevice);
+				ftl.triangles = tmp_ftl.triangles;
+				lbvh_ctor_t *ctor = new lbvh_ctor_t;
+				bvh = ctor->build(&ftl);
+				base_ctor = ctor;
+			}
+			as = bvh;
+			rt = new cuda::bbvh_gpu_dis_tracer<box_t, cuda::simple_triangle, cuda_bvh_t>(0, bvh, 0);
 		}
 		else {
-			cuda_ftl tmp_ftl(triangle_lists);
-			cuda_ftl ftl;
-			cudaMalloc((void**)&ftl.triangle, sizeof(cuda::simple_triangle)*tmp_ftl.triangles);
-			cudaMemcpy(ftl.triangle, tmp_ftl.triangle, sizeof(cuda::simple_triangle)*tmp_ftl.triangles, cudaMemcpyHostToDevice);
-			ftl.triangles = tmp_ftl.triangles;
-			lbvh_ctor_t *ctor = new lbvh_ctor_t;
-			bvh = ctor->build(&ftl);
-			base_ctor = ctor;
+			if (cmdline.bvh_build == Cmdline::median) {
+				// the bvh cannot be gpu only, as the ctor builds it on the host.
+				typedef cuda::binary_bvh<box_t, tri_t, binary_bvh<box_t, tri_t, cuda::bbvh_node_float4<box_t>>> bvh_t;
+				typedef bbvh_constructor_using_median<bvh_t> ctor_t;
+				ctor_t *ctor = new ctor_t(ctor_t::spatial_median);
+				cuda_ftl ftl(triangle_lists);
+				bvh_t *bvh = ctor->build(&ftl);;
+				base_ctor = ctor;
+				as = bvh;
+// 				rt = TODO;
+				cout << "Todo: write gpu raytracer according to jerrys cis. sep tracer class, sep kernels." << endl;
+				exit(0);
+			}
 		}
 
-
-		basic_raytracer<box_t, cuda::simple_triangle> *rt = 0;
 // 		if (cmdline.bvh_trav == Cmdline::cis)
 // 			rt = new bbvh_child_is_tracer<box_t, tri_t, binary_bvh<box_t, tri_t>>(0, bvh, 0);
 // 		else
-			rt = new cuda::bbvh_gpu_dis_tracer<box_t, cuda::simple_triangle, cuda_bvh_t>(0, bvh, 0);
 
 		rt_set set;
-		set.as = bvh;
+		set.as = as;
 		set.ctor = base_ctor;
 		set.rt = rt;
 // 		set.rgen = new cuda::raygen_with_buffer<cam_ray_generator_shirley>(w, h);

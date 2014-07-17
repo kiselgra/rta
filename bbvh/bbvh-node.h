@@ -29,14 +29,14 @@ namespace rta {
 		heterogenous void split_axis(uint a) {} //!< not implemented for default bbvh nodes.
 		heterogenous uint split_axis() { return 0; }
 		heterogenous void volume(box_t &b) { box = b; }
-		//! those should not be used in device code! just load the box. this is just to be able to output a variety of bounding boxes for mamo data.
-		heterogenous float box_max_x() { return box.max.x; }
-		heterogenous float box_max_y() { return box.max.y; }
-		heterogenous float box_max_z() { return box.max.z; }
+		//! \attention those should not be used in device code! just load the box. this is just to be able to output a variety of bounding boxes for mamo data.
 		heterogenous float box_min_x() { return box.min.x; }
 		heterogenous float box_min_y() { return box.min.y; }
 		heterogenous float box_min_z() { return box.min.z; }
-		//! this might be expensive for other node types.
+		heterogenous float box_max_x() { return box.max.x; }
+		heterogenous float box_max_y() { return box.max.y; }
+		heterogenous float box_max_z() { return box.max.z; }
+		//! \attention this might be expensive for other node types.
 		heterogenous const box_t& gen_box() { return box; }
 	};
 }
