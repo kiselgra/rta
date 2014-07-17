@@ -46,6 +46,9 @@ todo:
 using namespace std;
 
 namespace rta {
+	static rta::cuda_ftl cuda_host_ftl;
+	static basic_flat_triangle_list<simple_triangle> the_ftl;
+
 
 	int res_x, res_y; // gets parsed from command line
 
@@ -323,12 +326,12 @@ template<box_t__and__tri_t> class directional_analysis_pass {
 			// shader = dynamic_cast<lighting_shader_with_material<forward_traits>*>(set.bouncer);
 			shader = dynamic_cast<lighting_collector<forward_traits>*>(set.bouncer);
 			basic_acceleration_structure<forward_traits> *as = dynamic_cast<basic_acceleration_structure<forward_traits>*>(the_set.as);
-			shader->triangle_ptr(as->triangle_ptr());
+			shader->triangle_ptr(as->canonical_triangle_ptr());	// this is not freed as of yet.
 		}
 		//! supposes that the tracer's accelstruct has been set up, already
 		void tracer(raytracer *tr) { 
 			auto *tracer = dynamic_cast<rta::basic_raytracer<box_t, tri_t>*>(tr);
-			tri_t *tris = tracer->acceleration_structure()->triangle_ptr();
+			tri_t *tris = tracer->acceleration_structure()->canonical_triangle_ptr();
 			int n = tracer->acceleration_structure()->triangle_count();
 			bb = rta::compute_aabb<box_t>(tris, 0, n);
 			vec3f diff;
@@ -338,6 +341,7 @@ template<box_t__and__tri_t> class directional_analysis_pass {
 			bb_diam = length_of_vec3f(&diff);
 			mul_vec3f_by_scalar(&diff, &diff, 0.5);
 			add_components_vec3f(&obj_center, &min_bb, &diff);
+			tracer->acceleration_structure()->free_canonical_triangles(tris);
 		}
 		rta::bouncer* bouncer() { 
 			return the_set.bouncer; 
@@ -377,6 +381,14 @@ template<box_t__and__tri_t> class directional_analysis_pass {
 				if (cmdline.mamo_output) {
 					ostringstream oss; oss << cmdline.mamo_prefix << setw(3) << setfill('0') << right << i << ".ray";
 					crgs->dump_rays(oss.str());
+				}
+
+				if (cmdline.rebuild_bvh) {
+					basic_acceleration_structure<cuda::simple_aabb, cuda::simple_triangle> 
+						*bas = the_set.template basic_ctor<cuda::simple_aabb, cuda::simple_triangle>()->build(&cuda_host_ftl);
+					delete the_set.as;
+					the_set.as = bas;
+					the_set.template basic_rt<cuda::simple_aabb, cuda::simple_triangle>()->acceleration_structure(bas);
 				}
 
 				the_set.rt->trace();
@@ -497,6 +509,14 @@ int main(int argc, char **argv) {
 
 	cout << "loading object " << cmdline.model << endl;
 	auto triangle_lists = load_objfile_to_flat_tri_list(cmdline.model.c_str());
+	
+	if (cmdline.rebuild_bvh) {
+		the_ftl = triangle_lists;
+// 		cudaMalloc((void**)&cuda_ftl.triangle, sizeof(cuda::simple_triangle)*the_ftl.triangles);
+// 		cudaMemcpy(cuda_ftl.triangle, the_ftl.triangle, sizeof(cuda::simple_triangle)*the_ftl.triangles, cudaMemcpyHostToDevice);
+		cuda_host_ftl = cuda_ftl(triangle_lists);
+// 		cuda_host_ftl.triangles = the_ftl.triangles;
+	}
 	
 	if (ocl::using_ocl()) {
 		res_x = ocl::pow2roundup(res_x);

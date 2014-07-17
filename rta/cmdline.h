@@ -35,7 +35,9 @@ struct Cmdline
 
 	int res_x, res_y;
 
-	Cmdline() : verbose(false), positional_series(false), axial_series(false), sphere_series(false), png_prefix("/tmp/rta-"), produce_images(true), binary_intersection_debug(false), res_x(800), res_y(800), distance_factor(1.5), png_output(true), mamo_output(false)
+	bool rebuild_bvh;
+
+	Cmdline() : verbose(false), positional_series(false), axial_series(false), sphere_series(false), png_prefix("/tmp/rta-"), produce_images(true), binary_intersection_debug(false), res_x(800), res_y(800), distance_factor(1.5), png_output(true), mamo_output(false), rebuild_bvh(false)
 	{
 		pos = { 0,0,0 };
 		dir = { 0,0,-1 };

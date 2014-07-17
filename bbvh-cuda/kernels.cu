@@ -63,14 +63,6 @@ namespace rta {
 			}
 		}
 		
-		#define checked_cuda(ans) { gpu_assert((ans), __FILE__, __LINE__); }
-		inline void gpu_assert(cudaError_t code, char *file, int line, bool abort=true) {
-			if (code != cudaSuccess) {
-				fprintf(stderr,"GPUassert: %s %s %d\n", cudaGetErrorString(code), file, line);
-				if (abort) exit(code);
-			}
-		}
-
 
 		void trace_dis(simple_triangle *triangles, int n, bbvh::node<simple_aabb> *nodes, vec3f *ray_orig, vec3f *ray_dir, float *max_t, 
 		               int w, int h, triangle_intersection<simple_triangle> *is) {

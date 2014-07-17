@@ -326,7 +326,7 @@ template<box_t__and__tri_t, typename bvh_t_> class bbvh_tracer : public cpu_rayt
 	public:
 		bbvh_tracer(ray_generator *gen, bbvh_t *bvh, class bouncer *b) : cpu_raytracer<forward_traits>(gen, b, bvh), bvh(bvh) {
 		}
-		virtual void basic_acceleration_structure(rta::basic_acceleration_structure<forward_traits> *as) {
+		virtual void acceleration_structure(rta::basic_acceleration_structure<forward_traits> *as) {
 			bvh = dynamic_cast<bvh_t_*>(as);
 			basic_raytracer<forward_traits>::acceleration_structure(as);
 		}

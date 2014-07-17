@@ -1,7 +1,7 @@
 pkglib_LTLIBRARIES = bbvh-cuda.la
 plugin_name = bbvh-cuda.so
 
-bbvh_cuda_la_SOURCES = main.cpp kernels.cu bbvh-cuda.h bbvh-cuda-node.h
+bbvh_cuda_la_SOURCES = main.cpp kernels.cu bbvh-cuda.h bbvh-cuda-node.h lbvh.h lbvh-kernels.cu
 
 bbvh_cuda_la_CPPFLAGS = -D PACKAGE=\"$(PACKAGE)\" -D VERSION=\"$(VERSION)\" -I$(top_builddir)
 bbvh_cuda_la_CXXFLAGS = -Wreturn-type -fopenmp
@@ -16,7 +16,7 @@ plugin = $(local_plugin_dir)/$(plugin_name)
 all-local: $(plugin)
 
 .cu.lo:
-	$(LIBTOOL) --tag=CXX --mode=compile $(top_srcdir)/nvcc-wrapper $(DEFAULT_INCLUDES) $(CPPFLAGS) $(CXXFLAGS) $(exampleplugin_la_CPPFLAGS) -c -o $@ $< -v -lineinfo
+	$(LIBTOOL) --tag=CXX --mode=compile $(top_srcdir)/nvcc-wrapper $(DEFAULT_INCLUDES) $(CPPFLAGS) $(CXXFLAGS) $(exampleplugin_la_CPPFLAGS) -c -o $@ $< -v -arch=sm_20 -lineinfo
 
 $(plugin): $(pkglib_LTLIBRARIES)
 	cp .libs/$(plugin_name) $@

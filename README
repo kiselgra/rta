@@ -1,0 +1,11 @@
+
+* WHAT TO LOOK OUT FOR WHEN DEFINING NEW TRACERS / ACCEL_STRUCTS
+
+- usually tracers hold a pointer to the correctly typed acceleration structure.
+  if you update the structure you should call
+  	rt->acceleration_structure()
+  on the trace.
+  furthermore, you should take care to override this virtual function in your
+  custom tracer to update your pointer.
+
+

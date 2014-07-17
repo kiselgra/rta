@@ -66,6 +66,16 @@ namespace rta {
 			};
 		}
 		//! @}
+		
+		#ifndef checked_cuda
+		#define checked_cuda(ans) { rta::cuda::gpu_assert((ans), (const char*)__FILE__, __LINE__); }
+		inline void gpu_assert(cudaError_t code, const char *file, int line, bool abort=true) {
+			if (code != cudaSuccess) {
+				fprintf(stderr,(char*)"GPUassert: %s %s %d\n", cudaGetErrorString(code), file, line);
+				if (abort) exit(code);
+			}
+		}
+		#endif
 
 		///// rta interface
 		
@@ -158,6 +168,11 @@ namespace rta {
 					n = elems;
 					cudaMalloc((void**)&data, n*sizeof(T));
 					cudaMemcpy(data, in, n*sizeof(T), cudaMemcpyHostToDevice);
+				}
+				T* download() {
+					T *t = new T[n];
+					cudaMemcpy(t, data, sizeof(T)*n, cudaMemcpyDeviceToHost);
+					return t;
 				}
 				~device_array() {
 					cudaFree(data);

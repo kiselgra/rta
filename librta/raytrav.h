@@ -62,6 +62,17 @@ template<box_t__and__tri_t> class basic_acceleration_structure : public accelera
 		//! The length of the array returned by \ref triangle_ptr.
 		virtual int triangle_count() = 0;
 
+		/*! Returns the same s \ref triangle_ptr, but where the data can be accessed in the `canonical' way, 
+		 * 	i.e. on the cpu side. This is used to be able to shade and compute sphs data for gpu acceleration
+		 * 	structures.
+		 * 	\attention On gpu or elaborate triangle setup schemes, this may involve copying all the triangle data.
+		 */
+		virtual tri_t* canonical_triangle_ptr() { return triangle_ptr(); }
+		/*! Always call this on the triangle pointer obtained via \ref canonical_triangle_ptr.
+		 *  Data will only be freed if it was allocated by that funciton.
+		 */
+		virtual void free_canonical_triangles(tri_t *data) {}
+
 		//! \attention this is a temporary precaution to catch old code. will be deleted in some time.
 		virtual void please_derive_from_basic_acceleration_structure() {}
 };
