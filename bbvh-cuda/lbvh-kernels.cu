@@ -361,7 +361,7 @@ namespace rta {
 
 
 
-		void setupCudaMemory(uint** indices, uint** codes,node_t** nodes, uint** parents,cuda::simple_aabb** boxes, float3** centers, cuda::simple_triangle **t_out, int n){
+		void setupCudaMemory(uint **indices, uint **codes, node_t **nodes, uint **parents, cuda::simple_aabb **boxes, float3 **centers, cuda::simple_triangle **t_out, int n){
 			int size = n*sizeof(uint);
 			checked_cuda(cudaMalloc((void **)indices, size));
 			checked_cuda(cudaMalloc((void **)codes, size));

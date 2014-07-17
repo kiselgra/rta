@@ -40,12 +40,17 @@ namespace rta {
 
 			protected:
 				tri_t* triangles;
-				int tri_count;
+				int tri_count, last_tri_count;
 				node_t *nodes;
-				uint current_node;
 				uint* parents;
-				std::vector<uint> indices;
 				bvh_t *bvh;
+				uint *d_indices;
+				uint *d_morton_codes;
+				node_t *d_nodes;
+				uint *d_parents;
+				tri_t *d_triangles, *d_triangles_out;
+				box_t *d_boxes;
+				vec3_t *d_centers;
 
 				//forwarding cuda functions
 				inline float calculateMortonCodesCUDA2(vec3_t *centers,box_t &voxel_bounds, uint* d_codes,uint *d_indices,int n){
@@ -91,6 +96,35 @@ namespace rta {
 			public:
 
 				lbvh_constructor() {
+					triangles = 0;
+					last_tri_count = 0;
+					tri_count = 0;
+					nodes = 0;
+					parents = 0;
+					bvh = 0;
+					d_indices = 0;
+					d_morton_codes = 0;
+					d_nodes = 0;
+					d_parents = 0;
+					d_triangles = 0; 
+					d_triangles_out = 0;
+					d_boxes = 0;
+					d_centers = 0;
+				}
+				
+				void free_data() {
+					checked_cuda(cudaFree(d_indices));        d_indices = 0;
+					checked_cuda(cudaFree(d_morton_codes));   d_morton_codes = 0;
+					checked_cuda(cudaFree(d_nodes));          d_nodes = 0;
+					checked_cuda(cudaFree(d_parents));        d_parents = 0;
+					checked_cuda(cudaFree(d_boxes));          d_boxes = 0;
+					checked_cuda(cudaFree(d_centers));        d_centers = 0;
+					// these are not the triangles handed in, but our copy of em.
+					checked_cuda(cudaFree(d_triangles));	  d_triangles = 0;
+				}
+
+				~lbvh_constructor() {
+					free_data();
 				}
 
 				bvh_t* build(typename bvh_t::tri_t::input_flat_triangle_list_t *tris) {
@@ -103,15 +137,13 @@ namespace rta {
 					std::cout<<"Triangles: "<<this->tri_count<<std::endl;
 					std::cout<<"Building BVH on GPU..."<<std::endl;
 					//device pointers
-					uint *d_indices;
-					uint *d_morton_codes;
-					node_t *d_nodes;
-					uint *d_parents;
-					tri_t *d_triangles, *d_triangles_out;
-					box_t *d_boxes;
-					vec3_t *d_centers;
-// 					void setupCudaMemory(uint** indices, uint** codes,node_t** d_nodes,uint** d_parents,box_t** boxes,vec3_t** centers, int n);
-					setupCudaMemory(&d_indices,&d_morton_codes,&d_nodes,&d_parents,&d_boxes,(float3**)&d_centers,&d_triangles,this->tri_count);
+					if (d_indices == 0 || last_tri_count != tri_count) {
+						std::cout << "- - - - - - - - - - - - - - - - - - - - ALLOC" << std::endl;
+						if (d_indices != 0)
+							free_data();
+						setupCudaMemory(&d_indices, &d_morton_codes, &d_nodes, &d_parents, &d_boxes, (float3**)&d_centers, &d_triangles, this->tri_count);
+					}
+					last_tri_count = tri_count;
 
 
 					this->bvh = new bvh_t;

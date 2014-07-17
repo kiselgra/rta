@@ -163,7 +163,8 @@ namespace rta {
 			public:
 				T *data;
 				uint n;
-				device_array() : data(0), n(0) {}
+				bool owns_memory;
+				device_array() : data(0), n(0), owns_memory(true) {}
 				void upload(T *in, uint elems) {
 					n = elems;
 					cudaMalloc((void**)&data, n*sizeof(T));
@@ -175,7 +176,8 @@ namespace rta {
 					return t;
 				}
 				~device_array() {
-					cudaFree(data);
+					if (owns_memory)
+						cudaFree(data);
 					data = 0;
 					n = 0;
 				}
