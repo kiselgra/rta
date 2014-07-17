@@ -131,9 +131,9 @@ extern "C" {
 	rt_set create_rt_set(basic_flat_triangle_list<simple_triangle> &triangle_lists, int w, int h) {
 		typedef cuda::simple_triangle tri_t;
 		typedef cuda::simple_aabb box_t;
-		typedef cuda::binary_bvh<box_t, tri_t> cuda_bvh_t;
+		typedef cuda::binary_bvh<box_t, tri_t, rta::binary_bvh<box_t, tri_t>> cuda_bvh_t;
 		typedef bbvh_constructor_using_median<cuda_bvh_t> std_bbvh_ctor_t;
-		typedef cuda::lbvh_constructor<box_t, tri_t> lbvh_ctor_t;
+		typedef cuda::lbvh_constructor<box_t, tri_t, cuda::binary_lbvh<box_t, tri_t, cuda::binary_bvh<box_t, tri_t, rta::binary_bvh<box_t, tri_t>>>> lbvh_ctor_t;
 		
 		acceleration_structure_constructor *base_ctor = 0;
 		cuda_bvh_t *bvh = 0;

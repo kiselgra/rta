@@ -3,6 +3,7 @@
 
 #include "librta/librta.h"
 #include "librta/wall-timer.h"
+#include "bbvh-node.h"
 
 #include <ostream>
 
@@ -11,34 +12,14 @@ namespace rta {
 template<box_t__and__tri_t> class binary_bvh : public basic_acceleration_structure<forward_traits> {
 	public:
 		declare_traits_types;
-		typedef uint32_t link_t;
-		struct node {
-			link_t type_left_elems; // contains: bit0=inner/leaf >>1=(left-child/tris-in-leaf)
-			link_t right_tris;      // contains: right-child/link-to-tris
-			box_t box;
-			bool inner()         { return (type_left_elems&0x01)==1; }
-			void make_inner()    { type_left_elems |= 0x01; }
-			void make_leaf()     { type_left_elems &= (~1); }
-			void left(link_t n)  { type_left_elems = ((type_left_elems&(~1)) | (n<<1)); }  //!< erases leaf/inner bit.
-			link_t left()        { return type_left_elems>>1; }
-			void elems(uint n)   { type_left_elems = ((type_left_elems&(~1)) | (n<<1)); }
-			uint elems()         { return type_left_elems>>1; }
-			//! link to the right.
-			void right(link_t n) { right_tris = n; }
-			link_t right()       { return right_tris; }
-			//! an index into an array of triangles holding elems() successive triangles enclosed by this node.
-			void tris(link_t n)  { right_tris = n; }
-			uint tris()          { return right_tris; }
-			void split_axis(uint a) {} //!< not implemented for default bbvh nodes.
-			uint split_axis() { return 0; }
-		};
-		typedef node node_t;
+		typedef bbvh_node<box_t> node_t;
+		typedef typename node_t::link_t link_t;
 
-		std::vector<node> nodes;
+		std::vector<node_t> nodes;
 		std::vector<tri_t> triangles;
 
 		//! take the nodes stored in the array. \attention does so destructively!
-		virtual void take_node_array(std::vector<node> &n) {
+		virtual void take_node_array(std::vector<node_t> &n) {
 			nodes.swap(n);
 		}
 		
@@ -94,7 +75,7 @@ template<box_t__and__tri_t> class binary_bvh_with_split_axis : public basic_acce
 	public:
 		declare_traits_types;
 		typedef uint32_t link_t;
-		struct node : public binary_bvh<forward_traits>::node {
+		struct node : public binary_bvh<forward_traits>::node_t {
 			uint axis;
 			void split_axis(uint a) { axis = a; }
 			uint split_axis()       { return axis; }
@@ -130,7 +111,7 @@ template<typename bvh_t_, typename bias_t = bbvh_no_bias>
 class bbvh_constructor_using_median : public basic_acceleration_structure_constructor<typename bvh_t_::box_t, typename bvh_t_::tri_t> {
 	public:
 		typedef bvh_t_ bvh_t;
-		typedef typename bvh_t::node node_t;
+		typedef typename bvh_t::node_t node_t;
 		typedef typename bvh_t::box_t box_t;
 		typedef typename bvh_t::tri_t tri_t;
 		typedef typename bvh_t::link_t link_t;

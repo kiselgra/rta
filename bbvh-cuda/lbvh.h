@@ -7,13 +7,14 @@ namespace rta {
 	namespace cuda {
 
 // 		void setupCudaMemory(uint** indices, uint** codes,cuda::bbvh::node<cuda::simple_aabb>** nodes, uint** parents,cuda::simple_aabb** boxes, float3** centers,int n);
-		void setupCudaMemory(uint** indices, uint** codes,cuda::bbvh::node<cuda::simple_aabb>** nodes, uint** parents,cuda::simple_aabb** boxes, float3** centers, cuda::simple_triangle **t_out, int n);
+		void setupCudaMemory(uint** indices, uint** codes,bbvh_node<cuda::simple_aabb>** nodes, uint** parents,cuda::simple_aabb** boxes, float3** centers, cuda::simple_triangle **t_out, int n);
 
-		template<box_t__and__tri_t> class binary_lbvh : public cuda::binary_bvh<forward_traits> {
+		template<box_t__and__tri_t, typename bvh_t_> class binary_lbvh : public cuda::binary_bvh<forward_traits, bvh_t_> {
 			public:
 				declare_traits_types;
+				typedef bvh_t_ bvh_t;
 				typedef uint32_t link_t;
-				typedef typename rta::cuda::bbvh::node<box_t> node_t;
+				typedef typename rta::bbvh_node<box_t> node_t;
 
 				uint *index_buffer;
 				uint index_buffer_length;
@@ -31,10 +32,19 @@ namespace rta {
 				virtual std::string identification() { return "lbvh based on the ba-sidaruck"; }
 		};
 
-		template<box_t__and__tri_t> class lbvh_constructor : public basic_acceleration_structure_constructor<forward_traits> {
+		/*! \brief Construct a LBVH (see ``Fast BVH Construction on GPUs'' by Lauterbach et al.)
+		 *         as described in ``Maximizing Parallelism in the Construction of BVHs, Octrees, and k-d Trees'' by Karras.
+		 *         The Implementation is adapted from sidaruck's bachelor thesis.
+		 *
+		 *  The bvh_t template parameter *must* be an instantiation of the \ref binary_lbvh types.
+		 *  To be less confusing we chose not to take the base type of the corresponding binary_lbvh type.
+		 *  
+		 *  \attention Cannot handle triangle list sizes of 0, atm.
+		 */
+		template<box_t__and__tri_t, typename bvh_t_> class lbvh_constructor : public basic_acceleration_structure_constructor<forward_traits> {
 			public:
 				declare_traits_types;
-				typedef binary_lbvh<forward_traits> bvh_t;
+				typedef bvh_t_ bvh_t;
 				typedef typename bvh_t::node_t node_t;
 				typedef typename bvh_t::link_t link_t;
 
