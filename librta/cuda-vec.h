@@ -8,6 +8,9 @@
 #include <vector_types.h>
 #include <math.h>
 
+// __host__ inline int __float_as_int(float f) { return *reinterpret_cast<int*>(&f); }
+// __host__ inline float __int_as_float(int i) { return *reinterpret_cast<float*>(&i); }
+
 namespace rta {
 	struct cuda_ftl;
 

@@ -38,8 +38,8 @@ template<box_t__and__tri_t> class binary_bvh : public basic_acceleration_structu
 			out << "bvh\n" << nodes.size() << "\n";
 			for (int i = 0; i < nodes.size(); ++i) {
 				out << i << " " << (nodes[i].inner() ? "I " : "L ")
-					<< nodes[i].box.min.x << " " << nodes[i].box.min.y << " " << nodes[i].box.min.z << " "
-					<< nodes[i].box.max.x << " " << nodes[i].box.max.y << " " << nodes[i].box.max.z << " ";
+					<< nodes[i].box_min_x() << " " << nodes[i].box_min_y() << " " << nodes[i].box_min_z() << " "
+					<< nodes[i].box_max_x() << " " << nodes[i].box_max_y() << " " << nodes[i].box_max_z() << " ";
 				if (nodes[i].inner())
 					out << nodes[i].split_axis() << " " << nodes[i].left() << " " << nodes[i].right()  << "\n"; 
 				else {
@@ -146,12 +146,14 @@ class bbvh_constructor_using_median : public basic_acceleration_structure_constr
 			uint id = nodes.size();
 			nodes.push_back(node_t());
 			node_t *n = &nodes[id];
-			n->box = compute_aabb<box_t>(tris, begin, end);
+			box_t box;
+			box = compute_aabb<box_t>(tris, begin, end);
+			n->volume(box);
 
 			uint elems = end-begin;
 			if (elems > max_tris_per_node) 
 			{
-				vec3_t dists; sub_components_vec3f(&dists, &n->box.max, &n->box.min);
+				vec3_t dists; sub_components_vec3f(&dists, &box.max, &box.min);
 				if (dists.x > dists.y)
 					if (dists.x > dists.z)  { n->split_axis(X); qsort(tris+begin, end-begin, sizeof(tri_t), (qsort_pred_t)tri_sort_x);	}
 					else                    { n->split_axis(Z); qsort(tris+begin, end-begin, sizeof(tri_t), (qsort_pred_t)tri_sort_z);	}
@@ -205,12 +207,13 @@ class bbvh_constructor_using_median : public basic_acceleration_structure_constr
 			uint id = nodes.size();
 			nodes.push_back(node_t());
 			node_t *n = &nodes[id];
-			n->box = compute_aabb<box_t>(tris, begin, end);
+			box_t box = compute_aabb<box_t>(tris, begin, end);
+			n->volume(box);
 
 			uint elems = end-begin;
 			if (elems > max_tris_per_node) 
 			{
-				vec3_t dists; sub_components_vec3f(&dists, &n->box.max, &n->box.min);
+				vec3_t dists; sub_components_vec3f(&dists, &box.max, &box.min);
 				const float_t& (*comp_n)(const vec3_t&) = x_comp;
 				if (dists.x > dists.y)
 					if (dists.x > dists.z)  { n->split_axis(X); qsort(tris+begin, end-begin, sizeof(tri_t), (qsort_pred_t)tri_sort_x); comp_n=x_comp; }

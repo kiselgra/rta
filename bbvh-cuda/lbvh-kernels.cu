@@ -39,7 +39,7 @@ using namespace std;
 namespace rta {
 	namespace cuda {
 
-		typedef cuda::bbvh::node<cuda::simple_aabb> node_t;
+		typedef bbvh_node<cuda::simple_aabb> node_t;
 
 		namespace k {
 
@@ -271,7 +271,7 @@ namespace rta {
 					//build leaf aabb
 					node_t &node = nodes[current];
 					box = boxes[indices[node.tris()]];
-					node.box = box;
+					node.volume(box);
 				}
 
 				cuda::simple_aabb box2;
@@ -289,9 +289,9 @@ namespace rta {
 
 					//load the correct box out of memory
 					if(nodes[current].left()==last){
-						box2 = nodes[nodes[current].right()].box;
+						box2 = nodes[nodes[current].right()].gen_box();
 					}else{
-						box2 = nodes[nodes[current].left()].box;
+						box2 = nodes[nodes[current].left()].gen_box();
 					}
 
 					bool merge = false;
@@ -308,7 +308,7 @@ namespace rta {
 					box.max.y = MAX(box.max.y,box2.max.y);
 					box.max.z = MAX(box.max.z,box2.max.z);
 
-					nodes[current].box = box;
+					nodes[current].volume(box);
 
 					if(merge){
 						if(!nodes[nodes[current].right()].inner() && !nodes[nodes[current].left()].inner()){
