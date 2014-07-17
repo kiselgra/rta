@@ -27,20 +27,23 @@ namespace rta {
 
 				virtual std::string identification() { return "cuda front to " + parent_t::identification() + " (in ::rta)"; }
 
-				//! \attention copies the pointer, not the data pointed to.
+				//! \attention copies the pointer, not the data pointed to. This means you have to take care to free the data.
 				virtual void take_node_array(node_t *array, uint n) {
 					node_data.data = (bbvh::node<box_t>*)array;
 					node_data.n = n;
+					node_data.owns_memory = false;
 				}
-				//! \attention copies the pointer, not the data pointed to.
+				//! \attention copies the pointer, not the data pointed to. This means you have to take care to free the data.
 				virtual void take_node_array(bbvh::node<box_t> *array, uint n) {
 					node_data.data = array;
 					node_data.n = n;
+					node_data.owns_memory = false;
 				}
-				//! \attention copies the pointer, not the data pointed to.
+				//! \attention copies the pointer, not the data pointed to. This means you have to take care to free the data.
 				virtual void take_triangle_array(tri_t *array, uint n) {
 					triangle_data.data = array;
 					triangle_data.n = n;
+					triangle_data.owns_memory = false;
 				}
 				//! \attention triggers an upload of the data to the gpu.
 				virtual void take_node_array(std::vector<node_t> &n) {
