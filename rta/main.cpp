@@ -47,6 +47,7 @@ using namespace std;
 
 namespace rta {
 	static rta::cuda_ftl cuda_host_ftl;
+	static rta::cuda_ftl cuda_device_ftl;
 	static basic_flat_triangle_list<simple_triangle> the_ftl;
 
 
@@ -384,8 +385,13 @@ template<box_t__and__tri_t> class directional_analysis_pass {
 				}
 
 				if (cmdline.rebuild_bvh) {
-					basic_acceleration_structure<cuda::simple_aabb, cuda::simple_triangle> 
-						*bas = the_set.template basic_ctor<cuda::simple_aabb, cuda::simple_triangle>()->build(&cuda_host_ftl);
+					basic_acceleration_structure<cuda::simple_aabb, cuda::simple_triangle> *bas;
+					basic_acceleration_structure_constructor<cuda::simple_aabb, cuda::simple_triangle> 
+						*ctor = the_set.template basic_ctor<cuda::simple_aabb, cuda::simple_triangle>();
+					if (ctor->expects_host_triangles())
+						bas = ctor->build(&cuda_host_ftl);
+					else
+						bas = ctor->build(&cuda_device_ftl);
 					delete the_set.as;
 					the_set.as = bas;
 					the_set.template basic_rt<cuda::simple_aabb, cuda::simple_triangle>()->acceleration_structure(bas);
@@ -512,10 +518,10 @@ int main(int argc, char **argv) {
 	
 	if (cmdline.rebuild_bvh) {
 		the_ftl = triangle_lists;
-// 		cudaMalloc((void**)&cuda_ftl.triangle, sizeof(cuda::simple_triangle)*the_ftl.triangles);
-// 		cudaMemcpy(cuda_ftl.triangle, the_ftl.triangle, sizeof(cuda::simple_triangle)*the_ftl.triangles, cudaMemcpyHostToDevice);
 		cuda_host_ftl = cuda_ftl(triangle_lists);
-// 		cuda_host_ftl.triangles = the_ftl.triangles;
+		cudaMalloc((void**)&cuda_device_ftl.triangle, sizeof(cuda::simple_triangle)*the_ftl.triangles);
+		cudaMemcpy(cuda_device_ftl.triangle, the_ftl.triangle, sizeof(cuda::simple_triangle)*the_ftl.triangles, cudaMemcpyHostToDevice);
+		cuda_device_ftl.triangles = the_ftl.triangles;
 	}
 	
 	if (ocl::using_ocl()) {
