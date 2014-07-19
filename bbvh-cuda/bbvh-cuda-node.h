@@ -8,7 +8,7 @@
 #include "bbvh/bbvh-node.h"
 #include "librta/cuda-vec.h"
 
-#ifndef __CUDACC__
+// #ifndef __CUDACC__
 namespace rta {
 	namespace cuda {
 		namespace internalstuff {
@@ -19,17 +19,40 @@ namespace rta {
 		}
 	}
 }
-inline int __float_as_int(float f) {
+#ifndef CUDA_ARCH
+__host__ inline int __float_as_int(float f) {
 	rta::cuda::internalstuff::reinterpret_fi uni;
 	uni.f = f;
 	return uni.i;
 }
-inline float __int_as_float(int i) {
+__host__ inline float __int_as_float(int i) {
 	rta::cuda::internalstuff::reinterpret_fi uni;
 	uni.i = i;
 	return uni.f;
 }
+/*
+__host__ inline int ii_float_as_int(float f) {
+	rta::cuda::internalstuff::reinterpret_fi uni;
+	uni.f = f;
+	return uni.i;
+}
+__host__ inline float ii_int_as_float(int i) {
+	rta::cuda::internalstuff::reinterpret_fi uni;
+	uni.i = i;
+	return uni.f;
+}
+__host__ inline float int_as_float(int i) {
+	return ii_int_as_float(i);
+}
+__host__ inline int float_as_int(float f) {
+	return ii_float_as_int(f);
+}
+#else
+__device__ inline float int_as_float(int i) { return __int_as_float(i); }
+__device__ inline int float_as_int(float f) { return __float_as_int(f); }
+*/
 #endif
+// #endif
 
 
 namespace rta {

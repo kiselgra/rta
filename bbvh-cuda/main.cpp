@@ -141,6 +141,7 @@ extern "C" {
 		typedef cuda::binary_bvh<box_t, tri_t, rta::binary_bvh<box_t, tri_t>> cuda_bvh_t;
 		typedef bbvh_constructor_using_median<cuda_bvh_t> std_bbvh_ctor_t;
 		typedef cuda::lbvh_constructor<box_t, tri_t, cuda::binary_lbvh<box_t, tri_t, cuda::binary_bvh<box_t, tri_t, rta::binary_bvh<box_t, tri_t>>>> lbvh_ctor_t;
+// 		typedef cuda::lbvh_constructor<box_t, tri_t, cuda::binary_lbvh<box_t, tri_t, cuda::binary_bvh<box_t, tri_t>>> lbvh_ctor_t;
 		
 		acceleration_structure *as = 0;
 		acceleration_structure_constructor *base_ctor = 0;

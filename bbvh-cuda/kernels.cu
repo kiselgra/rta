@@ -40,7 +40,7 @@ namespace rta {
 						uint node = stack[sp--];
 						bbvh_node<simple_aabb> curr = nodes[node];
 						if (curr.inner()) {
-							if (intersect_aabb(curr.box_, &orig, &dir, dist))
+							if (intersect_aabb(curr.box, &orig, &dir, dist))
 								if (dist < closest.t && dist <= t_max) {
 									stack[++sp] = curr.right();
 									stack[++sp] = curr.left();
