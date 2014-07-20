@@ -121,7 +121,7 @@ namespace rta {
 					d_triangles_out = 0;
 					d_boxes = 0;
 					d_centers = 0;
-					verbose = true;
+					verbose = false;
 				}
 				
 				void free_data() {

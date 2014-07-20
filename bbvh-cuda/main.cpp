@@ -106,6 +106,11 @@ static error_t parse_options(int key, char *arg, argp_state *state)
 
 static struct argp parser = { options, parse_options, args_doc, doc };
 
+namespace rta {
+	namespace cuda {
+		extern bool default_tracers_verbose;
+	}
+}
 
 // 
 // dlopen interface
@@ -128,17 +133,6 @@ extern "C" {
 		return ret;
 	}
 
-
-	/*   WHAT TODO
-	 *
-	 *   tri vs cuda::tri -> derive special ctor (in plugin) to handle conversion of triangle types (see bruteforce).
-	 *
-	 *   maybe we should add some triangle-handling portion of the ctor to a general cuda::ctor interface?
-	 *
-	 *   hm
-	 *
-	 */
-
 	rt_set create_rt_set(basic_flat_triangle_list<simple_triangle> &triangle_lists, int w, int h) {
 		typedef cuda::simple_triangle tri_t;
 		typedef cuda::simple_aabb box_t;
@@ -147,6 +141,9 @@ extern "C" {
 		acceleration_structure *as = 0;
 		acceleration_structure_constructor *base_ctor = 0;
 		basic_raytracer<box_t, cuda::simple_triangle> *rt = 0;
+
+		if (cmdline.verbose)
+			rta::cuda::default_tracers_verbose = true;
 
 		if (cmdline.layout == Cmdline::layout_cpu) {
 			typedef cuda::binary_bvh<box_t, tri_t, rta::binary_bvh<box_t, tri_t>> cuda_bvh_t;
@@ -166,6 +163,7 @@ extern "C" {
 				cudaMemcpy(ftl.triangle, tmp_ftl.triangle, sizeof(cuda::simple_triangle)*tmp_ftl.triangles, cudaMemcpyHostToDevice);
 				ftl.triangles = tmp_ftl.triangles;
 				lbvh_ctor_t *ctor = new lbvh_ctor_t;
+				if (cmdline.verbose) ctor->verbose = true;
 				bvh = ctor->build(&ftl);
 				base_ctor = ctor;
 			}
@@ -206,6 +204,7 @@ extern "C" {
 				cudaMemcpy(ftl.triangle, tmp_ftl.triangle, sizeof(cuda::simple_triangle)*tmp_ftl.triangles, cudaMemcpyHostToDevice);
 				ftl.triangles = tmp_ftl.triangles;
 				ctor_t *ctor = new ctor_t;
+				if (cmdline.verbose) ctor->verbose = true;
 				lbvh_t *lbvh = ctor->build(&ftl);
 				base_ctor = ctor;
 				as = lbvh;

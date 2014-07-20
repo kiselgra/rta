@@ -20,6 +20,8 @@ namespace rta {
 		#define ray_x (blockIdx.x * blockDim.x + threadIdx.x)
 		#define ray_y (blockIdx.y * blockDim.y + threadIdx.y)
 
+		bool default_tracers_verbose = false;
+
 		namespace k {
 			__global__ void trace_dis(cuda::simple_triangle *triangles, int n, bbvh_node<cuda::simple_aabb> *nodes, 
 			                          vec3f *ray_orig, vec3f *ray_dir, float *max_t, 
@@ -120,18 +122,33 @@ namespace rta {
 					vec3f dir = (ray_dir)[tid];
 					float t_max = max_t[tid];
 					simple_aabb box;
-					float dist;
+					float dist_left = FLT_MAX, dist_right = FLT_MAX;
 					triangle_intersection<simple_triangle> closest = intersections[tid];
 					closest.t = FLT_MAX;
 					while (sp >= 0) {
 						uint node = stack[sp--];
 						bbvh_node<simple_aabb> curr = nodes[node];
 						if (curr.inner()) {
-							if (intersect_aabb(curr.box, &orig, &dir, dist))
-								if (dist < closest.t && dist <= t_max) {
-									stack[++sp] = curr.right();
-									stack[++sp] = curr.left();
+							bool hit_left  = intersect_aabb(nodes[curr.left()].box, &orig, &dir, dist_left);
+							bool hit_right = intersect_aabb(nodes[curr.right()].box, &orig, &dir, dist_right);
+							if (dist_left >= closest.t  && dist_left  > t_max) hit_left = false;
+							if (dist_right >= closest.t && dist_right > t_max) hit_right = false;
+							if (hit_left) {
+								if (hit_right) {
+									if (dist_left <= dist_right) {
+										stack[++sp] = curr.right();
+										stack[++sp] = curr.left();
+									}
+									else {
+										stack[++sp] = curr.left();
+										stack[++sp] = curr.right();
+									}
 								}
+								else 
+									stack[++sp] = curr.left();
+							}
+							else if (hit_right)
+								stack[++sp] = curr.right();
 						}
 						else {
 							uint elems = curr.elems();
@@ -168,12 +185,27 @@ namespace rta {
 						uint node = stack[sp--];
 						bbvh_node<simple_aabb> curr = nodes[node];
 						if (curr.inner()) {
-							if (intersect_aabb(curr.box, &orig, &dir, dist))
-								if (dist < closest.t && dist <= t_max) {
-									stack[++sp] = curr.right();
-									stack[++sp] = curr.left();
+							bool hit_left  = intersect_aabb(nodes[curr.left()].box, &orig, &dir, dist_left);
+							bool hit_right = intersect_aabb(nodes[curr.right()].box, &orig, &dir, dist_right);
+							if (dist_left >= closest.t  && dist_left  > t_max) hit_left = false;
+							if (dist_right >= closest.t && dist_right > t_max) hit_right = false;
+							if (hit_left) {
+								if (hit_right) {
+									if (dist_left <= dist_right) {
+										stack[++sp] = curr.right();
+										stack[++sp] = curr.left();
+									}
+									else {
+										stack[++sp] = curr.left();
+										stack[++sp] = curr.right();
+									}
 								}
-						}
+								else 
+									stack[++sp] = curr.left();
+							}
+							else if (hit_right)
+								stack[++sp] = curr.right();
+}
 						else {
 							uint elems = curr.elems();
 							uint offset = curr.tris();
@@ -532,6 +564,7 @@ namespace rta {
 
 		void trace_dis(simple_triangle *triangles, int n, bbvh_node<simple_aabb> *nodes, vec3f *ray_orig, vec3f *ray_dir, float *max_t, 
 		               int w, int h, triangle_intersection<simple_triangle> *is) {
+			if (default_tracers_verbose) cout << "Tracing DIS, naive." << endl;
 			checked_cuda(cudaPeekAtLastError());
 			dim3 threads(16, 16);
 			dim3 blocks = block_configuration_2d(w, h, threads);
@@ -542,6 +575,7 @@ namespace rta {
 			
 		void trace_shadow_dis(simple_triangle *triangles, int n, bbvh_node<simple_aabb> *nodes, vec3f *ray_orig, vec3f *ray_dir, float *max_t, 
 							  int w, int h, triangle_intersection<simple_triangle> *is) {
+			if (default_tracers_verbose) cout << "Tracing DIS, shadowrays, naive." << endl;
 			checked_cuda(cudaPeekAtLastError());
 			dim3 threads(16, 16);
 			dim3 blocks = block_configuration_2d(w, h, threads);
@@ -552,6 +586,7 @@ namespace rta {
 			
 		void trace_cis(simple_triangle *triangles, int n, bbvh_node<simple_aabb> *nodes, vec3f *ray_orig, vec3f *ray_dir, float *max_t, 
 		               int w, int h, triangle_intersection<simple_triangle> *is) {
+			if (default_tracers_verbose) cout << "Tracing CIS, naive." << endl;
 			checked_cuda(cudaPeekAtLastError());
 			dim3 threads(16, 16);
 			dim3 blocks = block_configuration_2d(w, h, threads);
@@ -562,6 +597,7 @@ namespace rta {
 			
 		void trace_shadow_cis(simple_triangle *triangles, int n, bbvh_node<simple_aabb> *nodes, vec3f *ray_orig, vec3f *ray_dir, float *max_t, 
 							  int w, int h, triangle_intersection<simple_triangle> *is) {
+			if (default_tracers_verbose) cout << "Tracing CIS, shadowrays, naive." << endl;
 			checked_cuda(cudaPeekAtLastError());
 			dim3 threads(16, 16);
 			dim3 blocks = block_configuration_2d(w, h, threads);
@@ -572,6 +608,7 @@ namespace rta {
 		
 		void trace_dis(simple_triangle *triangles, int n, bbvh_node_float4<simple_aabb> *nodes, vec3f *ray_orig, vec3f *ray_dir, float *max_t, 
 		               int w, int h, triangle_intersection<simple_triangle> *is) {
+			if (default_tracers_verbose) cout << "Tracing DIS, 2F4." << endl;
 			checked_cuda(cudaPeekAtLastError());
 			dim3 threads(16, 16);
 			dim3 blocks = block_configuration_2d(w, h, threads);
@@ -582,6 +619,7 @@ namespace rta {
 
 		void trace_shadow_dis(simple_triangle *triangles, int n, bbvh_node_float4<simple_aabb> *nodes, vec3f *ray_orig, vec3f *ray_dir, float *max_t, 
 							  int w, int h, triangle_intersection<simple_triangle> *is) {
+			if (default_tracers_verbose) cout << "Tracing DIS, shadowrays, 2F4." << endl;
 			checked_cuda(cudaPeekAtLastError());
 			dim3 threads(16, 16);
 			dim3 blocks = block_configuration_2d(w, h, threads);
@@ -592,6 +630,7 @@ namespace rta {
 
 		void trace_cis(simple_triangle *triangles, int n, bbvh_node_float4<simple_aabb> *nodes, vec3f *ray_orig, vec3f *ray_dir, float *max_t, 
 		               int w, int h, triangle_intersection<simple_triangle> *is) {
+			if (default_tracers_verbose) cout << "Tracing CIS, 2F4." << endl;
 			checked_cuda(cudaPeekAtLastError());
 			dim3 threads(16, 16);
 			dim3 blocks = block_configuration_2d(w, h, threads);
@@ -602,6 +641,7 @@ namespace rta {
 
 		void trace_shadow_cis(simple_triangle *triangles, int n, bbvh_node_float4<simple_aabb> *nodes, vec3f *ray_orig, vec3f *ray_dir, float *max_t, 
 							  int w, int h, triangle_intersection<simple_triangle> *is) {
+			if (default_tracers_verbose) cout << "Tracing CIS, shadowrays, 2F4." << endl;
 			checked_cuda(cudaPeekAtLastError());
 			dim3 threads(16, 16);
 			dim3 blocks = block_configuration_2d(w, h, threads);
