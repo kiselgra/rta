@@ -178,7 +178,7 @@ namespace rta {
 					vec3f dir = (ray_dir)[tid];
 					float t_max = max_t[tid];
 					simple_aabb box;
-					float dist;
+					float dist_left = FLT_MAX, dist_right = FLT_MAX;
 					triangle_intersection<simple_triangle> closest = intersections[tid];
 					closest.t = FLT_MAX;
 					while (sp >= 0) {
