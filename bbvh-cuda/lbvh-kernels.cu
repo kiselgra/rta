@@ -39,7 +39,7 @@ using namespace std;
 namespace rta {
 	namespace cuda {
 
-		typedef bbvh_node<cuda::simple_aabb> node_t;
+// 		typedef bbvh_node<cuda::simple_aabb> node_t;
 
 		namespace k {
 
@@ -181,15 +181,16 @@ namespace rta {
 			}
 
 
-			__global__ void build_tree_karras(node_t *nodes,uint* codes,uint* indices,uint* parents,int n){
+			template<typename node_t> __global__ void build_tree_karras(node_t *nodes, uint *codes, uint *indices, uint *parents, int n) {
 #define cpl(a,b) __cpl(a,b,codes,n)
 				int i = get_global_index();
 				if(i>=n*2-1)
 					return;
 				node_t &node = nodes[i];
 
-				node.type_left_elems = 0;
-				node.right_tris = 0;
+				node.reset_links();
+// 				node.type_left_elems = 0;
+// 				node.right_tris = 0;
 				//leaf nodes are in the second half of the node array
 				if(i>=n-1){
 					//build leaf nodes
@@ -252,7 +253,7 @@ namespace rta {
 				node.make_inner();
 			}
 
-			__global__ void build_bounding_boxes_karras2(node_t *nodes,simple_aabb *boxes,uint* codes,uint* indices,uint* parents,uint* atomic_ints,int n){
+			template<typename node_t> __global__ void build_bounding_boxes_karras2(node_t *nodes, simple_aabb *boxes, uint *codes, uint *indices, uint *parents, uint *atomic_ints, int n) {
 #define MIN(_a,_b) ((_a)<(_b))? (_a):( _b)
 #define MAX(_a,_b) ((_a)>(_b))? (_a):( _b)
 #define MORTON_CODE(_index) ((_index>=(n-1))?codes[_index-n+1]:codes[_index])
@@ -317,8 +318,9 @@ namespace rta {
 							int tris = min(nodes[nodes[current].right()].tris(),nodes[nodes[current].left()].tris());
 							int length = nodes[nodes[current].right()].elems() + nodes[nodes[current].left()].elems();
 
-							nodes[current].type_left_elems = 0;
-							nodes[current].right_tris = 0;
+							nodes[current].reset_links();
+// 							nodes[current].type_left_elems = 0;
+// 							nodes[current].right_tris = 0;
 
 							nodes[current].tris(tris);
 							nodes[current].elems(length);
@@ -361,7 +363,7 @@ namespace rta {
 
 
 
-		void setupCudaMemory(uint **indices, uint **codes, node_t **nodes, uint **parents, cuda::simple_aabb **boxes, float3 **centers, cuda::simple_triangle **t_out, int n){
+		void setupCudaMemory(uint **indices, uint **codes, void **nodes, int node_t_size, uint **parents, cuda::simple_aabb **boxes, float3 **centers, cuda::simple_triangle **t_out, int n){
 			int size = n*sizeof(uint);
 			checked_cuda(cudaMalloc((void **)indices, size));
 			checked_cuda(cudaMalloc((void **)codes, size));
@@ -370,7 +372,7 @@ namespace rta {
 			size = n*sizeof(float3);
 			checked_cuda(cudaMalloc((void **)centers, size));
 
-			int node_size = (n*2-1)*sizeof(node_t);
+			int node_size = (n*2-1)*node_t_size;
 			checked_cuda(cudaMalloc((void **)nodes, node_size));
 			node_size = (n*2-1)*sizeof(uint);
 			checked_cuda(cudaMalloc((void **)parents, node_size));
@@ -417,19 +419,31 @@ namespace rta {
 		}
 
 		//ptxas info    : Used 14 registers, 68 bytes cmem[0]
-		float buildTreeKarras(node_t* nodes,  uint* d_codes,uint *d_indices,uint* parents,int n){
+		float buildTreeKarras(bbvh_node<cuda::simple_aabb> *nodes, uint *d_codes, uint *d_indices, uint *parents, int n) {
 			float time = 0;
 			START_CUDA_TIMER;
 			dim3 block_size(16, 16);
 			dim3 grid_size;
 			grid_size.x = (n*2-1) / (block_size.x*block_size.y) + 1;
 
-			k::build_tree_karras<<<grid_size, block_size>>>(nodes, d_codes,d_indices,parents,n);
+			k::build_tree_karras<<<grid_size, block_size>>>(nodes, d_codes, d_indices, parents, n);
 			STOP_CUDA_TIMER(time);
 			return time;
 		}
 
-		float buildBoundingBoxesKarras2(node_t* nodes,simple_aabb *boxes,  uint* d_codes,uint *d_indices,uint* parents,int n){
+		float buildTreeKarras(cuda::bbvh_node_float4<cuda::simple_aabb> *nodes, uint *d_codes, uint *d_indices, uint *parents, int n) {
+			float time = 0;
+			START_CUDA_TIMER;
+			dim3 block_size(16, 16);
+			dim3 grid_size;
+			grid_size.x = (n*2-1) / (block_size.x*block_size.y) + 1;
+
+			k::build_tree_karras<<<grid_size, block_size>>>(nodes, d_codes, d_indices, parents, n);
+			STOP_CUDA_TIMER(time);
+			return time;
+		}
+
+		float buildBoundingBoxesKarras2(bbvh_node<cuda::simple_aabb> *nodes, simple_aabb *boxes, uint *d_codes, uint *d_indices, uint *parents, int n) {
 			float time = 0;
 			START_CUDA_TIMER;
 			uint* d_atomic_ints;
@@ -440,7 +454,23 @@ namespace rta {
 			dim3 grid_size;
 			grid_size.x = (n) / (block_size.x*block_size.y) + 1;
 
-			k::build_bounding_boxes_karras2<<<grid_size, block_size>>>(nodes,boxes, d_codes,d_indices,parents,d_atomic_ints,n);
+			k::build_bounding_boxes_karras2<<<grid_size, block_size>>>(nodes, boxes, d_codes, d_indices, parents, d_atomic_ints, n);
+			STOP_CUDA_TIMER(time);
+			return time;
+		}
+
+		float buildBoundingBoxesKarras2(cuda::bbvh_node_float4<cuda::simple_aabb> *nodes, simple_aabb *boxes, uint *d_codes, uint *d_indices, uint *parents, int n) {
+			float time = 0;
+			START_CUDA_TIMER;
+			uint* d_atomic_ints;
+			checked_cuda(cudaMalloc((void **)&d_atomic_ints, (n-1)*sizeof(uint)));
+			cudaMemset(d_atomic_ints, 0, (n-1)*sizeof(uint));
+
+			dim3 block_size(16, 16);
+			dim3 grid_size;
+			grid_size.x = (n) / (block_size.x*block_size.y) + 1;
+
+			k::build_bounding_boxes_karras2<<<grid_size, block_size>>>(nodes, boxes, d_codes, d_indices, parents, d_atomic_ints, n);
 			STOP_CUDA_TIMER(time);
 			return time;
 		}

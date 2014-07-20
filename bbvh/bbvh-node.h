@@ -38,6 +38,8 @@ namespace rta {
 		heterogenous float box_max_z() { return box.max.z; }
 		//! \attention this might be expensive for other node types.
 		heterogenous const box_t& gen_box() { return box; }
+		//! This is important for LBVH construction, or generally when using memory allocated by cudaMalloc.
+		heterogenous void reset_links() { type_left_elems = 0; right_tris = 0; }	
 	};
 }
 

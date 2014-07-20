@@ -8,7 +8,6 @@
 #include "bbvh/bbvh-node.h"
 #include "librta/cuda-vec.h"
 
-// #ifndef __CUDACC__
 namespace rta {
 	namespace cuda {
 		namespace internalstuff {
@@ -30,29 +29,7 @@ __host__ inline float __int_as_float(int i) {
 	uni.i = i;
 	return uni.f;
 }
-/*
-__host__ inline int ii_float_as_int(float f) {
-	rta::cuda::internalstuff::reinterpret_fi uni;
-	uni.f = f;
-	return uni.i;
-}
-__host__ inline float ii_int_as_float(int i) {
-	rta::cuda::internalstuff::reinterpret_fi uni;
-	uni.i = i;
-	return uni.f;
-}
-__host__ inline float int_as_float(int i) {
-	return ii_int_as_float(i);
-}
-__host__ inline int float_as_int(float f) {
-	return ii_float_as_int(f);
-}
-#else
-__device__ inline float int_as_float(int i) { return __int_as_float(i); }
-__device__ inline int float_as_int(float f) { return __float_as_int(f); }
-*/
 #endif
-// #endif
 
 
 namespace rta {
@@ -105,6 +82,11 @@ namespace rta {
 				box.max.y = b.z;
 				box.max.z = b.w;
 				return box;
+			}
+			//! This is important for LBVH construction, or generally when using memory allocated by cudaMalloc.
+			heterogenous void reset_links() {
+				a.x = __int_as_float(0);
+				a.y = __int_as_float(0);
 			}
 		};
 	}

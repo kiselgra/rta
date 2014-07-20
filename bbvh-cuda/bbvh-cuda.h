@@ -92,14 +92,13 @@ namespace rta {
 		template<box_t__and__tri_t, typename bvh_t>
 		class bbvh_gpu_dis_tracer : public bbvh_gpu_tracer<forward_traits, bvh_t> {
 			public:
-// 				typedef typename bbvh_gpu_tracer<forward_traits>::bbvh_t bbvh_t;
 				typedef bvh_t bbvh_t;
 				typedef typename bbvh_t::node_t node_t;
 				declare_traits_types;
 				bbvh_gpu_dis_tracer(rta::ray_generator *gen, bbvh_t *bvh, class bouncer *b)
 				: bbvh_gpu_tracer<forward_traits, bvh_t>(gen, bvh, b) {
 				}
-				virtual std::string identification() { return "cuda bbvh direct intersection tracer; a cuda version of rta::bbvh_direct_is_tracer."; }
+				virtual std::string identification() { return "cuda bbvh tracer."; }
 				virtual float trace_rays() {
 					wall_time_timer wtt; wtt.start();
 					void trace_dis(tri_t *triangles, int n, node_t *nodes, 
@@ -114,6 +113,34 @@ namespace rta {
 				}
 				virtual bbvh_gpu_dis_tracer* copy() {
 					return new bbvh_gpu_dis_tracer(*this);
+				}
+
+		};
+
+		template<box_t__and__tri_t, typename bvh_t>
+		class bbvh_gpu_dis_shadow_tracer : public bbvh_gpu_tracer<forward_traits, bvh_t> {
+			public:
+				typedef bvh_t bbvh_t;
+				typedef typename bbvh_t::node_t node_t;
+				declare_traits_types;
+				bbvh_gpu_dis_shadow_tracer(rta::ray_generator *gen, bbvh_t *bvh, class bouncer *b)
+				: bbvh_gpu_tracer<forward_traits, bvh_t>(gen, bvh, b) {
+				}
+				virtual std::string identification() { return "cuda bbvh shadow ray tracer."; }
+				virtual float trace_rays() {
+					wall_time_timer wtt; wtt.start();
+					void trace_shadow_dis(tri_t *triangles, int n, node_t *nodes, 
+										  vec3f *ray_orig, vec3f *ray_dir, float *max_t, int w, int h, triangle_intersection<tri_t> *is);
+					trace_shadow_dis(this->bbvh->triangle_data.data, this->bbvh->triangle_data.n, this->bbvh->node_data.data,
+									 (vec3f*)this->gpu_raygen->gpu_origin, (vec3f*)this->gpu_raygen->gpu_direction, this->gpu_raygen->gpu_maxt,
+									 this->gpu_raygen->w, this->gpu_raygen->h,
+									 this->gpu_bouncer->gpu_last_intersection);
+					          
+					float ms = wtt.look();
+					return ms;
+				}
+				virtual bbvh_gpu_dis_shadow_tracer* copy() {
+					return new bbvh_gpu_dis_shadow_tracer(*this);
 				}
 
 		};

@@ -7,14 +7,14 @@ namespace rta {
 	namespace cuda {
 
 // 		void setupCudaMemory(uint** indices, uint** codes,cuda::bbvh::node<cuda::simple_aabb>** nodes, uint** parents,cuda::simple_aabb** boxes, float3** centers,int n);
-		void setupCudaMemory(uint** indices, uint** codes,bbvh_node<cuda::simple_aabb>** nodes, uint** parents,cuda::simple_aabb** boxes, float3** centers, cuda::simple_triangle **t_out, int n);
+		void setupCudaMemory(uint** indices, uint** codes,void **nodes, int node_size, uint** parents,cuda::simple_aabb** boxes, float3** centers, cuda::simple_triangle **t_out, int n);
 
 		template<box_t__and__tri_t, typename bvh_t_> class binary_lbvh : public bvh_t_ {
 			public:
 				declare_traits_types;
 				typedef bvh_t_ bvh_t;
 				typedef uint32_t link_t;
-				typedef typename rta::bbvh_node<box_t> node_t;
+				typedef typename bvh_t::node_t node_t;
 
 				uint *index_buffer;
 				uint index_buffer_length;
@@ -74,13 +74,13 @@ namespace rta {
 					return sortMortonCodes(d_codes,d_indices,n);
 				}
 
-				inline float buildTreeCUDA(node_t* d_nodes, uint* d_codes,uint *d_indices,uint* parents,int n){
-					float buildTreeKarras(node_t* nodes,  uint* d_codes,uint *d_indices,uint* parents,int node_count);
-					return buildTreeKarras(d_nodes,d_codes,d_indices,parents,n);
+				inline float buildTreeCUDA(node_t *d_nodes, uint *d_codes, uint *d_indices, uint *parents, int n) {
+					float buildTreeKarras(node_t *nodes, uint *d_codes, uint *d_indices, uint *parents, int node_count);
+					return buildTreeKarras(d_nodes, d_codes, d_indices, parents,n);
 				}
-				inline float buildBoundingBoxesCUDA(node_t* d_nodes,tri_t *triangles, uint* d_codes,uint *d_indices,uint* parents,int n){
-					float buildBoundingBoxesKarras(node_t* nodes, tri_t *triangles, uint* d_codes,uint *d_indices,uint* parents,int node_count);
-					return buildBoundingBoxesKarras(d_nodes,triangles,d_codes,d_indices,parents,n);
+				inline float buildBoundingBoxesCUDA(node_t *d_nodes, tri_t *triangles, uint *d_codes, uint *d_indices, uint *parents, int n) {
+					float buildBoundingBoxesKarras(node_t *nodes, tri_t *triangles, uint *d_codes, uint *d_indices, uint *parents, int node_count);
+					return buildBoundingBoxesKarras(d_nodes, triangles, d_codes, d_indices, parents, n);
 				}
 
 				inline float buildBoundingBoxesCUDA2(node_t* d_nodes,box_t *boxes, uint* d_codes,uint *d_indices,uint* parents,int n){
@@ -121,7 +121,7 @@ namespace rta {
 					d_triangles_out = 0;
 					d_boxes = 0;
 					d_centers = 0;
-					verbose = false;
+					verbose = true;
 				}
 				
 				void free_data() {
@@ -152,7 +152,7 @@ namespace rta {
 					if (d_indices == 0 || last_tri_count != tri_count) {
 						if (d_indices != 0)
 							free_data();
-						setupCudaMemory(&d_indices, &d_morton_codes, &d_nodes, &d_parents, &d_boxes, (float3**)&d_centers, &d_triangles, this->tri_count);
+						setupCudaMemory(&d_indices, &d_morton_codes, (void**)&d_nodes, sizeof(node_t), &d_parents, &d_boxes, (float3**)&d_centers, &d_triangles, this->tri_count);
 					}
 					last_tri_count = tri_count;
 

@@ -21,9 +21,10 @@ struct Cmdline {
 	bvh_t bvh_build;
 	bvh_trav_t bvh_trav;
 	bvh_layout_t layout;
+	bool shadow_rays;
 	bool verbose;
 
-	Cmdline() : bvh_build(median), bvh_trav(cis), verbose(false), layout(layout_cpu) {}
+	Cmdline() : bvh_build(median), bvh_trav(cis), verbose(false), layout(layout_cpu), shadow_rays(false) {}
 };
 static Cmdline cmdline;
 
@@ -41,6 +42,7 @@ static struct argp_option options[] =
 	{ "verbose", 'v', 0,          0, "Be verbose." },
 	{ "bvh", 'b', "<median|lbvh>",          0, "Which kind of bvh to use. Default: median." },
 	{ "layout", 'l', "<cpu|2f4>",          0, "Which bvh layout to choose: Standard cpu tracing layout or node encoded in 2 float4. Default: cpu." },
+	{ "shadow", 's', 0,          0, "Use the shadow tracer, i.e. early out at first triangle intersection." },
 // 	{ "bvh-trav", BT, "cis|dis",  0, "Intersection mode of the bvh traversal: direct-is, child-is. Default: cis." },
 	{ 0 }
 };
@@ -79,12 +81,13 @@ static error_t parse_options(int key, char *arg, argp_state *state)
 					  argp_usage(state);
 				}
 				break;
-	case 'b':	
-	            if (sarg == "lbvh") cmdline.bvh_build = Cmdline::lbvh;
+	case 'b':	if (sarg == "lbvh") cmdline.bvh_build = Cmdline::lbvh;
 				break;
 
-	case 'l':
-				if (sarg == "2f4") cmdline.layout = Cmdline::layout_2f4;
+	case 'l': 	if (sarg == "2f4") cmdline.layout = Cmdline::layout_2f4;
+				break;
+	
+	case 's': 	cmdline.shadow_rays = true;
 				break;
 
 	case ARGP_KEY_ARG:		// process arguments. 
@@ -138,9 +141,6 @@ extern "C" {
 	rt_set create_rt_set(basic_flat_triangle_list<simple_triangle> &triangle_lists, int w, int h) {
 		typedef cuda::simple_triangle tri_t;
 		typedef cuda::simple_aabb box_t;
-		typedef cuda::binary_bvh<box_t, tri_t, rta::binary_bvh<box_t, tri_t>> cuda_bvh_t;
-		typedef bbvh_constructor_using_median<cuda_bvh_t> std_bbvh_ctor_t;
-		typedef cuda::lbvh_constructor<box_t, tri_t, cuda::binary_lbvh<box_t, tri_t, cuda::binary_bvh<box_t, tri_t, rta::binary_bvh<box_t, tri_t>>>> lbvh_ctor_t;
 // 		typedef cuda::lbvh_constructor<box_t, tri_t, cuda::binary_lbvh<box_t, tri_t, cuda::binary_bvh<box_t, tri_t>>> lbvh_ctor_t;
 		
 		acceleration_structure *as = 0;
@@ -148,6 +148,9 @@ extern "C" {
 		basic_raytracer<box_t, cuda::simple_triangle> *rt = 0;
 
 		if (cmdline.layout == Cmdline::layout_cpu) {
+			typedef cuda::binary_bvh<box_t, tri_t, rta::binary_bvh<box_t, tri_t>> cuda_bvh_t;
+			typedef bbvh_constructor_using_median<cuda_bvh_t> std_bbvh_ctor_t;
+			typedef cuda::lbvh_constructor<box_t, tri_t, cuda::binary_lbvh<box_t, tri_t, cuda::binary_bvh<box_t, tri_t, rta::binary_bvh<box_t, tri_t>>>> lbvh_ctor_t;
 			cuda_bvh_t *bvh = 0;
 			if (cmdline.bvh_build == Cmdline::median) {
 				std_bbvh_ctor_t *ctor = new std_bbvh_ctor_t(std_bbvh_ctor_t::spatial_median);
@@ -166,7 +169,10 @@ extern "C" {
 				base_ctor = ctor;
 			}
 			as = bvh;
-			rt = new cuda::bbvh_gpu_dis_tracer<box_t, cuda::simple_triangle, cuda_bvh_t>(0, bvh, 0);
+			if (cmdline.shadow_rays)
+				rt = new cuda::bbvh_gpu_dis_shadow_tracer<box_t, cuda::simple_triangle, cuda_bvh_t>(0, bvh, 0);
+			else
+				rt = new cuda::bbvh_gpu_dis_tracer<box_t, cuda::simple_triangle, cuda_bvh_t>(0, bvh, 0);
 		}
 		else {
 			if (cmdline.bvh_build == Cmdline::median) {
@@ -178,7 +184,28 @@ extern "C" {
 				bvh_t *bvh = ctor->build(&ftl);;
 				base_ctor = ctor;
 				as = bvh;
-				rt = new cuda::bbvh_gpu_dis_tracer<box_t, tri_t, bvh_t>(0, bvh, 0);
+				if (cmdline.shadow_rays)
+					rt = new cuda::bbvh_gpu_dis_shadow_tracer<box_t, tri_t, bvh_t>(0, bvh, 0);
+				else
+					rt = new cuda::bbvh_gpu_dis_tracer<box_t, tri_t, bvh_t>(0, bvh, 0);
+			}
+			else {
+				typedef cuda::binary_bvh<box_t, tri_t, binary_bvh<box_t, tri_t, cuda::bbvh_node_float4<box_t>>> bvh_t;
+				typedef cuda::binary_lbvh<box_t, tri_t, bvh_t> lbvh_t;
+				typedef cuda::lbvh_constructor<box_t, tri_t, lbvh_t> ctor_t;
+				cuda_ftl tmp_ftl(triangle_lists);
+				cuda_ftl ftl;
+				cudaMalloc((void**)&ftl.triangle, sizeof(cuda::simple_triangle)*tmp_ftl.triangles);
+				cudaMemcpy(ftl.triangle, tmp_ftl.triangle, sizeof(cuda::simple_triangle)*tmp_ftl.triangles, cudaMemcpyHostToDevice);
+				ftl.triangles = tmp_ftl.triangles;
+				ctor_t *ctor = new ctor_t;
+				lbvh_t *lbvh = ctor->build(&ftl);
+				base_ctor = ctor;
+				as = lbvh;
+				if (cmdline.shadow_rays)
+					rt = new cuda::bbvh_gpu_dis_shadow_tracer<box_t, tri_t, bvh_t>(0, lbvh, 0);
+				else
+					rt = new cuda::bbvh_gpu_dis_tracer<box_t, tri_t, bvh_t>(0, lbvh, 0);
 			}
 		}
 
