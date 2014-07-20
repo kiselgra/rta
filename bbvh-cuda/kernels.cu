@@ -61,7 +61,7 @@ namespace rta {
 					intersections[tid] = closest;
 				}
 			}
-				
+			
 			__global__ void trace_shadow_dis(cuda::simple_triangle *triangles, int n, bbvh_node<cuda::simple_aabb> *nodes, 
 											 vec3f *ray_orig, vec3f *ray_dir, float *max_t, 
 											 int w, int h, triangle_intersection<simple_triangle> *intersections) {
@@ -106,8 +106,95 @@ namespace rta {
 					intersections[tid] = closest;
 				}
 			}
+				
 			
+			__global__ void trace_cis(cuda::simple_triangle *triangles, int n, bbvh_node<cuda::simple_aabb> *nodes, 
+			                          vec3f *ray_orig, vec3f *ray_dir, float *max_t, 
+			                          int w, int h, triangle_intersection<simple_triangle> *intersections) {
+				if (ray_x < w && ray_y < h) {
+					uint tid = ray_y*w+ray_x;
+					uint32_t stack[32];
+					stack[0] = 0;
+					int sp = 0;
+					vec3f orig = (ray_orig)[tid];
+					vec3f dir = (ray_dir)[tid];
+					float t_max = max_t[tid];
+					simple_aabb box;
+					float dist;
+					triangle_intersection<simple_triangle> closest = intersections[tid];
+					closest.t = FLT_MAX;
+					while (sp >= 0) {
+						uint node = stack[sp--];
+						bbvh_node<simple_aabb> curr = nodes[node];
+						if (curr.inner()) {
+							if (intersect_aabb(curr.box, &orig, &dir, dist))
+								if (dist < closest.t && dist <= t_max) {
+									stack[++sp] = curr.right();
+									stack[++sp] = curr.left();
+								}
+						}
+						else {
+							uint elems = curr.elems();
+							uint offset = curr.tris();
+							for (int i = 0; i < elems; ++i) {
+								triangle_intersection<simple_triangle> is(offset+i);
+								if (intersect_tri_opt(triangles[offset+i], &orig, &dir, is)) {
+									if (is.t < closest.t && is.t <= t_max)
+										closest = is;
+								}
+							}
+						}
+					}
+					intersections[tid] = closest;
+				}
+			}
 			
+			__global__ void trace_shadow_cis(cuda::simple_triangle *triangles, int n, bbvh_node<cuda::simple_aabb> *nodes, 
+											 vec3f *ray_orig, vec3f *ray_dir, float *max_t, 
+											 int w, int h, triangle_intersection<simple_triangle> *intersections) {
+				if (ray_x < w && ray_y < h) {
+					uint tid = ray_y*w+ray_x;
+					uint32_t stack[32];
+					stack[0] = 0;
+					int sp = 0;
+					vec3f orig = (ray_orig)[tid];
+					vec3f dir = (ray_dir)[tid];
+					float t_max = max_t[tid];
+					simple_aabb box;
+					float dist;
+					triangle_intersection<simple_triangle> closest = intersections[tid];
+					closest.t = FLT_MAX;
+					while (sp >= 0) {
+						uint node = stack[sp--];
+						bbvh_node<simple_aabb> curr = nodes[node];
+						if (curr.inner()) {
+							if (intersect_aabb(curr.box, &orig, &dir, dist))
+								if (dist < closest.t && dist <= t_max) {
+									stack[++sp] = curr.right();
+									stack[++sp] = curr.left();
+								}
+						}
+						else {
+							uint elems = curr.elems();
+							uint offset = curr.tris();
+							for (int i = 0; i < elems; ++i) {
+								triangle_intersection<simple_triangle> is(offset+i);
+								if (intersect_tri_opt(triangles[offset+i], &orig, &dir, is)) {
+									if (is.t < closest.t && is.t <= t_max) {
+										closest = is;
+										break;
+									}
+								}
+							}
+							if (closest.t != FLT_MAX)
+								break;
+						}
+					}
+					intersections[tid] = closest;
+				}
+			}
+		
+		
 			#define is_inner(F)       ((__float_as_int(F.x)&0x01)==1)
 			#define extract_left(F)   (__float_as_int(F.x)>>1)
 			#define extract_right(F)  (__float_as_int(F.y))
@@ -126,7 +213,7 @@ namespace rta {
 			 *  - Memory layout using 2 float4, which we hope yields better access patterns
 			 *  - For two child intersections we use one box
 			 */
-			__global__ void trace_dis(cuda::simple_triangle *triangles, int n, /*bbvh_node_float4<cuda::simple_aabb> *nodes*/float4 *nodes, 
+			__global__ void trace_cis(cuda::simple_triangle *triangles, int n, /*bbvh_node_float4<cuda::simple_aabb> *nodes*/float4 *nodes, 
 			                          vec3f *ray_orig, vec3f *ray_dir, float *max_t, 
 			                          int w, int h, triangle_intersection<simple_triangle> *intersections) {
 				if (ray_x < w && ray_y < h) {
@@ -206,7 +293,7 @@ namespace rta {
 				}
 			}
 
-			__global__ void trace_shadow_dis(cuda::simple_triangle *triangles, int n, /*bbvh_node_float4<cuda::simple_aabb> *nodes*/float4 *nodes, 
+			__global__ void trace_shadow_cis(cuda::simple_triangle *triangles, int n, /*bbvh_node_float4<cuda::simple_aabb> *nodes*/float4 *nodes, 
 											 vec3f *ray_orig, vec3f *ray_dir, float *max_t, 
 											 int w, int h, triangle_intersection<simple_triangle> *intersections) {
 				if (ray_x < w && ray_y < h) {
@@ -289,6 +376,145 @@ namespace rta {
 					intersections[tid] = closest;
 				}
 			}
+	
+
+			/*! A DIS intersection method according to sijehara's master thesis.
+			 *  
+			 *  Differences to the naive version above:
+			 *  - Only push nodes when necessary (i.e. assign curr if possible)
+			 *  - Memory layout using 2 float4, which we hope yields better access patterns
+			 */
+			__global__ void trace_dis(cuda::simple_triangle *triangles, int n, /*bbvh_node_float4<cuda::simple_aabb> *nodes*/float4 *nodes, 
+			                          vec3f *ray_orig, vec3f *ray_dir, float *max_t, 
+			                          int w, int h, triangle_intersection<simple_triangle> *intersections) {
+				if (ray_x < w && ray_y < h) {
+					uint tid = ray_y*w+ray_x;
+					// ray data
+					vec3f orig = (ray_orig)[tid];
+					vec3f dir = (ray_dir)[tid];
+					float t_max = max_t[tid];
+					// stack mgmt
+					uint32_t stack[32];
+					int sp = -1;
+					bool hit;
+					float dist = FLT_MAX;
+					// triangle intersection
+					triangle_intersection<simple_triangle> closest = intersections[tid];
+					closest.t = FLT_MAX;
+					float4 curr[2];
+					curr[0] = nodes[0];
+					int curr_id = 0;
+
+					while (true) {
+						if (is_inner(curr[0])) {
+							curr[1] = nodes[2*curr_id+1];
+							cuda::simple_aabb bb;
+							bb.min.x = box_min_x(curr); bb.min.y = box_min_y(curr); bb.min.z = box_min_z(curr);
+							bb.max.x = box_max_x(curr); bb.max.y = box_max_y(curr); bb.max.z = box_max_z(curr);
+							hit = intersect_aabb(bb, &orig, &dir, dist);
+							if (dist >= closest.t || dist > t_max) 
+								hit = false;
+							if (hit) {
+								stack[++sp] = extract_right(curr[0]);
+								curr_id = extract_left(curr[0]);
+								curr[0] = nodes[2*curr_id+0];
+							}
+							else if (sp >= 0) {
+								curr_id = stack[sp--];
+								curr[0] = nodes[2*curr_id+0];
+							}
+							else
+								break;
+						}
+						else {
+							uint elems = extract_count(curr[0]);
+							uint offset = extract_offset(curr[0]);
+							for (int i = 0; i < elems; ++i) {
+								triangle_intersection<simple_triangle> is(offset+i);
+								if (intersect_tri_opt(triangles[offset+i], &orig, &dir, is)) {
+									if (is.t < closest.t && is.t <= t_max)
+										closest = is;
+								}
+							}
+							if (sp >= 0) {
+								curr_id = stack[sp--];
+								curr[0] = nodes[2*curr_id+0];
+							}
+							else
+								break;
+						}
+					}
+					intersections[tid] = closest;
+				}
+			}
+
+			__global__ void trace_shadow_dis(cuda::simple_triangle *triangles, int n, /*bbvh_node_float4<cuda::simple_aabb> *nodes*/float4 *nodes, 
+											 vec3f *ray_orig, vec3f *ray_dir, float *max_t, 
+											 int w, int h, triangle_intersection<simple_triangle> *intersections) {
+				if (ray_x < w && ray_y < h) {
+					uint tid = ray_y*w+ray_x;
+					// ray data
+					vec3f orig = (ray_orig)[tid];
+					vec3f dir = (ray_dir)[tid];
+					float t_max = max_t[tid];
+					// stack mgmt
+					uint32_t stack[32];
+					int sp = -1;
+					bool hit;
+					float dist = FLT_MAX;
+					// triangle intersection
+					triangle_intersection<simple_triangle> closest = intersections[tid];
+					closest.t = FLT_MAX;
+					float4 curr[2];
+					curr[0] = nodes[0];
+					int curr_id = 0;
+
+					while (true) {
+						if (is_inner(curr[0])) {
+							curr[1] = nodes[2*curr_id+1];
+							cuda::simple_aabb bb;
+							bb.min.x = box_min_x(curr); bb.min.y = box_min_y(curr); bb.min.z = box_min_z(curr);
+							bb.max.x = box_max_x(curr); bb.max.y = box_max_y(curr); bb.max.z = box_max_z(curr);
+							hit = intersect_aabb(bb, &orig, &dir, dist);
+							if (dist >= closest.t || dist > t_max) 
+								hit = false;
+							if (hit) {
+								stack[++sp] = extract_right(curr[0]);
+								curr_id = extract_left(curr[0]);
+								curr[0] = nodes[2*curr_id+0];
+							}
+							else if (sp >= 0) {
+								curr_id = stack[sp--];
+								curr[0] = nodes[2*curr_id+0];
+							}
+							else
+								break;
+						}
+						else {
+							uint elems = extract_count(curr[0]);
+							uint offset = extract_offset(curr[0]);
+							for (int i = 0; i < elems; ++i) {
+								triangle_intersection<simple_triangle> is(offset+i);
+								if (intersect_tri_opt(triangles[offset+i], &orig, &dir, is)) {
+									if (is.t < closest.t && is.t <= t_max) {
+										closest = is;
+										break;
+									}
+								}
+							}
+							if (closest.t != FLT_MAX)
+								break;
+							if (sp >= 0) {
+								curr_id = stack[sp--];
+								curr[0] = nodes[2*curr_id+0];
+							}
+							else
+								break;
+						}
+					}
+					intersections[tid] = closest;
+				}
+			}
 
 			#undef is_inner
 			#undef extract_left
@@ -323,6 +549,26 @@ namespace rta {
 			checked_cuda(cudaPeekAtLastError());
 			checked_cuda(cudaDeviceSynchronize());
 		}
+			
+		void trace_cis(simple_triangle *triangles, int n, bbvh_node<simple_aabb> *nodes, vec3f *ray_orig, vec3f *ray_dir, float *max_t, 
+		               int w, int h, triangle_intersection<simple_triangle> *is) {
+			checked_cuda(cudaPeekAtLastError());
+			dim3 threads(16, 16);
+			dim3 blocks = block_configuration_2d(w, h, threads);
+			k::trace_cis<<<blocks, threads>>>(triangles, n, nodes, ray_orig, ray_dir, max_t, w, h, is);
+			checked_cuda(cudaPeekAtLastError());
+			checked_cuda(cudaDeviceSynchronize());
+		}
+			
+		void trace_shadow_cis(simple_triangle *triangles, int n, bbvh_node<simple_aabb> *nodes, vec3f *ray_orig, vec3f *ray_dir, float *max_t, 
+							  int w, int h, triangle_intersection<simple_triangle> *is) {
+			checked_cuda(cudaPeekAtLastError());
+			dim3 threads(16, 16);
+			dim3 blocks = block_configuration_2d(w, h, threads);
+			k::trace_shadow_cis<<<blocks, threads>>>(triangles, n, nodes, ray_orig, ray_dir, max_t, w, h, is);
+			checked_cuda(cudaPeekAtLastError());
+			checked_cuda(cudaDeviceSynchronize());
+		}
 		
 		void trace_dis(simple_triangle *triangles, int n, bbvh_node_float4<simple_aabb> *nodes, vec3f *ray_orig, vec3f *ray_dir, float *max_t, 
 		               int w, int h, triangle_intersection<simple_triangle> *is) {
@@ -340,6 +586,26 @@ namespace rta {
 			dim3 threads(16, 16);
 			dim3 blocks = block_configuration_2d(w, h, threads);
 			k::trace_shadow_dis<<<blocks, threads>>>(triangles, n, (float4*)nodes, ray_orig, ray_dir, max_t, w, h, is);
+			checked_cuda(cudaPeekAtLastError());
+			checked_cuda(cudaDeviceSynchronize());
+		}
+
+		void trace_cis(simple_triangle *triangles, int n, bbvh_node_float4<simple_aabb> *nodes, vec3f *ray_orig, vec3f *ray_dir, float *max_t, 
+		               int w, int h, triangle_intersection<simple_triangle> *is) {
+			checked_cuda(cudaPeekAtLastError());
+			dim3 threads(16, 16);
+			dim3 blocks = block_configuration_2d(w, h, threads);
+			k::trace_cis<<<blocks, threads>>>(triangles, n, (float4*)nodes, ray_orig, ray_dir, max_t, w, h, is);
+			checked_cuda(cudaPeekAtLastError());
+			checked_cuda(cudaDeviceSynchronize());
+		}
+
+		void trace_shadow_cis(simple_triangle *triangles, int n, bbvh_node_float4<simple_aabb> *nodes, vec3f *ray_orig, vec3f *ray_dir, float *max_t, 
+							  int w, int h, triangle_intersection<simple_triangle> *is) {
+			checked_cuda(cudaPeekAtLastError());
+			dim3 threads(16, 16);
+			dim3 blocks = block_configuration_2d(w, h, threads);
+			k::trace_shadow_cis<<<blocks, threads>>>(triangles, n, (float4*)nodes, ray_orig, ray_dir, max_t, w, h, is);
 			checked_cuda(cudaPeekAtLastError());
 			checked_cuda(cudaDeviceSynchronize());
 		}

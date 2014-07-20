@@ -39,10 +39,11 @@ enum { FIRST = 300, BT, OPTS };
 static struct argp_option options[] = 
 {
 	// --[opt]		short/const		arg-descr		?		option-descr
-	{ "verbose", 'v', 0,          0, "Be verbose." },
-	{ "bvh", 'b', "<median|lbvh>",          0, "Which kind of bvh to use. Default: median." },
-	{ "layout", 'l', "<cpu|2f4>",          0, "Which bvh layout to choose: Standard cpu tracing layout or node encoded in 2 float4. Default: cpu." },
-	{ "shadow", 's', 0,          0, "Use the shadow tracer, i.e. early out at first triangle intersection." },
+	{ "verbose", 'v', 0,               0, "Be verbose." },
+	{ "bvh",     'b', "<median|lbvh>", 0, "Which kind of bvh to use. Default: median." },
+	{ "layout",  'l', "<cpu|2f4>",     0, "Which bvh layout to choose: Standard cpu tracing layout or node encoded in 2 float4. Default: cpu." },
+	{ "shadow",  's', 0,               0, "Use the shadow tracer, i.e. early out at first triangle intersection." },
+	{ "trav",    't', "<dis|cis>",     0, "Traverse dis/cis. Default: Dis." },
 // 	{ "bvh-trav", BT, "cis|dis",  0, "Intersection mode of the bvh traversal: direct-is, child-is. Default: cis." },
 	{ 0 }
 };
@@ -74,7 +75,7 @@ static error_t parse_options(int key, char *arg, argp_state *state)
 	switch (key)
 	{
 	case 'v':	cmdline.verbose = true; 	break;
-	case BT:    if (sarg == "dis") cmdline.bvh_trav = Cmdline::dis;
+	case 't':   if (sarg == "dis") cmdline.bvh_trav = Cmdline::dis;
 	            else if (sarg == "cis") cmdline.bvh_trav = Cmdline::cis;
 				else {
 					  cerr << "Unknown bvh traversal scheme: " << sarg << endl;
@@ -169,10 +170,16 @@ extern "C" {
 				base_ctor = ctor;
 			}
 			as = bvh;
-			if (cmdline.shadow_rays)
-				rt = new cuda::bbvh_gpu_dis_shadow_tracer<box_t, cuda::simple_triangle, cuda_bvh_t>(0, bvh, 0);
+			if (cmdline.bvh_trav == Cmdline::dis)
+				if (cmdline.shadow_rays)
+					rt = new cuda::bbvh_gpu_dis_shadow_tracer<box_t, cuda::simple_triangle, cuda_bvh_t>(0, bvh, 0);
+				else
+					rt = new cuda::bbvh_gpu_dis_tracer<box_t, cuda::simple_triangle, cuda_bvh_t>(0, bvh, 0);
 			else
-				rt = new cuda::bbvh_gpu_dis_tracer<box_t, cuda::simple_triangle, cuda_bvh_t>(0, bvh, 0);
+				if (cmdline.shadow_rays)
+					rt = new cuda::bbvh_gpu_cis_shadow_tracer<box_t, cuda::simple_triangle, cuda_bvh_t>(0, bvh, 0);
+				else
+					rt = new cuda::bbvh_gpu_cis_tracer<box_t, cuda::simple_triangle, cuda_bvh_t>(0, bvh, 0);
 		}
 		else {
 			if (cmdline.bvh_build == Cmdline::median) {
@@ -202,10 +209,16 @@ extern "C" {
 				lbvh_t *lbvh = ctor->build(&ftl);
 				base_ctor = ctor;
 				as = lbvh;
-				if (cmdline.shadow_rays)
-					rt = new cuda::bbvh_gpu_dis_shadow_tracer<box_t, tri_t, bvh_t>(0, lbvh, 0);
+				if (cmdline.bvh_trav == Cmdline::dis)
+					if (cmdline.shadow_rays)
+						rt = new cuda::bbvh_gpu_dis_shadow_tracer<box_t, tri_t, bvh_t>(0, lbvh, 0);
+					else
+						rt = new cuda::bbvh_gpu_dis_tracer<box_t, tri_t, bvh_t>(0, lbvh, 0);
 				else
-					rt = new cuda::bbvh_gpu_dis_tracer<box_t, tri_t, bvh_t>(0, lbvh, 0);
+					if (cmdline.shadow_rays)
+						rt = new cuda::bbvh_gpu_cis_shadow_tracer<box_t, tri_t, bvh_t>(0, lbvh, 0);
+					else
+						rt = new cuda::bbvh_gpu_cis_tracer<box_t, tri_t, bvh_t>(0, lbvh, 0);
 			}
 		}
 
