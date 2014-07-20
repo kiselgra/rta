@@ -71,11 +71,11 @@ namespace rta {
 			heterogenous void elems(uint n)   { type_left_elems = __int_as_float((__float_as_int(type_left_elems)&(~1)) | (n<<1)); }
 			heterogenous uint elems()         { return __float_as_int(type_left_elems)>>1; }
 			//! link to the right.
-			heterogenous void right(link_t n) { right_tris = n; }
-			heterogenous link_t right()       { return right_tris; }
+			heterogenous void right(link_t n) { right_tris = __int_as_float(n); }
+			heterogenous link_t right()       { return __float_as_int(right_tris); }
 			//! an index into an array of triangles holding elems() successive triangles enclosed by this node.
-			heterogenous void tris(link_t n)  { right_tris = n; }
-			heterogenous uint tris()          { return right_tris; }
+			heterogenous void tris(link_t n)  { right_tris = __int_as_float(n); }
+			heterogenous uint tris()          { return __float_as_int(right_tris); }
 			heterogenous void split_axis(uint a) {} //!< not implemented for default bbvh nodes.
 			heterogenous uint split_axis() { return 0; }
 			#undef type_left_elems

@@ -72,10 +72,10 @@ namespace rta {
 				int triangle_count() { return triangle_data.n; }
 		};
 			
-		template<box_t__and__tri_t>
+		template<box_t__and__tri_t, typename bvh_t>
 		class bbvh_gpu_tracer : public cuda::gpu_raytracer<forward_traits> {
 			public:
-				typedef typename cuda::binary_bvh<forward_traits, rta::binary_bvh<forward_traits>> bbvh_t;
+				typedef bvh_t bbvh_t;
 // 				typedef typename bbvh_t::node_t node_t;
 				bbvh_t *bbvh;
 				
@@ -90,14 +90,14 @@ namespace rta {
 		};
 
 		template<box_t__and__tri_t, typename bvh_t>
-		class bbvh_gpu_dis_tracer : public bbvh_gpu_tracer<forward_traits> {
+		class bbvh_gpu_dis_tracer : public bbvh_gpu_tracer<forward_traits, bvh_t> {
 			public:
 // 				typedef typename bbvh_gpu_tracer<forward_traits>::bbvh_t bbvh_t;
 				typedef bvh_t bbvh_t;
 				typedef typename bbvh_t::node_t node_t;
 				declare_traits_types;
 				bbvh_gpu_dis_tracer(rta::ray_generator *gen, bbvh_t *bvh, class bouncer *b)
-				: bbvh_gpu_tracer<forward_traits>(gen, bvh, b) {
+				: bbvh_gpu_tracer<forward_traits, bvh_t>(gen, bvh, b) {
 				}
 				virtual std::string identification() { return "cuda bbvh direct intersection tracer; a cuda version of rta::bbvh_direct_is_tracer."; }
 				virtual float trace_rays() {

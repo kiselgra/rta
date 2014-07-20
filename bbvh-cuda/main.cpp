@@ -178,9 +178,7 @@ extern "C" {
 				bvh_t *bvh = ctor->build(&ftl);;
 				base_ctor = ctor;
 				as = bvh;
-// 				rt = TODO;
-				cout << "Todo: write gpu raytracer according to jerrys cis. sep tracer class, sep kernels." << endl;
-				exit(0);
+				rt = new cuda::bbvh_gpu_dis_tracer<box_t, tri_t, bvh_t>(0, bvh, 0);
 			}
 		}
 
