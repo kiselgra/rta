@@ -1,3 +1,4 @@
+// (c) darius rückert & kai selgrad, GPL 3+.
 #ifndef __RTA_LBVH_H__ 
 #define __RTA_LBVH_H__ 
 

@@ -1,3 +1,5 @@
+// (c) darius rückert & kai selgrad, GPL 3+.
+
 // cuda can't handle gcc 4.7 includes...
 // https://bugs.archlinux.org/task/29359
 #undef _GLIBCXX_ATOMIC_BUILTINS
