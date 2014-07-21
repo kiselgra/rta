@@ -32,6 +32,10 @@ namespace rta {
 
 				virtual std::string identification() { return "lbvh based on the ba-sidaruck"; }
 		};
+		
+		//! we try to standardize the common instances of complicated bvh types.
+		template<typename box_t, typename tri_t, typename node_t = rta::bbvh_node<box_t>> 
+		using standard_lbvh = binary_lbvh<box_t, tri_t, cuda::binary_bvh<box_t, tri_t, rta::binary_bvh<box_t, tri_t, node_t>>>;
 
 		/*! \brief Construct a LBVH (see ``Fast BVH Construction on GPUs'' by Lauterbach et al.)
 		 *         as described in ``Maximizing Parallelism in the Construction of BVHs, Octrees, and k-d Trees'' by Karras.

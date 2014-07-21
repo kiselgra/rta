@@ -212,8 +212,12 @@ extern "C" {
 					rt = new cuda::bbvh_gpu_dis_tracer<box_t, tri_t, bvh_t>(0, bvh, 0);
 			}
 			else {
-				typedef cuda::binary_bvh<box_t, tri_t, binary_bvh<box_t, tri_t, cuda::bbvh_node_float4<box_t>>> bvh_t;
-				typedef cuda::binary_lbvh<box_t, tri_t, bvh_t> lbvh_t;
+				// this is the more elaborate (under-the-hood) notation:
+				// typedef cuda::binary_bvh<box_t, tri_t, binary_bvh<box_t, tri_t, cuda::bbvh_node_float4<box_t>>> bvh_t;
+				// typedef cuda::binary_lbvh<box_t, tri_t, bvh_t> lbvh_t;
+				// but we prefer the more concise one:
+				typedef cuda::standard_bbvh<box_t, tri_t, cuda::bbvh_node_float4<box_t>> bvh_t;
+				typedef cuda::standard_lbvh<box_t, tri_t, cuda::bbvh_node_float4<box_t>> lbvh_t;
 				typedef cuda::lbvh_constructor<box_t, tri_t, lbvh_t> ctor_t;
 				cuda_ftl tmp_ftl(triangle_lists);
 				cuda_ftl ftl;

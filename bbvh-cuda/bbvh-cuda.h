@@ -71,6 +71,10 @@ namespace rta {
 				tri_t* triangle_ptr() { return triangle_data.data; }
 				int triangle_count() { return triangle_data.n; }
 		};
+
+		//! we try to standardize the common instances of complicated bvh types.
+		template<typename box_t, typename tri_t, typename node_t = rta::bbvh_node<box_t>> 
+		using standard_bbvh = cuda::binary_bvh<box_t, tri_t, rta::binary_bvh<box_t, tri_t, node_t>>;
 			
 		template<box_t__and__tri_t, typename bvh_t>
 		class bbvh_gpu_tracer : public cuda::gpu_raytracer<forward_traits> {
