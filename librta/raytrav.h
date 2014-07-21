@@ -1,8 +1,11 @@
 #ifndef __RTA_RAYTRAV_H__ 
 #define __RTA_RAYTRAV_H__ 
 
+#include "image.h"
+
 #include <algorithm>  // min,max
 #include <list>
+#include <ostream>
 
 namespace rta {
 
@@ -34,27 +37,75 @@ template<typename _tri_t> struct traversal_state {
 
 ////////////////////
 
-/*! \brief The interface for acceleration structures. See \ref triangle_ptr.
+/*! \brief The base of all acceleration structures. This is here only for a generic (tri_t, box_t agnostic) plugin interface.
+ * 	\attention Please derive from basic_acceleration_structure.
  */
-template<box_t__and__tri_t> struct acceleration_structure {
-	declare_traits_types;
-	virtual ~acceleration_structure() {}
-	/*! This *must* return an array that can be indexed with the ref value stored in a \ref triangle_intersection instance.
-	 */
-	virtual tri_t* triangle_ptr() = 0;
-	//! The length of the array returned by \ref triangle_ptr.
-	virtual int triangle_count() = 0;
-	virtual std::string identification() = 0;
+class acceleration_structure {
+	public:
+		virtual ~acceleration_structure() {}
+		virtual std::string identification() = 0;
+		//! \attention this is a temporary precaution to catch old code. will be deleted in some time.
+		virtual void please_derive_from_basic_acceleration_structure() = 0;
+		virtual void dump_acceleration_structure(const std::string &) {}
+		virtual void dump_primitives(const std::string &) {}
 };
 
-/*! The interface for acceleration structure constructors.
+/*! \brief The real interface for acceleration structures. See \ref triangle_ptr.
+ */
+template<box_t__and__tri_t> class basic_acceleration_structure : public acceleration_structure {
+	public:
+		declare_traits_types;
+		
+		/*! This *must* return an array that can be indexed with the ref value stored in a \ref triangle_intersection instance.
+		 */
+		virtual tri_t* triangle_ptr() = 0;
+		//! The length of the array returned by \ref triangle_ptr.
+		virtual int triangle_count() = 0;
+
+		/*! Returns the same s \ref triangle_ptr, but where the data can be accessed in the `canonical' way, 
+		 * 	i.e. on the cpu side. This is used to be able to shade and compute sphs data for gpu acceleration
+		 * 	structures.
+		 * 	\attention On gpu or elaborate triangle setup schemes, this may involve copying all the triangle data.
+		 */
+		virtual tri_t* canonical_triangle_ptr() { return triangle_ptr(); }
+		/*! Always call this on the triangle pointer obtained via \ref canonical_triangle_ptr.
+		 *  Data will only be freed if it was allocated by that funciton.
+		 */
+		virtual void free_canonical_triangles(tri_t *data) {}
+
+		//! \attention this is a temporary precaution to catch old code. will be deleted in some time.
+		virtual void please_derive_from_basic_acceleration_structure() {}
+};
+
+/*! \brief The base of all acceleration structure constructors. This is here only for a generic (tri_t, box_t agnostic) plugin interface.
+ * 	\attention Please derive from basic_acceleration_structure.
+ */
+class acceleration_structure_constructor {
+	public:
+		virtual ~acceleration_structure_constructor() {}
+		virtual std::string identification() = 0;
+		
+		//! \attention this is a temporary precaution to catch old code. will be deleted in some time.
+		virtual void please_derive_from_basic_acceleration_structure_constructor() = 0;
+};
+
+/*! The real interface for acceleration structure constructors.
  * 	
  * 	We have this as a separate entity because there are different ways to obtain an acceleration structure of the same type.
  */
-template<box_t__and__tri_t> struct acceleration_structure_constructor {
-	declare_traits_types;
-	virtual acceleration_structure<box_t, tri_t>* build(flat_triangle_list *tris) = 0;
-	virtual std::string identification() = 0;
+template<box_t__and__tri_t> class basic_acceleration_structure_constructor : public acceleration_structure_constructor {
+	public:
+		declare_traits_types;
+		typedef typename tri_t::input_flat_triangle_list_t flat_triangle_list_t;
+		virtual basic_acceleration_structure<box_t, tri_t>* build(flat_triangle_list_t *tris) = 0;
+
+		/*! \brief whether the triangle data to build the AS on is supposed to be in host (i.e. system ram) memory.
+		 * 	Host data is the most generic, but potentially slower, choice.
+		 */
+		virtual bool expects_host_triangles() { return true; }
+		
+		//! \attention this is a temporary precaution to catch old code. will be deleted in some time.
+		virtual void please_derive_from_basic_acceleration_structure_constructor() {}
 };
 
 ////////////////////
@@ -67,6 +118,7 @@ template<box_t__and__tri_t> struct acceleration_structure_constructor {
  */
 class bouncer { // sequential calls to raytrace
 	public:
+		virtual ~bouncer() {}
 		virtual void bounce() = 0;
 		virtual bool trace_further_bounces() = 0;
 		virtual void new_pass() {}
@@ -81,7 +133,7 @@ class bouncer { // sequential calls to raytrace
  *  the ray data is supposed to be stored in the ray generator's structure until the bouncer replaces it.
  *  \todo does this generalize to gpu tracing?
  */
-template<box_t__and__tri_t> class cpu_ray_bouncer : public bouncer {
+template<box_t__and__tri_t> class cpu_ray_bouncer : virtual public bouncer {
 	public:
 		declare_traits_types;
 	protected:
@@ -122,6 +174,7 @@ template<box_t__and__tri_t> class primary_intersection_collector : public cpu_ra
 template<box_t__and__tri_t> class lighting_collector {
 	public:
 		typedef _tri_t tri_t;
+		typedef typename tri_t::vec3_t vec3_t;
 	protected:
 		image<unsigned char, 3> res;
 		struct light { vec3_t pos, col ; };
@@ -145,7 +198,7 @@ template<box_t__and__tri_t> class lighting_collector {
 				for (int x = 0; x < res.w; ++x) {
 					triangle_intersection<tri_t> &is = this->last_intersection->pixel(x,y);
 					if (!is.valid()) continue;
-					vec3f col = {0,0,0};
+					vec3_t col = {0,0,0};
 					if (binary_result_only)
 						col = lights.front().col;
 					else {
@@ -175,9 +228,9 @@ template<box_t__and__tri_t> class lighting_collector {
 							add_components_vec3f(&col, &col, &c);
 						}
 					}
-					res.pixel(x,y,0) = std::min(int(col.x*255), 255);
-					res.pixel(x,y,1) = std::min(int(col.y*255), 255);
-					res.pixel(x,y,2) = std::min(int(col.z*255), 255);
+					res.pixel(x,y,0) = std::max(0, std::min(int(col.x*255), 255));
+					res.pixel(x,y,1) = std::max(0, std::min(int(col.y*255), 255));
+					res.pixel(x,y,2) = std::max(0, std::min(int(col.z*255), 255));
 			}
 		}
 		virtual void add_pointlight(const vec3_t &at, const vec3_t &col) {
@@ -205,7 +258,7 @@ template<box_t__and__tri_t, typename shader> class direct_diffuse_illumination :
 // 			for (int y = 0; y < res.h; ++y)
 // 				for (int x = 0; x < res.w; ++x)
 // 					res.pixel(x,y,1) = this->last_intersection.pixel(x,y).valid() ? 255 : 0;
-			this->shade();
+// 			this->shade();
 		}
 		virtual bool trace_further_bounces() {
 			return false;
@@ -223,6 +276,7 @@ class ray_generator {
 		image<float, 1> ray_max_t;
 		ray_generator(unsigned int res_x, unsigned int res_y) : raydata(res_x, res_y), ray_max_t(res_x, res_y) {
 		}
+		virtual ~ray_generator() {}
 		/*! \brief The actual interface function.
 		 * 
 		 * 	\note The whole image,x,y stuff is to be understood as a means of storage and 
@@ -238,6 +292,7 @@ class ray_generator {
  		inline float& max_t(uint x, uint y)                 { return ray_max_t.pixel(x, y, 0); }
 		inline const float& max_t(uint x, uint y) const     { return ray_max_t.pixel(x, y, 0); }
 		virtual std::string identification() = 0;
+		virtual void dump_rays(const std::string &filename) {}
 		//! this is here just to find bugs in legacy ray generators. subject to removal.
 		virtual void dont_forget_to_initialize_max_t() = 0;
 };
@@ -295,6 +350,20 @@ class cam_ray_generator_shirley : public ray_generator {
 				}
 		}
 		virtual std::string identification() { return "ray generator according to shirley."; }
+		virtual void dump_rays(const std::string &filename) {
+			std::ofstream out(filename.c_str());
+			int w = res_x(), h = res_y();
+			out << "ray\n" << w << " " << h << "\n";
+			for (int y = 0; y < h; ++y)
+				for (int x = 0; x < w; ++x) {
+					vec3f *o = origin(x, y),
+						  *d = direction(x, y);
+					out << y*w+x << " " << 2 << " "
+						<< o->x << " " << o->y << " " << o->z << " "
+						<< d->x << " " << d->y << " " << d->z << " "
+						<< "0 " << max_t(x, y) << "\n";
+				}
+		}
 		virtual void dont_forget_to_initialize_max_t() {}
 };
 
@@ -303,8 +372,8 @@ class cam_ray_generator_shirley : public ray_generator {
 //! The general ray tracing interface.
 class raytracer {
 	public:
-		virtual void setup_rays() = 0;
-		virtual void prepare_bvh_for_tracing() = 0;
+// 		virtual void setup_rays() = 0;
+// 		virtual void prepare_bvh_for_tracing() = 0;
 		virtual void trace() = 0;
 		virtual std::string identification() = 0;
 		virtual raytracer* copy() = 0;
@@ -313,8 +382,8 @@ class raytracer {
 		virtual bool supports_max_t() = 0;
 };
 
-/*! A framework ray tracer extension that implements the whole \ref ray_generator, \ref raytracer, \ref bouncer cycle, 
- *		as well as the taking of  timings.
+/*! \brief A framework ray tracer extension that implements the whole \ref ray_generator, \ref raytracer, \ref bouncer cycle, 
+ *		   as well as the taking of  timings.
  */
 template<box_t__and__tri_t> class basic_raytracer : public raytracer {
 	public:
@@ -323,24 +392,28 @@ template<box_t__and__tri_t> class basic_raytracer : public raytracer {
 	protected:
 		rta::ray_generator *raygen;
 		rta::bouncer *bouncer;
-		cpu_ray_bouncer<forward_traits> *cpu_bouncer;
 		virtual float trace_rays() = 0;
-		rta::acceleration_structure<forward_traits> *accel_struct;
+		rta::basic_acceleration_structure<forward_traits> *accel_struct;
 
 	public:
-		basic_raytracer(rta::ray_generator *raygen, class bouncer *bouncer, acceleration_structure<forward_traits> *as) : raygen(raygen), bouncer(bouncer), cpu_bouncer(dynamic_cast<cpu_ray_bouncer<forward_traits>*>(bouncer)), accel_struct(as) {
+		basic_raytracer(rta::ray_generator *raygen, class bouncer *bouncer, basic_acceleration_structure<forward_traits> *as)
+		: raygen(raygen), bouncer(bouncer), accel_struct(as) {
 			if (bouncer)
 				basic_raytracer::ray_bouncer(bouncer);
 		}
-		virtual void setup_rays() { // potentially uploads ray data to the gpu
-		}
-		virtual void prepare_bvh_for_tracing() { // potentially uploads the bvh to the gpu? will ich das?
+// 		virtual void setup_rays() { // potentially uploads ray data to the gpu
+// 		}
+// 		virtual void prepare_bvh_for_tracing() { // potentially uploads the bvh to the gpu? will ich das?
+// 		}
+		//! \brief this can be used, e.g., to initialize gpu buffers. time spent is not accumulated in \ref timings.
+		virtual void prepare_trace() {
 		}
 		virtual void trace() {
 			raygen->generate_rays();
 			bouncer->new_pass();
 			timings.clear();
 			do {
+				prepare_trace();
 				float ms = trace_rays();
 				timings.push_back(ms);
 				bouncer->bounce();
@@ -352,21 +425,43 @@ template<box_t__and__tri_t> class basic_raytracer : public raytracer {
 		 */
 		std::vector<float> timings;
 		virtual void ray_generator(rta::ray_generator *rg) { raygen = rg; }
-		virtual void ray_bouncer(rta::bouncer *rb) { 
-			cpu_bouncer = dynamic_cast<cpu_ray_bouncer<forward_traits>*>(rb); 
-			bouncer = rb; 
-		}
-		virtual void force_cpu_bouncer(rta::cpu_ray_bouncer<forward_traits> *rb) {
-			cpu_bouncer = rb;
-		}
+		virtual void ray_bouncer(rta::bouncer *rb) { bouncer = rb; }
 		virtual basic_raytracer* copy() = 0;
 		
-		virtual void acceleration_structure(rta::acceleration_structure<forward_traits> *as) {
+		virtual void acceleration_structure(rta::basic_acceleration_structure<forward_traits> *as) {
 			accel_struct = as;
 		}
-		rta::acceleration_structure<forward_traits>* acceleration_structure() {
+		rta::basic_acceleration_structure<forward_traits>* acceleration_structure() {
 			return accel_struct;
 		}
+};
+
+/*! \brief Extension to basic_raytracer to be able to access cpu_ray_bouncer.
+ */
+template<box_t__and__tri_t> class cpu_raytracer : public basic_raytracer<forward_traits> {
+	public:
+		declare_traits_types;
+	
+	protected:
+		cpu_ray_bouncer<forward_traits> *cpu_bouncer;
+
+	public:
+		cpu_raytracer(rta::ray_generator *raygen, class bouncer *bouncer, basic_acceleration_structure<forward_traits> *as)
+		: basic_raytracer<forward_traits>(raygen, bouncer, as), cpu_bouncer(0) {
+			if (bouncer)
+				this->ray_bouncer(bouncer);
+		}
+		virtual void ray_bouncer(rta::bouncer *rb) { 
+			basic_raytracer<forward_traits>::ray_bouncer(rb);
+			cpu_bouncer = dynamic_cast<cpu_ray_bouncer<forward_traits>*>(rb); 
+		}
+		virtual void force_cpu_bouncer(rta::cpu_ray_bouncer<forward_traits> *rb) {
+			std::cerr << "> > > WARNING > > > you are using cpu_raytracer::force_cpu_bouncer." << std::endl;
+			std::cerr << "> > > WARNING > > > please make sure if your code runs without this call." << std::endl;
+			std::cerr << "> > > WARNING > > > if not, get back to me!" << std::endl;
+			cpu_bouncer = rb;
+		}
+
 };
 
 ////////////////////

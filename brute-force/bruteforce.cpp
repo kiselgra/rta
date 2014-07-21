@@ -79,7 +79,7 @@ namespace rta {
 		/*! \brief Implementation of the \ref acceleration_structure interface for brute force ray tracing.
 		 *  \note For the BF case this is bogus, of course :)
 		 */
-		template<box_t__and__tri_t> class bruteforce_dummy_accel_struct : public acceleration_structure<forward_traits> {
+		template<box_t__and__tri_t> class bruteforce_dummy_accel_struct : public basic_acceleration_structure<forward_traits> {
 		public:
 			declare_traits_types;
 
@@ -102,7 +102,7 @@ namespace rta {
 		 *  \note For the case of BF RT this is really bogus.
 		 *  \note We forward our template parameters but it is not really required to happen this way, so feel free.
 		 */
-		template<box_t__and__tri_t> class bruteforce_dummy_as_ctor : public acceleration_structure_constructor<forward_traits> {
+		template<box_t__and__tri_t> class bruteforce_dummy_as_ctor : public basic_acceleration_structure_constructor<forward_traits> {
 		public:
 			declare_traits_types;
 
@@ -110,7 +110,7 @@ namespace rta {
 			 * 	The triangle data returned by the acceleration structure must reflect those changes or 
 			 * 		return intersection information respecting the original configuration (which would probably be harder to do).
 			 */
-			bruteforce_dummy_accel_struct<forward_traits>* build(flat_triangle_list *tris) {
+			bruteforce_dummy_accel_struct<forward_traits>* build(typename tri_t::input_flat_triangle_list_t *tris) {
 				bruteforce_dummy_accel_struct<forward_traits> *as = new bruteforce_dummy_accel_struct<forward_traits>;
 				std::vector<tri_t> tmp;
 				for (int i = 0; i < tris->triangles; ++i)
@@ -124,17 +124,17 @@ namespace rta {
 
 		/*! \brief Implemantation of the \ref raytracer interface via \ref basic_raytracer to integrate nicely into the evaluation code.
 		 */
-		template<box_t__and__tri_t> class bruteforce_tracer : public basic_raytracer<forward_traits> {
+		template<box_t__and__tri_t> class bruteforce_tracer : public cpu_raytracer<forward_traits> {
 			declare_traits_types;
 
 			// we "use" these here to avoid more ugly syntax in the functions using them.
 			using basic_raytracer<forward_traits>::raygen;
-			using basic_raytracer<forward_traits>::cpu_bouncer;
+			using cpu_raytracer<forward_traits>::cpu_bouncer;
 
 			bruteforce_dummy_accel_struct<forward_traits> *as;
 
 		public:
-			bruteforce_tracer(ray_generator *gen, bouncer *b, bruteforce_dummy_accel_struct<forward_traits> *as) : basic_raytracer<forward_traits>(gen, b, as), as(as) {
+			bruteforce_tracer(ray_generator *gen, bouncer *b, bruteforce_dummy_accel_struct<forward_traits> *as) : cpu_raytracer<forward_traits>(gen, b, as), as(as) {
 			}
 
 			virtual float trace_rays() {
@@ -200,15 +200,16 @@ extern "C" {
 		return ret;
 	}
 
-	rt_set<simple_aabb, simple_triangle> create_rt_set(flat_triangle_list &triangle_lists, int w, int h) {
+	rt_set create_rt_set(basic_flat_triangle_list<simple_triangle> &triangle_lists, int w, int h) {
 		using namespace rta::example;
 
 		typedef simple_triangle tri_t;
 		typedef simple_aabb box_t;
 
-		rt_set<box_t, tri_t> set;
-		set.ctor = new bruteforce_dummy_as_ctor<box_t, tri_t>;
-		set.as = set.ctor->build(&triangle_lists);	// here we just use the first triangle list; this is actually stupid.
+		rt_set set;
+		bruteforce_dummy_as_ctor<box_t, tri_t> *ctor = new bruteforce_dummy_as_ctor<box_t, tri_t>;
+		set.ctor = ctor;
+		set.as = ctor->build(&triangle_lists);	// here we just use the first triangle list; this is actually stupid.
 		set.rt = new bruteforce_tracer<box_t, tri_t>(0, 0, dynamic_cast<bruteforce_dummy_accel_struct<box_t, tri_t>*>(set.as));
 		
 		return set;

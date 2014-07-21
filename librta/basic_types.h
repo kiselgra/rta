@@ -32,20 +32,46 @@ namespace rta {
  * 	@{
  */
 
+#ifdef __CUDACC__
+#define heterogenous __host__ __device__
+#else
+#define heterogenous
+#endif
+
 
 	typedef unsigned int uint;
 	typedef float float_t;
 	typedef vec2f vec2_t;
 	typedef vec3f vec3_t;
 	typedef vec4f vec4_t;
+	
+	template<typename vec3_base> struct vector_traits {
+	};
+
+	template<> struct vector_traits<vec3_t> {
+		typedef rta::vec2_t vec2_t;
+		typedef rta::vec3_t vec3_t;
+		typedef rta::vec4_t vec4_t;
+	};
+
+	template<typename tri_t_> struct basic_flat_triangle_list {
+		typedef tri_t_ tri_t;
+		uint triangles;
+		tri_t *triangle;
+		basic_flat_triangle_list() : triangles(0), triangle(0) {}
+		basic_flat_triangle_list(int size) : triangles(size), triangle(0) { triangle = new tri_t[size]; }
+	};
+
 
 	//! our most primitive triangle type
 	struct simple_triangle {
+		typedef basic_flat_triangle_list<simple_triangle> input_flat_triangle_list_t;
+		typedef rta::vec3_t vec3_t;
 		vec3_t a, b, c;
 		vec3_t na, nb, nc;
 		vec2_t ta, tb, tc;
 		int material_index;
-	};
+	} __attribute__ ((aligned (8)));
 
 	//! simple aabb
 	struct simple_aabb {
@@ -54,13 +80,14 @@ namespace rta {
 
 	template<typename _tri_t> struct triangle_intersection {
 		typedef _tri_t tri_t;
+		typedef typename tri_t::vec3_t vec3_t;
 		float_t t, beta, gamma;
 		uint ref;
-		triangle_intersection() : t(FLT_MAX), ref(0) {}
-		triangle_intersection(uint t) : t(FLT_MAX), ref(t) {}
-		bool valid() const { return t != FLT_MAX; }
-		void reset() { t = FLT_MAX; ref = 0; }
-		void barycentric_coord(vec3_t *to) const {
+		heterogenous triangle_intersection() : t(FLT_MAX), ref(0) {}
+		heterogenous triangle_intersection(uint t) : t(FLT_MAX), ref(t) {}
+		heterogenous bool valid() const { return t != FLT_MAX; }
+		heterogenous void reset() { t = FLT_MAX; ref = 0; }
+		heterogenous void barycentric_coord(vec3_t *to) const {
 			to->x = 1.0 - beta - gamma;
 			to->y = beta;
 			to->z = gamma;
@@ -68,13 +95,8 @@ namespace rta {
 	};
 
 
-	struct flat_triangle_list {
-		uint triangles;
-		simple_triangle *triangle;
-		flat_triangle_list() : triangles(0), triangle(0) {}
-		flat_triangle_list(int size) : triangles(size), triangle(0) { triangle = new simple_triangle[size]; }
-	};
 
+	#ifndef __CUDACC__	// cuda never really supported templates...
 
 	// !!! be aware that these are defined everywhere!
 
@@ -87,11 +109,9 @@ namespace rta {
 	//! just another shortcut
 	#define traits_of(X) typename X::box_t, typename X::tri_t
 
-
-
 	#define invalid_instantiation_message "Invalid instantiation of a function allowed for certain types, only."
-	#define invalid_instantiation(TTT) static_assert(fail<TTT>::result, invalid_instantiation_message)
 	#define invalid_t void
+	#define invalid_instantiation(TTT) static_assert(fail<TTT>::result, invalid_instantiation_message)
 	
 	
 	// accessors
@@ -232,6 +252,7 @@ namespace rta {
 	template<>           inline const vec3_t& max(const simple_aabb &bb) { return bb.max; }
 	//! @}
 
+	#endif
 
 
 	// output
@@ -248,11 +269,13 @@ namespace rta {
 	//! @}
 }
 
+#include <librta/cuda-vec.h>
 
 #include "tri.h"
 #include "aabb.h"
 	
 namespace rta {
+	#ifndef __CUDACC__
 	inline simple_aabb compute_aabb(const simple_triangle &t)
 	{	
 		simple_aabb bb;
@@ -261,6 +284,7 @@ namespace rta {
 		merge(bb, t);
 		return bb;
 	}
+	#endif
 }
 
 #endif

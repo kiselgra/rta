@@ -5,7 +5,7 @@
 
 namespace rta {
 
-	template<typename tri> bool intersect_tri_opt(const tri &t, const vec3_t *ray_origin, const vec3_t *ray_dir, triangle_intersection<tri> &info)
+	template<typename tri> heterogenous bool intersect_tri_opt(const tri &t, const vec3_t *ray_origin, const vec3_t *ray_dir, triangle_intersection<tri> &info)
 	{
 		float_t a_x = x_comp(vertex_a(t));
 		float_t a_y = y_comp(vertex_a(t));
@@ -53,7 +53,7 @@ namespace rta {
 	}	
 
 	
-	template<typename aabb> bool intersect_aabb(const aabb &box, const vec3f *ray_origin, const vec3f *ray_dir, float &is)
+	template<typename aabb> heterogenous bool intersect_aabb(const aabb &box, const vec3f *ray_origin, const vec3f *ray_dir, float &is)
 	{
 		float_t t_near = -FLT_MAX;
 		float_t t_far  =  FLT_MAX;
@@ -148,6 +148,33 @@ namespace rta {
 		is = t_near;
 		return true;
 	}
+
+	#ifdef __CUDACC__
+	heterogenous inline float3 f3maxf3(const float3 &left, const float3 &right) {
+		return make_float3(fmaxf(left.x, right.x), fmaxf(left.y, right.y), fmaxf(left.z, right.z));
+	}
+	heterogenous inline float3 f3minf3(const float3 &left, const float3 &right) {
+		return make_float3(fminf(left.x, right.x), fminf(left.y, right.y), fminf(left.z, right.z));
+	}
+	heterogenous inline float fmaxf3(const float3 &in) {
+		return fmaxf(fmaxf(in.x, in.y), in.z);
+	}
+	heterogenous inline float fminf3(const float3 &in) {
+		return fminf(fminf(in.x, in.y), in.z);
+	}
+	heterogenous inline bool intersect_aabb_aila(const float3 &mi, const float3 &ma, const float3 &o, const float3 &id, const float t, float &retval) {
+		const float3 oid = o * id;
+		const float3 t1 = (mi * id) - oid;
+		const float3 t2 = (ma * id) - oid;
+		
+		const float near = fmaxf3(f3minf3(t1,t2));
+		const float far = fminf3(f3maxf3(t1,t2));
+
+		retval = near;
+
+		return near <= far && far >= 0.f && near < t;
+	}
+	#endif
 
 
 }

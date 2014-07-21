@@ -24,7 +24,7 @@ namespace rta {
 	 *  required.
 	 *
 	 */
-	template<box_t__and__tri_t> class stackless_bvh : public acceleration_structure<forward_traits> {
+	template<box_t__and__tri_t> class stackless_bvh : public basic_acceleration_structure<forward_traits> {
 		public:
 			declare_traits_types;
 			typedef uint32_t link_t;
@@ -74,7 +74,7 @@ namespace rta {
 
 	/*! ctor for the general sbvh version. see stackless_bvh. */
 	template<typename sbvh_t, typename bvh_ctor_t, typename bias_t = bbvh_no_bias> 
-	class sbvh_constructor : public acceleration_structure_constructor<typename sbvh_t::box_t, typename sbvh_t::tri_t> {
+	class sbvh_constructor : public basic_acceleration_structure_constructor<typename sbvh_t::box_t, typename sbvh_t::tri_t> {
 		public:
 			typedef typename bvh_ctor_t::bvh_t bbvh_t;
 			typedef sbvh_t bvh_t;
@@ -120,7 +120,7 @@ namespace rta {
 	
 			virtual std::string identification() { return "stackless bvh ctor (based on " + bbvh_ctor.identification() + ")"; }
 		
-			sbvh_t* build(flat_triangle_list *tris) {
+			sbvh_t* build(typename tri_t::input_flat_triangle_list_t *tris) {
 				bbvh_t *bbvh = bbvh_ctor.build(tris);
 				sbvh_t *stackless_bvh = new sbvh_t;
 
@@ -149,7 +149,7 @@ namespace rta {
 	 */
 	
 	/*! stackless bvh stored in pre order, for classical and 8sbvh traversal. */
-	template<box_t__and__tri_t> class preorder_stackless_bvh : public acceleration_structure<forward_traits> {
+	template<box_t__and__tri_t> class preorder_stackless_bvh : public basic_acceleration_structure<forward_traits> {
 		public:
 			declare_traits_types;
 			typedef uint32_t link_t;
@@ -192,7 +192,7 @@ namespace rta {
 
 	
 	template<typename sbvh_t, typename bvh_ctor_t, typename bias_t = bbvh_no_bias> 
-	class sbvh_preorder_constructor : public acceleration_structure_constructor<typename sbvh_t::box_t, typename sbvh_t::tri_t> {
+	class sbvh_preorder_constructor : public basic_acceleration_structure_constructor<typename sbvh_t::box_t, typename sbvh_t::tri_t> {
 		public:
 			typedef typename sbvh_t::box_t box_t;
 			typedef typename sbvh_t::tri_t tri_t;
@@ -202,7 +202,7 @@ namespace rta {
 			 *  to construct a sbvh (via the generic sbvh ctor) which we can extend to insert a preoder
 			 *  numbering to ease the conversion to a preoder sbvh.
 			 */
-			class fat_sbvh : public acceleration_structure<box_t, tri_t> {
+			class fat_sbvh : public basic_acceleration_structure<box_t, tri_t> {
 				public:
 					typedef uint32_t link_t;
 					struct node {
@@ -317,7 +317,7 @@ namespace rta {
 	
 			virtual std::string identification() { return "preorder stackless bvh ctor (based on " + fat_sbvh_ctor.identification() + ")"; }
 		
-			sbvh_t* build(flat_triangle_list *tris) {
+			sbvh_t* build(typename tri_t::input_flat_triangle_list_t *tris) {
 				std::cout << "preorder ctor" << std::endl;
 				fat_sbvh *fbvh = fat_sbvh_ctor.build(tris);
 				std::cout << "built fat sbvh" << std::endl;
@@ -339,16 +339,16 @@ namespace rta {
 			}
 	};
 
-	template<box_t__and__tri_t, typename sbvh_t_> class preorder_sbvh_tracer : public basic_raytracer<forward_traits> {
+	template<box_t__and__tri_t, typename sbvh_t_> class preorder_sbvh_tracer : public cpu_raytracer<forward_traits> {
 		public:
 			declare_traits_types;
 			typedef sbvh_t_ sbvh_t;
 			typedef typename sbvh_t::node_t node_t;
 			using basic_raytracer<forward_traits>::raygen;
-			using basic_raytracer<forward_traits>::cpu_bouncer;
+			using cpu_raytracer<forward_traits>::cpu_bouncer;
 			sbvh_t *sbvh;
 
-			preorder_sbvh_tracer(ray_generator *gen, sbvh_t *bvh, class bouncer *b) : basic_raytracer<forward_traits>(gen, b, bvh), sbvh(bvh) {
+			preorder_sbvh_tracer(ray_generator *gen, sbvh_t *bvh, class bouncer *b) : cpu_raytracer<forward_traits>(gen, b, bvh), sbvh(bvh) {
 			}
 			virtual float trace_rays() {
 				wall_time_timer wtt; wtt.start();
@@ -411,7 +411,7 @@ namespace rta {
 	 * 	in the tree.
 	 */
 
-	template<box_t__and__tri_t> class order_independent_sbvh : public acceleration_structure<forward_traits> {
+	template<box_t__and__tri_t> class order_independent_sbvh : public basic_acceleration_structure<forward_traits> {
 		public:
 			declare_traits_types;
 			typedef uint32_t link_t;
@@ -462,16 +462,16 @@ namespace rta {
 	};
 
 	/*! sbvh traverser for the \ref order_independent_sbvh. */
-	template<box_t__and__tri_t, typename sbvh_t_> class order_independent_sbvh_tracer : public basic_raytracer<forward_traits> {
+	template<box_t__and__tri_t, typename sbvh_t_> class order_independent_sbvh_tracer : public cpu_raytracer<forward_traits> {
 		public:
 			declare_traits_types;
 			typedef sbvh_t_ sbvh_t;
 			typedef typename sbvh_t::node_t node_t;
 			using basic_raytracer<forward_traits>::raygen;
-			using basic_raytracer<forward_traits>::cpu_bouncer;
+			using cpu_raytracer<forward_traits>::cpu_bouncer;
 			sbvh_t *sbvh;
 
-			order_independent_sbvh_tracer(ray_generator *gen, sbvh_t *bvh, class bouncer *b) : basic_raytracer<forward_traits>(gen, b, bvh), sbvh(bvh) {
+			order_independent_sbvh_tracer(ray_generator *gen, sbvh_t *bvh, class bouncer *b) : cpu_raytracer<forward_traits>(gen, b, bvh), sbvh(bvh) {
 			}
 			virtual float trace_rays() {
 				wall_time_timer wtt; wtt.start();

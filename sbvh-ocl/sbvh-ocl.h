@@ -41,7 +41,7 @@ namespace rta {
 		};
 		
 		template<typename sbvh_ctor_t, typename bbvh_ctor_t, typename bias_t = bbvh_no_bias>
-		class sbvh_constructor : public acceleration_structure_constructor<typename sbvh_ctor_t::box_t, typename sbvh_ctor_t::tri_t> {
+		class sbvh_constructor : public basic_acceleration_structure_constructor<typename sbvh_ctor_t::box_t, typename sbvh_ctor_t::tri_t> {
 			public:
 				typedef typename sbvh_ctor_t::bvh_t bvh_t;
 				typedef typename sbvh_ctor_t::box_t box_t;
@@ -61,7 +61,7 @@ namespace rta {
 	
 				virtual std::string identification() { return "sbvh ctor to ocl buffer (based on " + sbvh_ctor.identification() + ")"; }
 
-				bvh_t* build(flat_triangle_list *tris) {
+				bvh_t* build(typename tri_t::input_flat_triangle_list_t *tris) {
 					std::cout << "ocl sbvh build" << std::endl;
 					bvh_t *sbvh = sbvh_ctor.build(tris);
 					std::cout << "done" << std::endl;

@@ -17,7 +17,7 @@ static char doc[]       = PACKAGE ": ray tracing test suite\n\n"
 static char args_doc[]  = "module -- [OPTIONS for module...]";
 
 // long option without corresponding short option have to define a symbolic constant >= 300
-enum { FIRST = 300, AXIS, ANCHOR, SF, BT, DIST, NOPNG, OPTS };
+enum { FIRST = 300, AXIS, ANCHOR, SF, BT, DIST, NOPNG, NOSHADE, OPTS };
 
 static struct argp_option options[] = 
 {
@@ -40,8 +40,11 @@ static struct argp_option options[] =
 	{ "help", '?', 0,             0, "Give this help list (or show help of a previously specified module, see -m)." },
 	{ "resolution", 'r', "WxH",             0, "Set the resolution (default: 800x800)." },
 	{ "no-png", NOPNG, 0,             0, "Do not write image files." },
+	{ "no-shade", NOSHADE, 0,             0, "Do not shade the images on the cpu (implies --no-png)." },
 	{ "png-prefix", 'P', "prefix",             0, "Write images to this path. Note that this is not be a complete filename, e.g. <prefix> will produce <prefix>0001.png." },
 	{ "image-path", 'I', "path",             0, "Add paths to search for images." },
+	{ "mamo-output", 'M', "prefix", 0, "Write out mamo data (<prefix>.xx.ray, <prefix>.tri, <prefix>.bvh)." },
+	{ "rebuild-bvh", 'R', 0, 0, "Rebuild the BVH in each frame. This is for 'battle testing' the bvh construction/tracer interface." },
 	{ 0 }
 };	
 
@@ -102,11 +105,16 @@ static error_t parse_options(int key, char *arg, argp_state *state)
 	case 'l':     cmdline.light_col = read_vec3f(sarg); break;
 	case 'B':     cmdline.binary_intersection_debug = true; break;
 	case 'I':     cmdline.image_paths.push_back(sarg); break;
+	case 'M':     cmdline.mamo_output = true; cmdline.mamo_prefix = sarg; break;
 	case 'r':     res = read_vec2f(sarg);
 	              cmdline.res_x = res.x;
 	              cmdline.res_y = res.y;
 	              break;
 	case NOPNG:   cmdline.png_output = false;
+				  break;
+	case NOSHADE: cmdline.shade = false;
+				  break;
+	case 'R':     cmdline.rebuild_bvh = true;
 				  break;
 
 	case ARGP_KEY_ARG:		// process arguments. 

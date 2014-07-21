@@ -21,7 +21,7 @@ namespace rta {
 				
 				virtual std::string identification() { return "bbvh using ocl buffers (based on " + parent_t::identification() + ")"; }
 				void fill_buffers(cl::context &c) {
-					const size_t node_size = sizeof(typename parent_t::node);
+					const size_t node_size = sizeof(typename parent_t::node_t);
 					if (!tri_buffer)  tri_buffer = new cl::buffer(c, CL_MEM_READ_ONLY, sizeof(tri_t) * this->triangles.size());
 					if (!node_buffer) node_buffer = new cl::buffer(c,CL_MEM_READ_ONLY, node_size * this->nodes.size());
 					static_assert(node_size == 32, 
@@ -32,7 +32,7 @@ namespace rta {
 		};
 
 		template<typename bvh_ctor_t, typename bias_t = bbvh_no_bias>
-		class bbvh_constructor : public acceleration_structure_constructor<typename bvh_ctor_t::box_t, typename bvh_ctor_t::tri_t> {
+		class bbvh_constructor : public basic_acceleration_structure_constructor<typename bvh_ctor_t::box_t, typename bvh_ctor_t::tri_t> {
 			public:
 				typedef typename bvh_ctor_t::bvh_t bbvh_t;
 				typedef typename bvh_ctor_t::box_t box_t;
@@ -52,7 +52,7 @@ namespace rta {
 	
 				virtual std::string identification() { return "bbvh ctor to ocl buffer (based on " + bbvh_ctor.identification() + ")"; }
 
-				bbvh_t* build(flat_triangle_list *tris) {
+				virtual bbvh_t* build(typename tri_t::input_flat_triangle_list_t *tris) {
 					bbvh_t *bbvh = bbvh_ctor.build(tris);
 					bbvh->fill_buffers(ctx);
 					return bbvh;
@@ -65,7 +65,6 @@ namespace rta {
 				typedef bvh_t_ bbvh_t;
 				typedef typename bbvh_t::node_t node_t;
 				using basic_raytracer<forward_traits>::raygen;
-				using basic_raytracer<forward_traits>::cpu_bouncer;
 				// required because of template base:
 				using ocl::raytracer_ocl_addon<forward_traits>::kernel;
 				using ocl::raytracer_ocl_addon<forward_traits>::opencl;

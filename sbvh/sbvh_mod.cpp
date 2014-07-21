@@ -116,7 +116,7 @@ extern "C" {
 		return ret;
 	}
 
-	rt_set<simple_aabb, simple_triangle> create_rt_set(std::list<flat_triangle_list> &triangle_lists, int w, int h) {
+	rt_set create_rt_set(basic_flat_triangle_list<simple_triangle> &triangle_lists, int w, int h) {
 		cout << "creating set" << endl;
 		typedef simple_triangle tri_t;
 		typedef simple_aabb box_t;
@@ -128,22 +128,22 @@ extern "C" {
 		typedef bbvh_constructor_using_median<bvh_t> bbvh_ctor_t;
 		typedef bbvh_constructor_using_median<bvh_with_sa_t> bbvh_ctor_with_sa_t;
 		cout << "building bvh" << endl;
-		acceleration_structure_constructor<box_t, tri_t> *ctor = 0;
-		acceleration_structure<box_t, tri_t> *sbvh = 0;
+		basic_acceleration_structure_constructor<box_t, tri_t> *ctor = 0;
+		basic_acceleration_structure<box_t, tri_t> *sbvh = 0;
 
 		switch (cmdline.bvh_trav) {
 			case Cmdline::bbvh_cis:
 			case Cmdline::bbvh_dis:
 				ctor = new sbvh_constructor<sbvh_t, bbvh_ctor_t>(bbvh_ctor_t::spatial_median);
-				sbvh = ctor->build(&triangle_lists.front());
+				sbvh = ctor->build(&triangle_lists);
 				break;
 			case Cmdline::preorder_sbvh:
 				ctor = new sbvh_preorder_constructor<preorder_sbvh_t, bbvh_ctor_t>(bbvh_ctor_t::spatial_median);
-				sbvh = ctor->build(&triangle_lists.front());
+				sbvh = ctor->build(&triangle_lists);
 				break;
 			case Cmdline::sbvh_oi:
 				ctor = new sbvh_constructor<oi_sbvh_t, bbvh_ctor_with_sa_t>(bbvh_ctor_with_sa_t::spatial_median);
-				sbvh = ctor->build(&triangle_lists.front());
+				sbvh = ctor->build(&triangle_lists);
 				break;
 			default:
 				cerr << "unhandled case in sbvh ctor switch! (" << cmdline.bvh_trav << ")" << endl;
@@ -172,7 +172,7 @@ extern "C" {
 				exit(EXIT_FAILURE);
 		}
 
-		rt_set<box_t, tri_t> set;
+		rt_set set;
 		set.as = sbvh;
 		set.ctor = ctor;
 		set.rt = rt;

@@ -12,6 +12,7 @@ AC_CONFIG_FILES(Makefile librta/Makefile rta/Makefile bbvh/Makefile
 				doc/Makefile doc/doxyfile doc/doxygen_mainpage.h 
 				wrapper-for-librctest/Makefile 
 				sbvh/Makefile sphs/Makefile bbvh-ocl/Makefile sbvh-ocl/Makefile 
+				bbvh-cuda/Makefile
 				brute-force/Makefile
 				rta.pc)
 
@@ -53,10 +54,14 @@ AC_CHECK_LIB([dl], [main])
 AC_CHECK_LIB([lumocl], [main])
 AC_CHECK_LIB([OpenCL], [main])
 AC_CHECK_LIB([GL], [main])
-AC_CHECK_LIB([GLblub], [main])
+#AC_CHECK_LIB([GLblub], [main])
+#AC_CHECK_LIB([cudart], [main])
+AX_WITH_CUDA
 
 AM_CONDITIONAL([opencl], [test "x$ac_cv_lib_lumocl_main" == "xyes"])
 AM_CONDITIONAL([use_librctest], [test "x" == "y"])
+
+AM_CONDITIONAL([cuda], [test "x$ac_cv_lib_cudart_main" == "xyes"])
 
 # Checks for header files.
 AC_HEADER_STDC

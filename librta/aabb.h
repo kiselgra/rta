@@ -6,9 +6,10 @@
 
 namespace rta {
 
+	#ifndef __CUDACC__
 	template<typename aabb, typename tri> void merge(aabb &bb, const tri &t)
 	{
-		typedef vec3_t V;
+		typedef typename tri::vec3_t V;
 		const V &a = vertex_a(t);
 		if (x_comp(a) < x_comp(min(bb)))	x_comp(min(bb)) = x_comp(a);		if (x_comp(a) > x_comp(max(bb))) x_comp(max(bb)) = x_comp(a);
 		if (y_comp(a) < y_comp(min(bb)))	y_comp(min(bb)) = y_comp(a);		if (y_comp(a) > y_comp(max(bb))) y_comp(max(bb)) = y_comp(a);
@@ -98,6 +99,7 @@ namespace rta {
 	{
 		return typename aabb::vec3_t((b.max - b.min) * 0.5 + b.min);
 	}
+	#endif
 
 }
 

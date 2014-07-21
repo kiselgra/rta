@@ -11,6 +11,9 @@ endif
 if use_librctest
 SUBDIRS += wrapper-for-librctest 
 endif
+if cuda
+SUBDIRS += bbvh-cuda
+endif
 
 SUBDIRS += doc
 
@@ -26,3 +29,8 @@ EXTRA_DIST += dragon-param dragon-param-rttest
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = rta.pc
 
+if cuda
+cudadir = $(pkgdatadir)
+cuda_DATA = nvcc-wrapper
+EXTRA_DIST += nvcc-wrapper
+endif

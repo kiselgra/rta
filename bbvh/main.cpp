@@ -109,7 +109,7 @@ extern "C" {
 		return ret;
 	}
 
-	rt_set<simple_aabb, simple_triangle> create_rt_set(flat_triangle_list &triangle_lists, int w, int h) {
+	rt_set create_rt_set(basic_flat_triangle_list<simple_triangle> &triangle_lists, int w, int h) {
 		typedef simple_triangle tri_t;
 		typedef simple_aabb box_t;
 		typedef binary_bvh<box_t, tri_t> bvh_t;
@@ -123,7 +123,7 @@ extern "C" {
 		else
 			rt = new bbvh_direct_is_tracer<box_t, tri_t, binary_bvh<box_t, tri_t>>(0, bvh, 0);
 
-		rt_set<box_t, tri_t> set;
+		rt_set set;
 		set.as = bvh;
 		set.ctor = ctor;
 		set.rt = rt;

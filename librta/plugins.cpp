@@ -10,7 +10,7 @@ namespace rta {
 	char* (*plugin_description)() = 0;
 	int (*plugin_parse_cmdline)(int argc, char **argv) = 0;
 	void (*plugin_initialize)() = 0;
-	rt_set<simple_aabb, simple_triangle> (*plugin_create_rt_set)(flat_triangle_list&,int,int) = 0;
+	rt_set (*plugin_create_rt_set)(basic_flat_triangle_list<simple_triangle>&,int,int) = 0;
 
 	list<string> lib_search_paths;
 	void register_plugin_search_path(const std::string &path) {

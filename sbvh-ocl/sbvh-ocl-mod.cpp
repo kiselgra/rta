@@ -115,7 +115,7 @@ extern "C" {
 		return ret;
 	}
 
-	rt_set<simple_aabb, simple_triangle> create_rt_set(std::list<flat_triangle_list> &triangle_lists, int w, int h) {
+	rt_set create_rt_set(basic_flat_triangle_list<simple_triangle> &triangle_lists, int w, int h) {
 		cout << "setting up open cl" << endl;
 		cl::verbose = true;
 		ctx = rta::ocl::context;
@@ -138,8 +138,8 @@ extern "C" {
 		typedef sbvh_preorder_constructor<ocl_sbvh_po_t, std_bbvh_ctor_t> sbvh_po_ctor_t;
 		typedef sbvh_constructor<ocl_sbvh_oi_t, std_bbvh_ctor_with_sa_t> sbvh_oi_ctor_t;
 
-		acceleration_structure_constructor<box_t, tri_t> *ctor = 0;
-		acceleration_structure<box_t, tri_t> *sbvh = 0;
+		basic_acceleration_structure_constructor<box_t, tri_t> *ctor = 0;
+		basic_acceleration_structure<box_t, tri_t> *sbvh = 0;
 		basic_raytracer<box_t, tri_t> *rt = 0;
 
 // 		///
@@ -150,7 +150,7 @@ extern "C" {
 // 		
 // 		///
 		ctor = new ocl::sbvh_constructor<sbvh_oi_ctor_t, std_bbvh_ctor_with_sa_t>(*ctx, std_bbvh_ctor_with_sa_t::spatial_median);
-		sbvh = ctor->build(&triangle_lists.front());
+		sbvh = ctor->build(&triangle_lists);
 		
 // 		rt = new ocl::sbvh_oi_gpu_tracer<box_t, tri_t, ocl_sbvh_oi_t>(0, dynamic_cast<ocl_sbvh_oi_t*>(sbvh), 0, *ctx, "sbvh.ocl", "sbvh_oi_is");
 // 		rt = new ocl::sbvh_oi_gpu_tracer<box_t, tri_t, ocl_sbvh_oi_t>(0, dynamic_cast<ocl_sbvh_oi_t*>(sbvh), 0, *ctx, "sbvh-debug.ocl", "sbvh_oi_is_debug");
@@ -162,8 +162,8 @@ extern "C" {
 		typedef bbvh_constructor_using_median<obvh_t> std_bbvh_ctor_t;
 		typedef ocl::bbvh_constructor<std_bbvh_ctor_t> obvh_ctor_t;
 		cout << "building bvh" << endl;
-		acceleration_structure_constructor<box_t, tri_t> *ctor = 0;
-		acceleration_structure<box_t, tri_t> *bvh = 0;
+		basic_acceleration_structure_constructor<box_t, tri_t> *ctor = 0;
+		basic_acceleration_structure<box_t, tri_t> *bvh = 0;
 
 		obvh_ctor_t *ocl_ctor = new obvh_ctor_t(*ctx, std_bbvh_ctor_t::spatial_median);
 		bvh = ocl_ctor->build(&triangle_lists.front());
@@ -183,7 +183,7 @@ extern "C" {
 		}
 
 		*/
-		rt_set<box_t, tri_t> set;
+		rt_set set;
 		set.as = sbvh;
 		set.ctor = ctor;
 		set.rt = rt;

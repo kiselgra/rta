@@ -2,6 +2,7 @@
 #include "cmdline.h"
 #include "librta/wall-timer.h"
 #include "librta/ocl.h"
+#include "librta/cuda.h"
 #include "librta/plugins.h"
 #include "librta/material.h"
 
@@ -12,6 +13,7 @@
 
 #include <string>
 #include <sstream>
+#include <iomanip>
 #include <list>
 #include <float.h>
 #include <unistd.h>
@@ -44,6 +46,10 @@ todo:
 using namespace std;
 
 namespace rta {
+	static rta::cuda_ftl cuda_host_ftl;
+	static rta::cuda_ftl cuda_device_ftl;
+	static basic_flat_triangle_list<simple_triangle> the_ftl;
+
 
 	int res_x, res_y; // gets parsed from command line
 
@@ -52,14 +58,14 @@ namespace rta {
 ////////////////////
 ////////////////////
 
-flat_triangle_list load_objfile_to_flat_tri_list(const std::string &filename) {
+basic_flat_triangle_list<simple_triangle> load_objfile_to_flat_tri_list(const std::string &filename) {
 	obj_default::ObjFileLoader loader(filename, "1 0 0 0  0 1 0 0  0 0 1 0  0 0 0 1");
 
 	int triangles = 0;
 	for (auto &group : loader.groups)
 		triangles += group.load_idxs_v.size();
 
-	flat_triangle_list ftl(triangles);
+	basic_flat_triangle_list<simple_triangle> ftl(triangles);
 
 	for (auto path : cmdline.image_paths)
 		append_image_path(path);
@@ -145,6 +151,8 @@ using namespace rta;
 template<box_t__and__tri_t> class lighting_shader_with_material : public lighting_collector<forward_traits> {
 public:
 	typedef _tri_t tri_t;
+	typedef typename tri_t::vec3_t vec3_t;
+	typedef typename vector_traits<vec3_t>::vec2_t vec2_t;
 	
 	lighting_shader_with_material(uint w, uint h, image<triangle_intersection<tri_t>, 1> *li) : lighting_collector<forward_traits>(w, h, li) {
 	}
@@ -167,8 +175,9 @@ public:
 						barycentric_interpolation(&T, &bc, &ta, &tb, &tc);
 						material_t *mat = material(ref.material_index);
 						vec3f factor = (*mat)();
+						vec2f TC = { T.x, T.y };
 						if (mat->diffuse_texture) {
-							factor = (*mat)(T);
+							factor = (*mat)(TC);
 // 							cout << "fac " << factor.x << ", " << factor.y << ", " << factor.z << endl;
 						}
 
@@ -180,6 +189,15 @@ public:
 		}
 	}
 };
+
+//! a very blunt instrument
+template<typename v2_t, typename v1_t = vec3f> v2_t blind_vector_convert(const v1_t &b) {
+	v2_t a;
+	a.x = b.x;
+	a.y = b.y;
+	a.z = b.z;
+	return a;
+}
 
 /*! \brief Runs the actual measurements.
  * 	\ingroup main
@@ -196,8 +214,9 @@ template<box_t__and__tri_t> class directional_analysis_pass {
 		float *timings;
 		rta::cam_ray_generator_shirley *crgs;
 // 		rta::basic_raytracer<box_t, tri_t> *rt;
-		lighting_shader_with_material<forward_traits> *shader;
-		rt_set<box_t, tri_t> the_set;
+// 		lighting_shader_with_material<forward_traits> *shader;
+		lighting_collector<forward_traits> *shader;
+		rt_set the_set;
 		vec3f obj_center;
 		box_t bb;
 		float bb_diam;
@@ -304,22 +323,28 @@ template<box_t__and__tri_t> class directional_analysis_pass {
 		rta::cam_ray_generator_shirley*& ray_gen() { 
 			return crgs; 
 		}
-		void set(rt_set<forward_traits> set) {
+		void set(rt_set set) {
 			the_set = set;
 			tracer(set.rt);
-			shader = dynamic_cast<lighting_shader_with_material<forward_traits>*>(set.bouncer);
-			shader->triangle_ptr(the_set.as->triangle_ptr());
+			// shader = dynamic_cast<lighting_shader_with_material<forward_traits>*>(set.bouncer);
+			shader = dynamic_cast<lighting_collector<forward_traits>*>(set.bouncer);
+			basic_acceleration_structure<forward_traits> *as = dynamic_cast<basic_acceleration_structure<forward_traits>*>(the_set.as);
+			shader->triangle_ptr(as->canonical_triangle_ptr());	// this is not freed as of yet.
 		}
 		//! supposes that the tracer's accelstruct has been set up, already
-		void tracer(rta::basic_raytracer<box_t, tri_t> *tracer) { 
-			tri_t *tris = tracer->acceleration_structure()->triangle_ptr();
+		void tracer(raytracer *tr) { 
+			auto *tracer = dynamic_cast<rta::basic_raytracer<box_t, tri_t>*>(tr);
+			tri_t *tris = tracer->acceleration_structure()->canonical_triangle_ptr();
 			int n = tracer->acceleration_structure()->triangle_count();
 			bb = rta::compute_aabb<box_t>(tris, 0, n);
 			vec3f diff;
-			sub_components_vec3f(&diff, &max(bb), &min(bb));
+			vec3_t max_bb = blind_vector_convert<vec3_t, typename tri_t::vec3_t>(max(bb));
+			vec3_t min_bb = blind_vector_convert<vec3_t, typename tri_t::vec3_t>(min(bb));
+			sub_components_vec3f(&diff, &max_bb, &min_bb);
 			bb_diam = length_of_vec3f(&diff);
 			mul_vec3f_by_scalar(&diff, &diff, 0.5);
-			add_components_vec3f(&obj_center, &min(bb), &diff);
+			add_components_vec3f(&obj_center, &min_bb, &diff);
+			tracer->acceleration_structure()->free_canonical_triangles(tris);
 		}
 		rta::bouncer* bouncer() { 
 			return the_set.bouncer; 
@@ -356,54 +381,79 @@ template<box_t__and__tri_t> class directional_analysis_pass {
 				}
 				crgs->setup(&pos, &dir, &up, 45);
 				crgs->generate_rays();
+				if (cmdline.mamo_output) {
+					ostringstream oss; oss << cmdline.mamo_prefix << setw(3) << setfill('0') << right << i << ".ray";
+					crgs->dump_rays(oss.str());
+				}
+
+				if (cmdline.rebuild_bvh) {
+					basic_acceleration_structure<cuda::simple_aabb, cuda::simple_triangle> *bas;
+					basic_acceleration_structure_constructor<cuda::simple_aabb, cuda::simple_triangle> 
+						*ctor = the_set.template basic_ctor<cuda::simple_aabb, cuda::simple_triangle>();
+					if (ctor->expects_host_triangles())
+						bas = ctor->build(&cuda_host_ftl);
+					else
+						bas = ctor->build(&cuda_device_ftl);
+					delete the_set.as;
+					the_set.as = bas;
+					the_set.template basic_rt<cuda::simple_aabb, cuda::simple_triangle>()->acceleration_structure(bas);
+				}
 
 				the_set.rt->trace();
-				float rps = res_x * res_y * (1000.0f / the_set.rt->timings.front());
+				auto brt = dynamic_cast<rta::basic_raytracer<box_t, tri_t>*>(the_set.rt);
+				float first = brt->timings.front();
+				float rps = res_x * res_y * (1000.0f / first);
 				sum += rps;
 				timings[i] = rps;
 
-				box_t light_box = bb;
-				vec3_t diff, delta;
-				sub_components_vec3f(&diff, &max(bb), &min(bb));
-				mul_vec3f_by_scalar(&delta, &diff, 0.1);
-				sub_components_vec3f(&min(light_box), &min(light_box), &delta);
-				add_components_vec3f(&max(light_box), &max(light_box), &delta);
-				
-				vec3_t center;
-				mul_vec3f_by_scalar(&diff, &diff, 0.5);
-				add_components_vec3f(&center, &min(light_box), &diff);
+				if (cmdline.shade) {
+					vec3_t diff, delta;
+					vec3_t max_bb = blind_vector_convert<vec3_t, typename tri_t::vec3_t>(max(bb));
+					vec3_t min_bb = blind_vector_convert<vec3_t, typename tri_t::vec3_t>(min(bb));
+					simple_aabb light_box;
+					light_box.min = min_bb;
+					light_box.max = max_bb;
+					sub_components_vec3f(&diff, &max_bb, &min_bb);
+					mul_vec3f_by_scalar(&delta, &diff, 0.1);
+					sub_components_vec3f(&min(light_box), &min(light_box), &delta);
+					add_components_vec3f(&max(light_box), &max(light_box), &delta);
 
-				shader->lights.clear();
-				float_t I = 0.3;
-				float_t l_r = I * cmdline.light_col.x,
-						l_g = I * cmdline.light_col.y,
-						l_b = I * cmdline.light_col.z;
+					vec3_t center;
+					mul_vec3f_by_scalar(&diff, &diff, 0.5);
+					add_components_vec3f(&center, &min(light_box), &diff);
 
-				vec3_t mi = min(light_box);
-				vec3_t ma = max(light_box);
+					shader->lights.clear();
+					float_t I = 0.3;
+					float_t l_r = I * cmdline.light_col.x,
+							l_g = I * cmdline.light_col.y,
+							l_b = I * cmdline.light_col.z;
 
-				shader->add_pointlight({x_comp(min(light_box)), y_comp(min(light_box)), z_comp(min(light_box))}, {l_r, l_g, l_b});
-				shader->add_pointlight({x_comp(min(light_box)), y_comp(min(light_box)), z_comp(max(light_box))}, {l_r, l_g, l_b});
-				shader->add_pointlight({x_comp(min(light_box)), y_comp(max(light_box)), z_comp(min(light_box))}, {l_r, l_g, l_b});
-				shader->add_pointlight({x_comp(min(light_box)), y_comp(max(light_box)), z_comp(max(light_box))}, {l_r, l_g, l_b});
-				shader->add_pointlight({x_comp(max(light_box)), y_comp(min(light_box)), z_comp(min(light_box))}, {l_r, l_g, l_b});
-				shader->add_pointlight({x_comp(max(light_box)), y_comp(min(light_box)), z_comp(max(light_box))}, {l_r, l_g, l_b});
-				shader->add_pointlight({x_comp(max(light_box)), y_comp(max(light_box)), z_comp(min(light_box))}, {l_r, l_g, l_b});
-				shader->add_pointlight({x_comp(max(light_box)), y_comp(max(light_box)), z_comp(max(light_box))}, {l_r, l_g, l_b});
+					vec3_t mi = min(light_box);
+					vec3_t ma = max(light_box);
 
-				shader->reset(cmdline.back_col);
+					shader->add_pointlight({x_comp(min(light_box)), y_comp(min(light_box)), z_comp(min(light_box))}, {l_r, l_g, l_b});
+					shader->add_pointlight({x_comp(min(light_box)), y_comp(min(light_box)), z_comp(max(light_box))}, {l_r, l_g, l_b});
+					shader->add_pointlight({x_comp(min(light_box)), y_comp(max(light_box)), z_comp(min(light_box))}, {l_r, l_g, l_b});
+					shader->add_pointlight({x_comp(min(light_box)), y_comp(max(light_box)), z_comp(max(light_box))}, {l_r, l_g, l_b});
+					shader->add_pointlight({x_comp(max(light_box)), y_comp(min(light_box)), z_comp(min(light_box))}, {l_r, l_g, l_b});
+					shader->add_pointlight({x_comp(max(light_box)), y_comp(min(light_box)), z_comp(max(light_box))}, {l_r, l_g, l_b});
+					shader->add_pointlight({x_comp(max(light_box)), y_comp(max(light_box)), z_comp(min(light_box))}, {l_r, l_g, l_b});
+					shader->add_pointlight({x_comp(max(light_box)), y_comp(max(light_box)), z_comp(max(light_box))}, {l_r, l_g, l_b});
 
-				shader->shade(cmdline.binary_intersection_debug);
-				
-				if (cmdline.png_output) {
-					ostringstream oss;
-					oss << cmdline.png_prefix;
-					if (i < 100) oss << "0";
-					if (i < 10) oss << "0";
-					oss << i;
-					oss << ".png";
+					shader->reset(cmdline.back_col);
 
-					shader->save(oss.str());
+					shader->shade(cmdline.binary_intersection_debug);
+
+					if (cmdline.png_output) {
+						ostringstream oss;
+						oss << cmdline.png_prefix;
+						if (i < 100) oss << "0";
+						if (i < 10) oss << "0";
+						oss << i;
+						oss << ".png";
+
+						shader->save(oss.str());
+					}
 				}
 
 				cout << "." << flush;
@@ -411,6 +461,41 @@ template<box_t__and__tri_t> class directional_analysis_pass {
 			cout << "\naverage rps per frame: " << (sum/vertices)/1000.0f << " K" << endl;
 		}
 };
+
+template<typename box_t, typename tri_t> void setup_and_run_pass(rt_set &set) {
+	typedef typename tri_t::vec3_t V;
+	directional_analysis_pass<box_t, tri_t> *dap = 0;
+	if (cmdline.axial_series) {
+		cout << "running axial series..." << endl;
+// 		dap = new directional_analysis_pass<box_t, tri_t>(blind_vector_convert<V>(cmdline.axis), blind_vector_convert<V>(cmdline.anchor), cmdline.samples, res_x, res_y);
+		dap = new directional_analysis_pass<box_t, tri_t>(cmdline.axis, cmdline.anchor, cmdline.samples, res_x, res_y);
+	}
+	else if (cmdline.sphere_series) {
+		cout << "running spherical series..." << endl;
+		dap = new directional_analysis_pass<box_t, tri_t>(cmdline.sphere_file, res_x, res_y);
+	}
+	else {
+		cout << "running pos series..." << endl;
+		dap = new directional_analysis_pass<box_t, tri_t>(cmdline.pos, cmdline.dir, cmdline.up, res_x, res_y);
+	}
+
+	set.basic_rt<box_t, tri_t>()->ray_bouncer(set.bouncer);
+	if (set.rgen) {
+		set.basic_rt<box_t, tri_t>()->ray_generator(set.rgen);
+		cam_ray_generator_shirley *crgs = dynamic_cast<cam_ray_generator_shirley*>(set.rgen);
+		if (crgs == 0)
+			throw std::logic_error("the ray generator set by the plugin is not compatible!");
+		dap->ray_gen() = crgs;
+	}
+	else {
+		set.rgen = dap->ray_gen();
+		set.basic_rt<box_t, tri_t>()->ray_generator(set.rgen);
+	}
+	dap->set(set);
+	dap->run();
+	if (cmdline.outfile != "" && cmdline.sphere_series)
+		dap->mod_and_save_ply(cmdline.outfile);
+}
 
 int main(int argc, char **argv) {
 	parse_cmdline(argc, argv);
@@ -421,8 +506,6 @@ int main(int argc, char **argv) {
 	using namespace rta;
 	using namespace std;
 
-	typedef simple_triangle tri_t;
-	typedef simple_aabb box_t;
 // 	typedef binary_bvh<box_t, tri_t> bvh_t;
 // 	typedef multi_bvh_sse<box_t, tri_t> mbvh_t;
 	register_plugin_search_path("built-plugins");
@@ -437,29 +520,29 @@ int main(int argc, char **argv) {
 	cout << "loading object " << cmdline.model << endl;
 	auto triangle_lists = load_objfile_to_flat_tri_list(cmdline.model.c_str());
 	
+	if (cmdline.rebuild_bvh) {
+		the_ftl = triangle_lists;
+		cuda_host_ftl = cuda_ftl(triangle_lists);
+		cudaMalloc((void**)&cuda_device_ftl.triangle, sizeof(cuda::simple_triangle)*the_ftl.triangles);
+		cudaMemcpy(cuda_device_ftl.triangle, the_ftl.triangle, sizeof(cuda::simple_triangle)*the_ftl.triangles, cudaMemcpyHostToDevice);
+		cuda_device_ftl.triangles = the_ftl.triangles;
+	}
+	
 	if (ocl::using_ocl()) {
 		res_x = ocl::pow2roundup(res_x);
 		res_y = ocl::pow2roundup(res_y);
 	}
 
-	rt_set<simple_aabb, simple_triangle> set = plugin_create_rt_set(triangle_lists, res_x, res_y);
+	rt_set set = plugin_create_rt_set(triangle_lists, res_x, res_y);
+
+	if (cmdline.mamo_output) {
+		set.as->dump_acceleration_structure(cmdline.mamo_prefix + ".bvh");
+		set.as->dump_primitives(cmdline.mamo_prefix + ".tri");
+	}
 
 	if (cmdline.axial_series || cmdline.sphere_series || cmdline.positional_series)
 	{
-		directional_analysis_pass<box_t, tri_t> *dap = 0;
-		if (cmdline.axial_series) {
-			cout << "running axial series..." << endl;
-			dap = new directional_analysis_pass<box_t, tri_t>(cmdline.axis, cmdline.anchor, cmdline.samples, res_x, res_y);
-		}
-		else if (cmdline.sphere_series) {
-			cout << "running spherical series..." << endl;
-			dap = new directional_analysis_pass<box_t, tri_t>(cmdline.sphere_file, res_x, res_y);
-		}
-		else {
-			cout << "running pos series..." << endl;
-			dap = new directional_analysis_pass<box_t, tri_t>(cmdline.pos, cmdline.dir, cmdline.up, res_x, res_y);
-		}
-	
+
 		/*
 
 		bbvh_constructor_using_median<bvh_t> ctor(bbvh_constructor_using_median<bvh_t>::spatial_median);
@@ -472,29 +555,27 @@ int main(int argc, char **argv) {
 
 		*/
 
-		if (!ocl::using_ocl())
-			set.bouncer = new direct_diffuse_illumination<box_t, tri_t, lighting_shader_with_material<box_t, tri_t>>(res_x, res_y);
+		if (!ocl::using_ocl() && !cuda::using_cuda()) {
+			set.bouncer = new direct_diffuse_illumination<simple_aabb, simple_triangle, lighting_shader_with_material<simple_aabb, simple_triangle>>(res_x, res_y);
+			setup_and_run_pass<simple_aabb, simple_triangle>(set);
+		}
 #if RTA_HAVE_LIBLUMOCL == 1
-		else
-			set.bouncer = new ocl::direct_diffuse_illumination<box_t, tri_t>(res_x, res_y, *ocl::context);
+		else if (ocl::using_ocl()) {
+			set.bouncer = new ocl::direct_diffuse_illumination<simple_aabb, simple_triangle>(res_x, res_y, *ocl::context);
+			setup_and_run_pass<simple_aabb, simple_triangle>(set);
+		}
 #endif
-
-		set.rt->ray_bouncer(set.bouncer);
-		if (set.rgen) {
-			set.rt->ray_generator(set.rgen);
-			cam_ray_generator_shirley *crgs = dynamic_cast<cam_ray_generator_shirley*>(set.rgen);
-			if (crgs == 0)
-				throw std::logic_error("the ray generator set by the plugin is not compatible!");
-			dap->ray_gen() = crgs;
+#if RTA_HAVE_LIBCUDART == 1
+		else if (cuda::using_cuda()) {
+			set.bouncer = new cuda::direct_diffuse_illumination<cuda::simple_aabb, cuda::simple_triangle, lighting_shader_with_material<cuda::simple_aabb, cuda::simple_triangle>>(res_x, res_y);
+			setup_and_run_pass<cuda::simple_aabb, cuda::simple_triangle>(set);
 		}
+#endif
 		else {
-			set.rgen = dap->ray_gen();
-			set.rt->ray_generator(set.rgen);
+			cerr << "Inconsistent cuda/ocl states!" << endl;
+			exit(EXIT_FAILURE);
 		}
-		dap->set(set);
-		dap->run();
-		if (cmdline.outfile != "" && cmdline.sphere_series)
-			dap->mod_and_save_ply(cmdline.outfile);
+
 	}
 	else {
 		cerr << "Don't know what to do. Try --help." << endl;

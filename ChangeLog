@@ -1,3 +1,102 @@
+2014-07-16	Kai
+
+* Acceleration structure constructors can now specify whether they expect the
+triangle data supplied to build() to be allocated on the host (systen ram)
+side or not via
+	virtual bool expects_host_triangles().
+
+
+2014-07-06	Kai
+
+* With GPU tracers there is a good chance that the triangle data is not
+directly available on the host side, but that it resides on the device, only.
+This is not the case for the adaptor-style bvh,
+	 cuda::binary_bvh,
+which also keeps host data. However, when using a GPU only pipeline keeping
+the data on the host might not be sensible, and is not done for
+	cuda::binary_lbvh,
+especially since the construction is GPU based (cuda::lbvh_constructor) and
+rearranges the triangle data.
+Therefore, the basic_acceleration_structure now provides
+	canonical_triangle_ptr()
+which returns a pointer to triangle data on the host, i.e. triggers a download
+from the device, if appropriate. Note that this is not to be used in time
+critical code, but for, e.g., shading the results in a unified manner after
+timed traces.
+
+
+2014-07-06	Kai
+
+* Added Cuda version of shirley ray generator. Default for bbvh-cuda.
+
+
+2014-05-18	Kai
+
+* Integration of Cuda with the following changes.
+
+* rt_set is no longer a template, referencing just the base types of the ray
+tracing system. This change also introduced
+	acceleration_structure and acceleration_structure_constructor
+as new base interfaces with the templated versions renamed
+	basic_acceleration_structure and basic_acceleration_structure_constructor
+analogously to the raytracer interface.
+To avoid ugly use of dynamic casts in the setup code we provide the functions
+	basic_rt, basic_as and basic_ctor
+in rt_set. These are all templates in box and tri, so the call syntax is
+	set.basic_**<b,t>()->...
+or in case of the set being a template parameter
+	set.template basic_**<b,t>()->...
+Note that this only wraps dynamic casts and therefore is not guaranteed to
+work, and surely not fast. So just use these functions in your setup code.
+
+* The triangle-parameterization has been put to a test during cuda
+integration. Triangle data to be supplied to cuda has to be specified as
+	rta::cuda::simple_triangle
+flat_triangle_list is therefore no longer a plain struct but a template and
+was renamed basic_flat_triangle_list as more complicated structures might
+arise.
+The appropriate flat_triangle_list for a given kind of triangle is provided as
+an internal typedef in the triangle struct.
+This also led to extend the triangle/box accessors and arithmetic functions to
+support the cuda types, too. The appropriate vec3_t for a given triangle is
+defined in the trinagle struct as triangle::vec3_t.
+To extend this to the other vector types we provide vector_traits which
+provide typedefs based on a given vec3_t.
+
+* TODO.
+
+
+2014-05-11	Kai
+
+* Introduced the interface
+	cpu_raytracer : public basic_raytracer
+which takes a small part of the old basic_raytracer to make it an interface to
+encapsulate the general rta-tracing algorithm, without relying on cpu tracing
+data. This data is moved to cpu_raytracer. All tracers and examples have beed
+adapted to derive from the cpu interface, if appropriate.
+
+* Rudimentary integration of cuda ray tracing is now integrated into rta. All
+of it lives in the namespace
+	rta::cuda.
+We provide the following interfaces
+	a) gpu_ray_generator,
+	b) raygen_with_buffer,
+	c) gpu_ray_bouncer, and
+	d) gpu_raytracer.
+a) A simple representation of gpu ray data. Might be generalized later.
+b) An adaptor to existing ray generators which uploads the generated rays to
+the gpu.
+c) The same as cpu_ray_bouncer. It holds the intersection data which is
+proviced to the tracer.
+d) A similar interface to cpu_raytracer. It captures and converts ray
+generators and bouncers via the interface established in basic_raytracer.
+
+Note the first sketch of different layouts possible for ray-, triangle- and
+box-data. The current interface might be extended to allow for fundamental
+tests on data layout.
+
+
+
 2014-04-22	Kai
 
 * All tracers must implement the following virtual function.  

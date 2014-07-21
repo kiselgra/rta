@@ -8,6 +8,6 @@ plugindir=@libdir@/@PACKAGE@
 Name: librta
 Description: ray tracing, again...
 Version: @VERSION@
-Libs: -L${libdir} -lrta
-Cflags: -I${includedir}/rta-@VERSION@
+Libs: -L${libdir} -lrta @CUDA_LDFLAGS@
+Cflags: -I${includedir}/rta-@VERSION@ @CUDA_CPPFLAGS@
 
