@@ -17,8 +17,8 @@ done
 echo
 echo "|---------"
 
-IMAGES="--no-shade"
-#IMAGES=""
+#IMAGES="--no-shade"
+IMAGES=""
 
 for construction in $BVHC ; do
 	for trav in $TRAV ; do
@@ -30,13 +30,12 @@ for construction in $BVHC ; do
 						m=${MODELS[$i]}
 						e=${EYEDIST[$i]}
 						echo ./rta/rta -r 1920x1080 $IMAGES -m "$P/$m" --dist $e --sphere sphs/sphere0.ply bbvh-cuda -- -b lbvh -t "$trav" -l "$layout" $raytype $boxmode > bbvh-cuda-bench.out
-						./rta/rta -r 1920x1080 $IMAGES -m "$P/$m" --dist $e --sphere sphs/sphere0.ply bbvh-cuda -- -b lbvh -t "$trav" -l "$layout" $raytype $boxmode 2>> bbvh-cuda-bench.error >> bbvh-cuda-bench.out
+						./rta/rta -r 1920x1080 $IMAGES -m "$P/$m" --dist $e --sphere sphs/sphere0.ply bbvh-cuda -P /tmp/messung-$m-$trav-$layout-$raytype-$boxmode- -- -b lbvh -t "$trav" -l "$layout" $raytype $boxmode 2>> bbvh-cuda-bench.error >> bbvh-cuda-bench.out
 						if [ "$?" != "0" ] ; then
 							echo "ERROR"
 							exit 1
 						fi
 						echo -n "$(grep "average rps per frame" bbvh-cuda-bench.out | sed -e 's/.*frame: //' -e 's/ K//' -e 's/\..*//') |"
-#echo -n "$m |"
 					done
 					echo 
 				done
