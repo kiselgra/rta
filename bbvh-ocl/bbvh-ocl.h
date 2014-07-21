@@ -21,7 +21,7 @@ namespace rta {
 				
 				virtual std::string identification() { return "bbvh using ocl buffers (based on " + parent_t::identification() + ")"; }
 				void fill_buffers(cl::context &c) {
-					const size_t node_size = sizeof(typename parent_t::node);
+					const size_t node_size = sizeof(typename parent_t::node_t);
 					if (!tri_buffer)  tri_buffer = new cl::buffer(c, CL_MEM_READ_ONLY, sizeof(tri_t) * this->triangles.size());
 					if (!node_buffer) node_buffer = new cl::buffer(c,CL_MEM_READ_ONLY, node_size * this->nodes.size());
 					static_assert(node_size == 32, 

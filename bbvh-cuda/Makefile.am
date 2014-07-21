@@ -16,7 +16,7 @@ plugin = $(local_plugin_dir)/$(plugin_name)
 all-local: $(plugin)
 
 .cu.lo:
-	$(LIBTOOL) --tag=CXX --mode=compile $(top_srcdir)/nvcc-wrapper $(DEFAULT_INCLUDES) $(CPPFLAGS) $(CXXFLAGS) $(exampleplugin_la_CPPFLAGS) -c -o $@ $< -v -arch=sm_20
+	$(LIBTOOL) --tag=CXX --mode=compile $(top_srcdir)/nvcc-wrapper $(DEFAULT_INCLUDES) $(CPPFLAGS) $(CXXFLAGS) $(exampleplugin_la_CPPFLAGS) -c -o $@ $< -v -arch=sm_20 -lineinfo
 
 $(plugin): $(pkglib_LTLIBRARIES)
 	cp .libs/$(plugin_name) $@

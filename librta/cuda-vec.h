@@ -8,6 +8,9 @@
 #include <vector_types.h>
 #include <math.h>
 
+// __host__ inline int __float_as_int(float f) { return *reinterpret_cast<int*>(&f); }
+// __host__ inline float __int_as_float(int i) { return *reinterpret_cast<float*>(&i); }
+
 namespace rta {
 	struct cuda_ftl;
 
@@ -238,7 +241,19 @@ namespace rta {
 			triangle = reinterpret_cast<cuda::simple_triangle*>(base.triangle);
 		}
 	};
+	#else
+	heterogenous float3 operator*(const float3 &a, const float3 &b) {
+		make_float4(1,2,3,4);
+		return make_float3(a.x*b.x, a.y*b.y, a.z*b.z);
+	}
+	heterogenous float3 operator/(const float3 &a, const float3 &b) {
+		return make_float3(a.x/b.x, a.y/b.y, a.z/b.z);
+	}
+	heterogenous float3 operator-(const float3 &a, const float3 &b) {
+		return make_float3(a.x-b.x, a.y-b.y, a.z-b.z);
+	}
 	#endif
+	
 	
 }
 

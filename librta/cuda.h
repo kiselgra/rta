@@ -68,10 +68,10 @@ namespace rta {
 		//! @}
 		
 		#ifndef checked_cuda
-		#define checked_cuda(ans) { rta::cuda::gpu_assert((ans), (const char*)__FILE__, __LINE__); }
-		inline void gpu_assert(cudaError_t code, const char *file, int line, bool abort=true) {
+		#define checked_cuda(ans) { rta::cuda::gpu_assert((ans), (const char*)__FILE__, __LINE__, (const char*)__PRETTY_FUNCTION__); }
+		inline void gpu_assert(cudaError_t code, const char *file, int line, const char *func, bool abort=true) {
 			if (code != cudaSuccess) {
-				fprintf(stderr,(char*)"GPUassert: %s %s %d\n", cudaGetErrorString(code), file, line);
+				fprintf(stderr,(char*)"GPUassert: %s %s@%d in %s\n", cudaGetErrorString(code), file, line, func);
 				if (abort) exit(code);
 			}
 		}
@@ -163,7 +163,8 @@ namespace rta {
 			public:
 				T *data;
 				uint n;
-				device_array() : data(0), n(0) {}
+				bool owns_memory;
+				device_array() : data(0), n(0), owns_memory(true) {}
 				void upload(T *in, uint elems) {
 					n = elems;
 					cudaMalloc((void**)&data, n*sizeof(T));
@@ -175,7 +176,8 @@ namespace rta {
 					return t;
 				}
 				~device_array() {
-					cudaFree(data);
+					if (owns_memory)
+						cudaFree(data);
 					data = 0;
 					n = 0;
 				}

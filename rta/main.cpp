@@ -46,6 +46,10 @@ todo:
 using namespace std;
 
 namespace rta {
+	static rta::cuda_ftl cuda_host_ftl;
+	static rta::cuda_ftl cuda_device_ftl;
+	static basic_flat_triangle_list<simple_triangle> the_ftl;
+
 
 	int res_x, res_y; // gets parsed from command line
 
@@ -380,6 +384,19 @@ template<box_t__and__tri_t> class directional_analysis_pass {
 					crgs->dump_rays(oss.str());
 				}
 
+				if (cmdline.rebuild_bvh) {
+					basic_acceleration_structure<cuda::simple_aabb, cuda::simple_triangle> *bas;
+					basic_acceleration_structure_constructor<cuda::simple_aabb, cuda::simple_triangle> 
+						*ctor = the_set.template basic_ctor<cuda::simple_aabb, cuda::simple_triangle>();
+					if (ctor->expects_host_triangles())
+						bas = ctor->build(&cuda_host_ftl);
+					else
+						bas = ctor->build(&cuda_device_ftl);
+					delete the_set.as;
+					the_set.as = bas;
+					the_set.template basic_rt<cuda::simple_aabb, cuda::simple_triangle>()->acceleration_structure(bas);
+				}
+
 				the_set.rt->trace();
 				auto brt = dynamic_cast<rta::basic_raytracer<box_t, tri_t>*>(the_set.rt);
 				float first = brt->timings.front();
@@ -498,6 +515,14 @@ int main(int argc, char **argv) {
 
 	cout << "loading object " << cmdline.model << endl;
 	auto triangle_lists = load_objfile_to_flat_tri_list(cmdline.model.c_str());
+	
+	if (cmdline.rebuild_bvh) {
+		the_ftl = triangle_lists;
+		cuda_host_ftl = cuda_ftl(triangle_lists);
+		cudaMalloc((void**)&cuda_device_ftl.triangle, sizeof(cuda::simple_triangle)*the_ftl.triangles);
+		cudaMemcpy(cuda_device_ftl.triangle, the_ftl.triangle, sizeof(cuda::simple_triangle)*the_ftl.triangles, cudaMemcpyHostToDevice);
+		cuda_device_ftl.triangles = the_ftl.triangles;
+	}
 	
 	if (ocl::using_ocl()) {
 		res_x = ocl::pow2roundup(res_x);

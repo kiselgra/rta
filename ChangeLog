@@ -1,7 +1,33 @@
+2014-07-16	Kai
+
+* Acceleration structure constructors can now specify whether they expect the
+triangle data supplied to build() to be allocated on the host (systen ram)
+side or not via
+	virtual bool expects_host_triangles().
+
+
+2014-07-06	Kai
+
+* With GPU tracers there is a good chance that the triangle data is not
+directly available on the host side, but that it resides on the device, only.
+This is not the case for the adaptor-style bvh,
+	 cuda::binary_bvh,
+which also keeps host data. However, when using a GPU only pipeline keeping
+the data on the host might not be sensible, and is not done for
+	cuda::binary_lbvh,
+especially since the construction is GPU based (cuda::lbvh_constructor) and
+rearranges the triangle data.
+Therefore, the basic_acceleration_structure now provides
+	canonical_triangle_ptr()
+which returns a pointer to triangle data on the host, i.e. triggers a download
+from the device, if appropriate. Note that this is not to be used in time
+critical code, but for, e.g., shading the results in a unified manner after
+timed traces.
+
+
 2014-07-06	Kai
 
 * Added Cuda version of shirley ray generator. Default for bbvh-cuda.
-
 
 
 2014-05-18	Kai
