@@ -242,14 +242,14 @@ namespace rta {
 		}
 	};
 	#else
-	heterogenous float3 operator*(const float3 &a, const float3 &b) {
+	heterogenous inline float3 operator*(const float3 &a, const float3 &b) {
 		make_float4(1,2,3,4);
 		return make_float3(a.x*b.x, a.y*b.y, a.z*b.z);
 	}
-	heterogenous float3 operator/(const float3 &a, const float3 &b) {
+	heterogenous inline float3 operator/(const float3 &a, const float3 &b) {
 		return make_float3(a.x/b.x, a.y/b.y, a.z/b.z);
 	}
-	heterogenous float3 operator-(const float3 &a, const float3 &b) {
+	heterogenous inline float3 operator-(const float3 &a, const float3 &b) {
 		return make_float3(a.x-b.x, a.y-b.y, a.z-b.z);
 	}
 	#endif

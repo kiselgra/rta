@@ -404,52 +404,54 @@ template<box_t__and__tri_t> class directional_analysis_pass {
 				sum += rps;
 				timings[i] = rps;
 
-				vec3_t diff, delta;
-				vec3_t max_bb = blind_vector_convert<vec3_t, typename tri_t::vec3_t>(max(bb));
-				vec3_t min_bb = blind_vector_convert<vec3_t, typename tri_t::vec3_t>(min(bb));
-				simple_aabb light_box;
-				light_box.min = min_bb;
-				light_box.max = max_bb;
-				sub_components_vec3f(&diff, &max_bb, &min_bb);
-				mul_vec3f_by_scalar(&delta, &diff, 0.1);
-				sub_components_vec3f(&min(light_box), &min(light_box), &delta);
-				add_components_vec3f(&max(light_box), &max(light_box), &delta);
-				
-				vec3_t center;
-				mul_vec3f_by_scalar(&diff, &diff, 0.5);
-				add_components_vec3f(&center, &min(light_box), &diff);
+				if (cmdline.shade) {
+					vec3_t diff, delta;
+					vec3_t max_bb = blind_vector_convert<vec3_t, typename tri_t::vec3_t>(max(bb));
+					vec3_t min_bb = blind_vector_convert<vec3_t, typename tri_t::vec3_t>(min(bb));
+					simple_aabb light_box;
+					light_box.min = min_bb;
+					light_box.max = max_bb;
+					sub_components_vec3f(&diff, &max_bb, &min_bb);
+					mul_vec3f_by_scalar(&delta, &diff, 0.1);
+					sub_components_vec3f(&min(light_box), &min(light_box), &delta);
+					add_components_vec3f(&max(light_box), &max(light_box), &delta);
 
-				shader->lights.clear();
-				float_t I = 0.3;
-				float_t l_r = I * cmdline.light_col.x,
-						l_g = I * cmdline.light_col.y,
-						l_b = I * cmdline.light_col.z;
+					vec3_t center;
+					mul_vec3f_by_scalar(&diff, &diff, 0.5);
+					add_components_vec3f(&center, &min(light_box), &diff);
 
-				vec3_t mi = min(light_box);
-				vec3_t ma = max(light_box);
+					shader->lights.clear();
+					float_t I = 0.3;
+					float_t l_r = I * cmdline.light_col.x,
+							l_g = I * cmdline.light_col.y,
+							l_b = I * cmdline.light_col.z;
 
-				shader->add_pointlight({x_comp(min(light_box)), y_comp(min(light_box)), z_comp(min(light_box))}, {l_r, l_g, l_b});
-				shader->add_pointlight({x_comp(min(light_box)), y_comp(min(light_box)), z_comp(max(light_box))}, {l_r, l_g, l_b});
-				shader->add_pointlight({x_comp(min(light_box)), y_comp(max(light_box)), z_comp(min(light_box))}, {l_r, l_g, l_b});
-				shader->add_pointlight({x_comp(min(light_box)), y_comp(max(light_box)), z_comp(max(light_box))}, {l_r, l_g, l_b});
-				shader->add_pointlight({x_comp(max(light_box)), y_comp(min(light_box)), z_comp(min(light_box))}, {l_r, l_g, l_b});
-				shader->add_pointlight({x_comp(max(light_box)), y_comp(min(light_box)), z_comp(max(light_box))}, {l_r, l_g, l_b});
-				shader->add_pointlight({x_comp(max(light_box)), y_comp(max(light_box)), z_comp(min(light_box))}, {l_r, l_g, l_b});
-				shader->add_pointlight({x_comp(max(light_box)), y_comp(max(light_box)), z_comp(max(light_box))}, {l_r, l_g, l_b});
+					vec3_t mi = min(light_box);
+					vec3_t ma = max(light_box);
 
-				shader->reset(cmdline.back_col);
+					shader->add_pointlight({x_comp(min(light_box)), y_comp(min(light_box)), z_comp(min(light_box))}, {l_r, l_g, l_b});
+					shader->add_pointlight({x_comp(min(light_box)), y_comp(min(light_box)), z_comp(max(light_box))}, {l_r, l_g, l_b});
+					shader->add_pointlight({x_comp(min(light_box)), y_comp(max(light_box)), z_comp(min(light_box))}, {l_r, l_g, l_b});
+					shader->add_pointlight({x_comp(min(light_box)), y_comp(max(light_box)), z_comp(max(light_box))}, {l_r, l_g, l_b});
+					shader->add_pointlight({x_comp(max(light_box)), y_comp(min(light_box)), z_comp(min(light_box))}, {l_r, l_g, l_b});
+					shader->add_pointlight({x_comp(max(light_box)), y_comp(min(light_box)), z_comp(max(light_box))}, {l_r, l_g, l_b});
+					shader->add_pointlight({x_comp(max(light_box)), y_comp(max(light_box)), z_comp(min(light_box))}, {l_r, l_g, l_b});
+					shader->add_pointlight({x_comp(max(light_box)), y_comp(max(light_box)), z_comp(max(light_box))}, {l_r, l_g, l_b});
 
-				shader->shade(cmdline.binary_intersection_debug);
-				
-				if (cmdline.png_output) {
-					ostringstream oss;
-					oss << cmdline.png_prefix;
-					if (i < 100) oss << "0";
-					if (i < 10) oss << "0";
-					oss << i;
-					oss << ".png";
+					shader->reset(cmdline.back_col);
 
-					shader->save(oss.str());
+					shader->shade(cmdline.binary_intersection_debug);
+
+					if (cmdline.png_output) {
+						ostringstream oss;
+						oss << cmdline.png_prefix;
+						if (i < 100) oss << "0";
+						if (i < 10) oss << "0";
+						oss << i;
+						oss << ".png";
+
+						shader->save(oss.str());
+					}
 				}
 
 				cout << "." << flush;

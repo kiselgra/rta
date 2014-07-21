@@ -89,6 +89,7 @@ namespace rta {
 				virtual bool supports_max_t() { return true; }
 		};
 
+		//! Cuda DIS tracer.
 		template<box_t__and__tri_t, typename bvh_t>
 		class bbvh_gpu_dis_tracer : public bbvh_gpu_tracer<forward_traits, bvh_t> {
 			public:
@@ -116,6 +117,35 @@ namespace rta {
 				}
 		};
 
+		//! Cuda DIS tracer using Aila et al's box hack.
+		template<box_t__and__tri_t, typename bvh_t>
+		class bbvh_gpu_dis_ailabox_tracer : public bbvh_gpu_tracer<forward_traits, bvh_t> {
+			public:
+				typedef bvh_t bbvh_t;
+				typedef typename bbvh_t::node_t node_t;
+				declare_traits_types;
+				bbvh_gpu_dis_ailabox_tracer(rta::ray_generator *gen, bbvh_t *bvh, class bouncer *b)
+				: bbvh_gpu_tracer<forward_traits, bvh_t>(gen, bvh, b) {
+				}
+				virtual std::string identification() { return "cuda bbvh tracer."; }
+				virtual float trace_rays() {
+					wall_time_timer wtt; wtt.start();
+					void trace_dis_ailabox(tri_t *triangles, int n, node_t *nodes, 
+										   vec3f *ray_orig, vec3f *ray_dir, float *max_t, int w, int h, triangle_intersection<tri_t> *is);
+					trace_dis_ailabox(this->bbvh->triangle_data.data, this->bbvh->triangle_data.n, this->bbvh->node_data.data,
+									  (vec3f*)this->gpu_raygen->gpu_origin, (vec3f*)this->gpu_raygen->gpu_direction, this->gpu_raygen->gpu_maxt,
+									  this->gpu_raygen->w, this->gpu_raygen->h,
+									  this->gpu_bouncer->gpu_last_intersection);
+
+					float ms = wtt.look();
+					return ms;
+				}
+				virtual bbvh_gpu_dis_ailabox_tracer* copy() {
+					return new bbvh_gpu_dis_ailabox_tracer(*this);
+				}
+		};
+
+		//! Cuda DIS shadow ray tracer.
 		template<box_t__and__tri_t, typename bvh_t>
 		class bbvh_gpu_dis_shadow_tracer : public bbvh_gpu_tracer<forward_traits, bvh_t> {
 			public:
@@ -143,7 +173,36 @@ namespace rta {
 				}
 		};
 
+		//! Cuda DIS shadow ray tracer using Aila et al's box hack.
+		template<box_t__and__tri_t, typename bvh_t>
+		class bbvh_gpu_dis_ailabox_shadow_tracer : public bbvh_gpu_tracer<forward_traits, bvh_t> {
+			public:
+				typedef bvh_t bbvh_t;
+				typedef typename bbvh_t::node_t node_t;
+				declare_traits_types;
+				bbvh_gpu_dis_ailabox_shadow_tracer(rta::ray_generator *gen, bbvh_t *bvh, class bouncer *b)
+				: bbvh_gpu_tracer<forward_traits, bvh_t>(gen, bvh, b) {
+				}
+				virtual std::string identification() { return "cuda bbvh shadow ray tracer."; }
+				virtual float trace_rays() {
+					wall_time_timer wtt; wtt.start();
+					void trace_shadow_dis_ailabox(tri_t *triangles, int n, node_t *nodes, 
+												  vec3f *ray_orig, vec3f *ray_dir, float *max_t, int w, int h, triangle_intersection<tri_t> *is);
+					trace_shadow_dis_ailabox(this->bbvh->triangle_data.data, this->bbvh->triangle_data.n, this->bbvh->node_data.data,
+											 (vec3f*)this->gpu_raygen->gpu_origin, (vec3f*)this->gpu_raygen->gpu_direction, this->gpu_raygen->gpu_maxt,
+											 this->gpu_raygen->w, this->gpu_raygen->h,
+											 this->gpu_bouncer->gpu_last_intersection);
+					          
+					float ms = wtt.look();
+					return ms;
+				}
+				virtual bbvh_gpu_dis_ailabox_shadow_tracer* copy() {
+					return new bbvh_gpu_dis_ailabox_shadow_tracer(*this);
+				}
+		};
 
+
+		//! Cuda CIS tracer.
 		template<box_t__and__tri_t, typename bvh_t>
 		class bbvh_gpu_cis_tracer : public bbvh_gpu_tracer<forward_traits, bvh_t> {
 			public:
@@ -171,6 +230,35 @@ namespace rta {
 				}
 		};
 
+		//! Cuda CIS tracer using Aila et al's box hack.
+		template<box_t__and__tri_t,	typename bvh_t>
+		class bbvh_gpu_cis_ailabox_tracer : public bbvh_gpu_tracer<forward_traits, bvh_t> {
+			public:
+				typedef bvh_t bbvh_t;
+				typedef typename bbvh_t::node_t node_t;
+				declare_traits_types;
+				bbvh_gpu_cis_ailabox_tracer(rta::ray_generator *gen, bbvh_t *bvh, class bouncer *b)
+				: bbvh_gpu_tracer<forward_traits, bvh_t>(gen, bvh, b) {
+				}
+				virtual std::string identification() { return "cuda bbvh tracer."; }
+				virtual float trace_rays() {
+					wall_time_timer wtt; wtt.start();
+					void trace_cis_ailabox(tri_t *triangles, int n, node_t *nodes, 
+										   vec3f *ray_orig, vec3f *ray_dir, float *max_t, int w, int h, triangle_intersection<tri_t> *is);
+					trace_cis_ailabox(this->bbvh->triangle_data.data, this->bbvh->triangle_data.n, this->bbvh->node_data.data,
+									  (vec3f*)this->gpu_raygen->gpu_origin, (vec3f*)this->gpu_raygen->gpu_direction, this->gpu_raygen->gpu_maxt,
+									  this->gpu_raygen->w, this->gpu_raygen->h,
+									  this->gpu_bouncer->gpu_last_intersection);
+					          
+					float ms = wtt.look();
+					return ms;
+				}
+				virtual bbvh_gpu_cis_ailabox_tracer* copy() {
+					return new bbvh_gpu_cis_ailabox_tracer(*this);
+				}
+		};
+
+		//! Cuda CIS shadow ray tracer.
 		template<box_t__and__tri_t, typename bvh_t>
 		class bbvh_gpu_cis_shadow_tracer : public bbvh_gpu_tracer<forward_traits, bvh_t> {
 			public:
@@ -195,6 +283,34 @@ namespace rta {
 				}
 				virtual bbvh_gpu_cis_shadow_tracer* copy() {
 					return new bbvh_gpu_cis_shadow_tracer(*this);
+				}
+		};
+
+		//! Cuda CIS shadow ray tracer using Aila et al's box hack.
+		template<box_t__and__tri_t, typename bvh_t>
+		class bbvh_gpu_cis_ailabox_shadow_tracer : public bbvh_gpu_tracer<forward_traits, bvh_t> {
+			public:
+				typedef bvh_t bbvh_t;
+				typedef typename bbvh_t::node_t node_t;
+				declare_traits_types;
+				bbvh_gpu_cis_ailabox_shadow_tracer(rta::ray_generator *gen, bbvh_t *bvh, class bouncer *b)
+				: bbvh_gpu_tracer<forward_traits, bvh_t>(gen, bvh, b) {
+				}
+				virtual std::string identification() { return "cuda bbvh shadow ray tracer."; }
+				virtual float trace_rays() {
+					wall_time_timer wtt; wtt.start();
+					void trace_shadow_cis_ailabox(tri_t *triangles, int n, node_t *nodes, 
+												  vec3f *ray_orig, vec3f *ray_dir, float *max_t, int w, int h, triangle_intersection<tri_t> *is);
+					trace_shadow_cis_ailabox(this->bbvh->triangle_data.data, this->bbvh->triangle_data.n, this->bbvh->node_data.data,
+											 (vec3f*)this->gpu_raygen->gpu_origin, (vec3f*)this->gpu_raygen->gpu_direction, this->gpu_raygen->gpu_maxt,
+											 this->gpu_raygen->w, this->gpu_raygen->h,
+											 this->gpu_bouncer->gpu_last_intersection);
+					          
+					float ms = wtt.look();
+					return ms;
+				}
+				virtual bbvh_gpu_cis_ailabox_shadow_tracer* copy() {
+					return new bbvh_gpu_cis_ailabox_shadow_tracer(*this);
 				}
 		};
 
