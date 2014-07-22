@@ -206,10 +206,32 @@ extern "C" {
 				bvh_t *bvh = ctor->build(&ftl);;
 				base_ctor = ctor;
 				as = bvh;
-				if (cmdline.shadow_rays)
-					rt = new cuda::bbvh_gpu_dis_shadow_tracer<box_t, tri_t, bvh_t>(0, bvh, 0);
+// 				if (cmdline.shadow_rays)
+// 					rt = new cuda::bbvh_gpu_dis_shadow_tracer<box_t, tri_t, bvh_t>(0, bvh, 0);
+// 				else
+// 					rt = new cuda::bbvh_gpu_dis_tracer<box_t, tri_t, bvh_t>(0, bvh, 0);
+				if (cmdline.ailabox)
+					if (cmdline.bvh_trav == Cmdline::dis)
+						if (cmdline.shadow_rays)
+							rt = new cuda::bbvh_gpu_dis_ailabox_shadow_tracer<box_t, tri_t, bvh_t>(0, bvh, 0);
+						else
+							rt = new cuda::bbvh_gpu_dis_ailabox_tracer<box_t, tri_t, bvh_t>(0, bvh, 0);
+					else
+						if (cmdline.shadow_rays)
+							rt = new cuda::bbvh_gpu_cis_ailabox_shadow_tracer<box_t, tri_t, bvh_t>(0, bvh, 0);
+						else
+							rt = new cuda::bbvh_gpu_cis_ailabox_tracer<box_t, tri_t, bvh_t>(0, bvh, 0);
 				else
-					rt = new cuda::bbvh_gpu_dis_tracer<box_t, tri_t, bvh_t>(0, bvh, 0);
+					if (cmdline.bvh_trav == Cmdline::dis)
+						if (cmdline.shadow_rays)
+							rt = new cuda::bbvh_gpu_dis_shadow_tracer<box_t, tri_t, bvh_t>(0, bvh, 0);
+						else
+							rt = new cuda::bbvh_gpu_dis_tracer<box_t, tri_t, bvh_t>(0, bvh, 0);
+					else
+						if (cmdline.shadow_rays)
+							rt = new cuda::bbvh_gpu_cis_shadow_tracer<box_t, tri_t, bvh_t>(0, bvh, 0);
+						else
+							rt = new cuda::bbvh_gpu_cis_tracer<box_t, tri_t, bvh_t>(0, bvh, 0);
 			}
 			else {
 				// this is the more elaborate (under-the-hood) notation:
